@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Админка — GlorionPC</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <header class="header">
+    <div class="container header__inner">
+      <a href="/" class="brand">
+        <div class="brand__logo-wrap">
+          <img
+            src="/images/logo-glorionpc.png"
+            alt="Логотип GlorionPC"
+            class="brand__logo"
+          />
+        </div>
+        <div class="brand__content">
+          <span class="brand__mark">GlorionPC</span>
+          <span class="brand__text">Admin Panel</span>
+        </div>
+      </a>
+
+      <nav class="nav">
+        <a href="/">На сайт</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="admin-page">
+    <div class="container">
+      <div class="section-heading reveal">
+        <p class="section-heading__eyebrow">GlorionPC</p>
+        <h1 class="section-heading__title">Управление товарами</h1>
+      </div>
+
+      <section class="admin-block reveal">
+        <h2 id="admin-form-title">Добавить товар</h2>
+
+        <form id="admin-form" class="admin-form">
+          <input type="hidden" id="product-id" />
+
+          <div class="form-group">
+            <label for="name">Название</label>
+            <input type="text" id="name" name="name" required />
+          </div>
+
+          <div class="form-group">
+            <label for="category">Категория</label>
+            <input type="text" id="category" name="category" required />
+          </div>
+
+          <div class="form-group">
+            <label for="price">Цена</label>
+            <input type="number" id="price" name="price" required />
+          </div>
+
+          <div class="form-group">
+            <label for="oldPrice">Старая цена</label>
+            <input type="number" id="oldPrice" name="oldPrice" />
+          </div>
+
+          <div class="form-group">
+            <label for="cpu">CPU</label>
+            <input type="text" id="cpu" name="cpu" />
+          </div>
+
+          <div class="form-group">
+            <label for="gpu">GPU</label>
+            <input type="text" id="gpu" name="gpu" />
+          </div>
+
+          <div class="form-group">
+            <label for="ram">RAM</label>
+            <input type="text" id="ram" name="ram" />
+          </div>
+
+          <div class="form-group">
+            <label for="ssd">SSD</label>
+            <input type="text" id="ssd" name="ssd" />
+          </div>
+
+          <div class="form-group" style="grid-column: 1 / -1;">
+            <label for="description">Описание</label>
+            <textarea id="description" name="description" rows="4" required></textarea>
+          </div>
+
+          <div class="admin-file-group">
+            <label for="images">Фотографии товара (до 10 шт.)</label>
+            <input id="images" name="images" type="file" accept="image/*" multiple />
+          </div>
+
+          <div id="admin-images-preview" class="admin-image-preview"></div>
+
+          <label class="admin-checkbox">
+            <input type="checkbox" id="inStock" name="inStock" checked />
+            В наличии
+          </label>
+
+          <div class="admin-form-actions">
+            <button type="submit" class="btn btn-gold">Сохранить изменения</button>
+            <button type="button" class="btn btn-secondary" id="cancel-edit-btn">
+              Отменить редактирование
+            </button>
+          </div>
+        </form>
+      </section>
+
+      <section class="admin-block reveal">
+        <h2>Список товаров</h2>
+        <div id="admin-products-list" class="admin-list"></div>
+      </section>
+    </div>
+  </main>
+
+  <script src="/js/admin.js"></script>
+  <script src="/js/reveal.js"></script>
+</body>
+</html>

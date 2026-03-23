@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Вход в админку — GlorionPC</title>
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <header class="header">
+    <div class="container header__inner">
+      <a href="/" class="brand">
+        <span class="brand__mark">GlorionPC</span>
+        <span class="brand__text">Admin Access</span>
+      </a>
+    </div>
+  </header>
+
+  <main class="checkout-page">
+    <div class="container" style="max-width: 520px;">
+      <div class="section-heading">
+        <p class="section-heading__eyebrow">Авторизация</p>
+        <h1 class="section-heading__title">Вход в административную панель</h1>
+      </div>
+
+      <section class="checkout-form-block">
+        <form id="login-form" class="checkout-form">
+          <div class="form-group">
+            <label for="login">Логин</label>
+            <input type="text" id="login" name="login" placeholder="Введите логин" required />
+          </div>
+
+          <div class="form-group">
+            <label for="password">Пароль</label>
+            <input type="password" id="password" name="password" placeholder="Введите пароль" required />
+          </div>
+
+          <button class="checkout-submit-btn">Войти</button>
+        </form>
+
+        <p id="error" style="color: #ff9a9a; margin-top: 16px;"></p>
+      </section>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer__inner">
+      <div class="brand brand--footer">
+        <span class="brand__mark">GlorionPC</span>
+        <span class="brand__text">Admin Access</span>
+      </div>
+    </div>
+  </footer>
+
+  <script src="/js/admin-login.js"></script>
+</body>
+</html>
