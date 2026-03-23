@@ -98,64 +98,79 @@
       </div>
 
       <div class="hero-media-slider reveal">
-        <div class="hero-media-slider__viewport">
+        <div class="hero-media-slider__viewport" id="hero-media-viewport">
           <div class="hero-media-slider__track" id="hero-media-track">
             <article class="hero-media-slide is-active">
               <video autoplay muted loop playsinline preload="auto" poster="/images/logo-glorionpc.png">
-                <source src="/video/kolibri.mp4.mp4" type="video/mp4" />
+                <source src="/video/PremiumPC.mp4" type="video/mp4" />
               </video>
               <div class="hero-media-slide__overlay"></div>
               <div class="hero-media-slide__content">
-                <h3>Премиальные игровые компьютеры</h3>
-                <p>Стильные и мощные сборки для игр, работы и профессиональных задач.</p>
-                <a href="/catalog.html" class="hero-media-slide__button">Смотреть каталог</a>
+                <div class="hero-media-slide__text-box">
+                  <h3>Премиальные игровые компьютеры</h3>
+                  <p>Стильные и мощные сборки для игр, работы и профессиональных задач.</p>
+                  <a href="/catalog.html" class="hero-media-slide__button">Смотреть каталог</a>
+                </div>
               </div>
             </article>
 
             <article class="hero-media-slide">
-              <video autoplay muted loop playsinline preload="auto" poster="/images/logo-glorionpc.png">
-                <source src="/video/kolibri.mp4.mp4" type="video/mp4" />
-              </video>
+              <img
+                src="/images/WorkGaming.png"
+                alt="Готовые сборки для игр и работы"
+                class="hero-media-slide__image"
+              />
               <div class="hero-media-slide__overlay"></div>
               <div class="hero-media-slide__content">
-                <h3>Готовые сборки для игр и работы</h3>
-                <p>Честные характеристики, современный дизайн и удобный выбор.</p>
-                <a href="/catalog.html" class="hero-media-slide__button">Выбрать компьютер</a>
+                <div class="hero-media-slide__text-box">
+                  <h3>Готовые сборки для игр и работы</h3>
+                  <p>Честные характеристики, современный дизайн и удобный выбор.</p>
+                  <a href="/catalog.html" class="hero-media-slide__button">Выбрать компьютер</a>
+                </div>
               </div>
             </article>
 
             <article class="hero-media-slide">
-              <video autoplay muted loop playsinline preload="auto" poster="/images/logo-glorionpc.png">
-                <source src="/video/kolibri.mp4.mp4" type="video/mp4" />
-              </video>
-              <div class="hero-media-slide__overlay"></div>
-              <div class="hero-media-slide__content">
-                <h3>Сильный визуальный стиль бренда</h3>
-                <p>Тёмная эстетика, дорогая подача и премиальный образ GlorionPC.</p>
-                <a href="/catalog.html" class="hero-media-slide__button">Открыть каталог</a>
-              </div>
-            </article>
-
-            <article class="hero-media-slide">
-              <video autoplay muted loop playsinline preload="auto" poster="/images/logo-glorionpc.png">
-                <source src="/video/kolibri.mp4.mp4" type="video/mp4" />
-              </video>
-              <div class="hero-media-slide__overlay"></div>
-              <div class="hero-media-slide__content">
-                <h3>Мощность без лишних компромиссов</h3>
-                <p>Производительные ПК для тех, кто хочет максимум от системы.</p>
-                <a href="/catalog.html" class="hero-media-slide__button">Подробнее</a>
-              </div>
+              <img
+                  src="/images/PCTrio.png"
+                  alt="Удобный и быстрый заказ"
+                  class="hero-media-slide__image"
+                />
+                <div class="hero-media-slide__overlay"></div>
+                <div class="hero-media-slide__content">
+                  <div class="hero-media-slide__text-box">
+                    <h3>Удобный и быстрый заказ</h3>
+                    <p>Оформляйте заказ за пару минут через сайт и получайте понятный и простой процесс покупки.</p>
+                    <a href="/checkout.html" class="hero-media-slide__button">Перейти к заказам</a>
+                  </div>
+                </div>
             </article>
           </div>
         </div>
+
+        <button
+          class="hero-media-slider__nav hero-media-slider__nav--prev"
+          id="hero-media-prev"
+          type="button"
+          aria-label="Предыдущий слайд"
+        >
+          ‹
+        </button>
+
+        <button
+          class="hero-media-slider__nav hero-media-slider__nav--next"
+          id="hero-media-next"
+          type="button"
+          aria-label="Следующий слайд"
+        >
+          ›
+        </button>
 
         <div class="hero-media-slider__controls">
           <div class="hero-media-slider__dots" id="hero-media-dots">
             <button class="hero-media-slider__dot is-active" type="button" aria-label="Слайд 1"></button>
             <button class="hero-media-slider__dot" type="button" aria-label="Слайд 2"></button>
             <button class="hero-media-slider__dot" type="button" aria-label="Слайд 3"></button>
-            <button class="hero-media-slider__dot" type="button" aria-label="Слайд 4"></button>
           </div>
         </div>
       </div>
@@ -267,14 +282,23 @@
 
   <script>
     (function () {
+      const viewport = document.getElementById('hero-media-viewport');
       const track = document.getElementById('hero-media-track');
+      const prevBtn = document.getElementById('hero-media-prev');
+      const nextBtn = document.getElementById('hero-media-next');
       const dots = Array.from(document.querySelectorAll('.hero-media-slider__dot'));
       const slides = Array.from(document.querySelectorAll('.hero-media-slide'));
 
-      if (!track || !slides.length) return;
+      if (!viewport || !track || !slides.length) return;
 
       let currentIndex = 0;
       let autoId = null;
+
+      let isDragging = false;
+      let startX = 0;
+      let currentTranslate = 0;
+      let prevTranslate = 0;
+      let animationId = null;
 
       function getSlideMetrics() {
         const slideWidth = slides[0].getBoundingClientRect().width;
@@ -283,31 +307,112 @@
         return { slideWidth, gap };
       }
 
+      function updateDots() {
+        dots.forEach((dot, i) => {
+          dot.classList.toggle('is-active', i === currentIndex);
+        });
+      }
+
+      function updateSlides() {
+        slides.forEach((slide, i) => {
+          slide.classList.toggle('is-active', i === currentIndex);
+        });
+      }
+
       function goToSlide(index) {
+        if (index < 0) {
+          index = slides.length - 1;
+        }
+
+        if (index >= slides.length) {
+          index = 0;
+        }
+
         currentIndex = index;
 
         const { slideWidth, gap } = getSlideMetrics();
         const offset = index * (slideWidth + gap);
 
+        track.style.transition = 'transform 0.8s ease';
         track.style.transform = `translateX(-${offset}px)`;
 
-        slides.forEach((slide, i) => {
-          slide.classList.toggle('is-active', i === index);
-        });
-
-        dots.forEach((dot, i) => {
-          dot.classList.toggle('is-active', i === index);
-        });
+        updateSlides();
+        updateDots();
       }
 
       function nextSlide() {
-        const next = (currentIndex + 1) % slides.length;
-        goToSlide(next);
+        goToSlide(currentIndex + 1);
+      }
+
+      function prevSlide() {
+        goToSlide(currentIndex - 1);
       }
 
       function startAuto() {
         clearInterval(autoId);
         autoId = setInterval(nextSlide, 10000);
+      }
+
+      function stopAuto() {
+        clearInterval(autoId);
+      }
+
+      function getPositionX(event) {
+        if (event.type.includes('mouse')) return event.pageX;
+        return event.touches[0].clientX;
+      }
+
+      function setSliderPosition() {
+        track.style.transform = `translateX(${currentTranslate}px)`;
+      }
+
+      function animation() {
+        setSliderPosition();
+
+        if (isDragging) {
+          animationId = requestAnimationFrame(animation);
+        }
+      }
+
+      function dragStart(event) {
+        isDragging = true;
+        startX = getPositionX(event);
+        viewport.classList.add('is-dragging');
+
+        const { slideWidth, gap } = getSlideMetrics();
+        prevTranslate = -(currentIndex * (slideWidth + gap));
+        currentTranslate = prevTranslate;
+
+        stopAuto();
+        animationId = requestAnimationFrame(animation);
+      }
+
+      function dragMove(event) {
+        if (!isDragging) return;
+
+        const currentPosition = getPositionX(event);
+        const diff = currentPosition - startX;
+        currentTranslate = prevTranslate + diff;
+      }
+
+      function dragEnd() {
+        if (!isDragging) return;
+
+        isDragging = false;
+        viewport.classList.remove('is-dragging');
+        cancelAnimationFrame(animationId);
+
+        const movedBy = currentTranslate - prevTranslate;
+
+        if (movedBy < -80) {
+          nextSlide();
+        } else if (movedBy > 80) {
+          prevSlide();
+        } else {
+          goToSlide(currentIndex);
+        }
+
+        startAuto();
       }
 
       dots.forEach((dot, index) => {
@@ -316,6 +421,29 @@
           startAuto();
         });
       });
+
+      if (prevBtn) {
+        prevBtn.addEventListener('click', () => {
+          prevSlide();
+          startAuto();
+        });
+      }
+
+      if (nextBtn) {
+        nextBtn.addEventListener('click', () => {
+          nextSlide();
+          startAuto();
+        });
+      }
+
+      viewport.addEventListener('mousedown', dragStart);
+      viewport.addEventListener('mousemove', dragMove);
+      viewport.addEventListener('mouseup', dragEnd);
+      viewport.addEventListener('mouseleave', dragEnd);
+
+      viewport.addEventListener('touchstart', dragStart, { passive: true });
+      viewport.addEventListener('touchmove', dragMove, { passive: true });
+      viewport.addEventListener('touchend', dragEnd);
 
       window.addEventListener('resize', () => {
         goToSlide(currentIndex);
@@ -365,10 +493,11 @@
       </div>
     </div>
 
-    <button
-      type="button"
-      class="support-widget__button"
-      aria-label="Открыть поддержку">
+    <button class="support-widget__button">
+      <svg viewBox="0 0 24 24" fill="none">
+        <path d="M12 12c2.761 0 5-2.239 5-5S14.761 2 12 2 7 4.239 7 7s2.239 5 5 5z" fill="currentColor"/>
+        <path d="M4 20c0-3.314 3.582-6 8-6s8 2.686 8 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
     </button>
   </div>
 </body>

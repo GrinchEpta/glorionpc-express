@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Товар — GlorionPC</title>
+  <title>GlorionPC — Карточка товара</title>
   <meta
     name="description"
-    content="Страница товара GlorionPC."
+    content="Карточка товара GlorionPC — подробная информация о компьютере, характеристики и заказ."
   />
   <link rel="stylesheet" href="/css/style.css" />
 </head>
@@ -45,13 +45,49 @@
   <main>
     <section class="product-page">
       <div class="container">
-        <div class="section-heading reveal">
+        <div class="section-heading">
           <p class="section-heading__eyebrow">GlorionPC</p>
-          <h1 class="section-heading__title">Карточка товара</h1>
+          <h1 class="section-heading__title" id="product-page-title">Карточка товара</h1>
         </div>
 
-        <div id="product-page" class="reveal">
-          <p>Загрузка товара...</p>
+        <div class="product-details">
+          <div class="product-gallery">
+            <div class="product-gallery__main">
+              <img
+                id="product-main-image"
+                src="/images/logo-glorionpc.png"
+                alt="Изображение товара"
+              />
+            </div>
+
+            <div class="product-gallery__thumbs" id="product-gallery-thumbs"></div>
+          </div>
+
+          <div class="product-details__info">
+            <span id="product-category" class="product-card__category">Игровые</span>
+
+            <h2 class="product-details__title" id="product-title">Название товара</h2>
+
+            <p class="product-details__desc" id="product-description">
+              Описание товара
+            </p>
+
+            <div class="product-details__prices">
+              <span class="product-details__price" id="product-price"></span>
+              <span class="product-details__old-price" id="product-old-price"></span>
+            </div>
+
+            <div class="product-details__stock" id="product-stock"></div>
+
+            <div class="product-details__specs">
+              <h3>Характеристики</h3>
+              <ul id="product-specs"></ul>
+            </div>
+
+            <button type="button" class="product-card__button" id="product-buy-button">
+              Купить
+            </button>
+          </div>
         </div>
       </div>
     </section>
@@ -82,27 +118,23 @@
     </div>
   </footer>
 
-  <div class="image-modal" id="imageModal">
-    <button class="image-modal__close" id="imageModalClose">&times;</button>
-
-    <button class="image-modal__arrow image-modal__arrow--left" id="modalPrev">
-      ‹
+  <div class="image-modal" id="image-modal">
+    <button
+      type="button"
+      class="image-modal__close"
+      id="image-modal-close"
+      aria-label="Закрыть изображение"
+    >
+      ×
     </button>
 
     <img
-      class="image-modal__content"
-      id="modalImage"
+      class="image-modal__img"
+      id="image-modal-img"
+      src=""
       alt="Увеличенное изображение товара"
     />
-
-    <button class="image-modal__arrow image-modal__arrow--right" id="modalNext">
-      ›
-    </button>
   </div>
-
-  <script src="/js/cart-utils.js"></script>
-  <script src="/js/product.js"></script>
-  <script src="/js/reveal.js"></script>
 
   <div class="support-widget">
     <div class="support-widget__panel">
@@ -143,11 +175,15 @@
       </div>
     </div>
 
-    <button
-      type="button"
-      class="support-widget__button"
-      aria-label="Открыть поддержку">
+    <button type="button" class="support-widget__button" aria-label="Открыть поддержку">
+      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+        <path d="M12 12c2.761 0 5-2.239 5-5S14.761 2 12 2 7 4.239 7 7s2.239 5 5 5z" fill="currentColor"/>
+        <path d="M4 20c0-3.314 3.582-6 8-6s8 2.686 8 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+      </svg>
     </button>
   </div>
+
+  <script src="/js/cart-utils.js"></script>
+  <script src="/js/product.js"></script>
 </body>
 </html>

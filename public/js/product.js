@@ -1,32 +1,19 @@
-const productContainer = document.getElementById('product-page');
-
-/* =========================
-   💵 ЦЕНА
-========================= */
+const PRODUCT_API_URL = '/api/products';
 
 function formatPrice(price) {
   return new Intl.NumberFormat('ru-RU').format(Number(price) || 0) + ' ₽';
 }
-
-/* =========================
-   🔎 ID ТОВАРА ИЗ URL
-========================= */
 
 function getProductIdFromUrl() {
   const params = new URLSearchParams(window.location.search);
   return params.get('id');
 }
 
-/* =========================
-   🖼 КАРТИНКИ
-========================= */
-
 function getImages(product) {
   if (Array.isArray(product.images) && product.images.length > 0) {
-    return product.images.map(image => {
-      if (typeof image === 'string') return image;
-      return image?.url || '/images/logo-glorionpc.png';
-    });
+    return product.images.map((image) =>
+      typeof image === 'string' ? image : image.url
+    );
   }
 
   if (product.image) return [product.image];
@@ -35,10 +22,6 @@ function getImages(product) {
 
   return ['/images/logo-glorionpc.png'];
 }
-
-/* =========================
-   🔧 НОРМАЛИЗАЦИЯ
-========================= */
 
 function normalizeProduct(product) {
   return {
@@ -52,22 +35,62 @@ function normalizeProduct(product) {
     gpu: product.gpu || '-',
     ram: product.ram || '-',
     ssd: product.ssd || '-',
-    inStock: Boolean(product.inStock),
+    inStock: product.inStock !== false,
     images: getImages(product)
   };
 }
 
-/* =========================
-   🎯 ЦЕЛЬ КОРЗИНЫ
-========================= */
+/* IMAGE MODAL */
+
+function openImageModal(src, alt = '') {
+  const modal = document.getElementById('image-modal');
+  const modalImg = document.getElementById('image-modal-img');
+
+  if (!modal || !modalImg || !src) return;
+
+  modalImg.src = src;
+  modalImg.alt = alt || 'Увеличенное изображение товара';
+  modal.classList.add('is-open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeImageModal() {
+  const modal = document.getElementById('image-modal');
+  const modalImg = document.getElementById('image-modal-img');
+
+  if (!modal || !modalImg) return;
+
+  modal.classList.remove('is-open');
+  modalImg.src = '';
+  document.body.style.overflow = '';
+}
+
+function initImageModal() {
+  const modal = document.getElementById('image-modal');
+  const closeBtn = document.getElementById('image-modal-close');
+
+  if (!modal || !closeBtn) return;
+
+  closeBtn.addEventListener('click', closeImageModal);
+
+  modal.addEventListener('click', (event) => {
+    if (event.target === modal) {
+      closeImageModal();
+    }
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+      closeImageModal();
+    }
+  });
+}
+
+/* FLY TO CART */
 
 function getCartTarget() {
   return document.querySelector('#cart-target');
 }
-
-/* =========================
-   ✨ ЧАСТИЦЫ
-========================= */
 
 function createCartParticles(x, y) {
   for (let i = 0; i < 6; i++) {
@@ -75,7 +98,7 @@ function createCartParticles(x, y) {
     particle.className = 'cart-particle';
 
     const angle = (Math.PI * 2 * i) / 6;
-    const distance = 20 + Math.random() * 20;
+    const distance = 24 + Math.random() * 18;
     const dx = Math.cos(angle) * distance;
     const dy = Math.sin(angle) * distance;
 
@@ -85,13 +108,10 @@ function createCartParticles(x, y) {
     particle.style.setProperty('--dy', `${dy}px`);
 
     document.body.appendChild(particle);
+
     setTimeout(() => particle.remove(), 600);
   }
 }
-
-/* =========================
-   🚀 АНИМАЦИЯ В КОРЗИНУ
-========================= */
 
 function animateFly(imageElement, pulseElement = null) {
   const cartTarget = getCartTarget();
@@ -102,17 +122,14 @@ function animateFly(imageElement, pulseElement = null) {
 
   const clone = imageElement.cloneNode(true);
   clone.className = 'fly-cart-image';
-
-  Object.assign(clone.style, {
-    position: 'fixed',
-    left: `${imgRect.left}px`,
-    top: `${imgRect.top}px`,
-    width: `${imgRect.width}px`,
-    height: `${imgRect.height}px`,
-    zIndex: '99999',
-    pointerEvents: 'none',
-    margin: '0'
-  });
+  clone.style.position = 'fixed';
+  clone.style.left = `${imgRect.left}px`;
+  clone.style.top = `${imgRect.top}px`;
+  clone.style.width = `${imgRect.width}px`;
+  clone.style.height = `${imgRect.height}px`;
+  clone.style.zIndex = '99999';
+  clone.style.pointerEvents = 'none';
+  clone.style.margin = '0';
 
   document.body.appendChild(clone);
 
@@ -144,16 +161,16 @@ function animateFly(imageElement, pulseElement = null) {
     const progress = Math.min((currentTime - startTime) / duration, 1);
     const eased = easeInOutCubic(progress);
 
-    const arcHeight = -200;
+    const arcHeight = -180;
     const currentX = startX + diffX * eased;
     const currentY =
       startY +
       diffY * eased +
       arcHeight * 4 * eased * (1 - eased);
 
-    const scale = 1 - 0.8 * eased;
-    const rotate = 20 * eased;
-    const opacity = 1 - 0.6 * eased;
+    const scale = 1 - 0.78 * eased;
+    const rotate = 18 * eased;
+    const opacity = 1 - 0.55 * eased;
 
     clone.style.left = `${currentX}px`;
     clone.style.top = `${currentY}px`;
@@ -165,14 +182,17 @@ function animateFly(imageElement, pulseElement = null) {
     } else {
       clone.remove();
 
-      const cartTargetEl = document.getElementById('cart-target');
+      const cartIcon = document.querySelector('#cart-icon');
       const cartCount = document.getElementById('cart-count');
 
-      if (cartTargetEl) {
-        cartTargetEl.classList.add('cart-bump-strong');
+      if (cartIcon) {
+        cartIcon.classList.add('cart-bump-strong');
+        cartIcon.classList.add('cart-flash');
+
         setTimeout(() => {
-          cartTargetEl.classList.remove('cart-bump-strong');
-        }, 450);
+          cartIcon.classList.remove('cart-bump-strong');
+          cartIcon.classList.remove('cart-flash');
+        }, 500);
       }
 
       if (cartCount) {
@@ -192,218 +212,147 @@ function animateFly(imageElement, pulseElement = null) {
   requestAnimationFrame(animate);
 }
 
-/* =========================
-   🖼 ГАЛЕРЕЯ
-========================= */
+/* GALLERY */
 
-function initProductGallery(container, images) {
-  const mainImage = container.querySelector('.product-gallery__main img');
-  const thumbsContainer = container.querySelector('.product-gallery__thumbs');
+function renderGallery(images, productName) {
+  const mainImage = document.getElementById('product-main-image');
+  const thumbsContainer = document.getElementById('product-gallery-thumbs');
 
   if (!mainImage || !thumbsContainer) return;
 
-  thumbsContainer.innerHTML = '';
-
-  images.forEach((src, index) => {
-    const thumb = document.createElement('button');
-    thumb.type = 'button';
-    thumb.className = `product-gallery__thumb ${index === 0 ? 'is-active' : ''}`;
-    thumb.innerHTML = `<img src="${src}" alt="Миниатюра ${index + 1}">`;
-
-    thumb.addEventListener('click', () => {
-      mainImage.src = src;
-
-      thumbsContainer.querySelectorAll('.product-gallery__thumb').forEach(btn => {
-        btn.classList.remove('is-active');
-      });
-
-      thumb.classList.add('is-active');
-    });
-
-    thumbsContainer.appendChild(thumb);
-  });
-}
-
-/* =========================
-   🔍 МОДАЛКА / ZOOM
-========================= */
-
-function initImageZoom(images) {
-  const modal = document.getElementById('imageModal');
-  const modalImg = document.getElementById('modalImage');
-  const closeBtn = document.getElementById('imageModalClose');
-  const prevBtn = document.getElementById('modalPrev');
-  const nextBtn = document.getElementById('modalNext');
-  const mainImage = document.querySelector('.product-gallery__main img');
-  const thumbs = document.querySelectorAll('.product-gallery__thumb');
-
-  if (!modal || !modalImg || !mainImage) return;
-
   let currentIndex = 0;
 
-  function updateModalImage() {
-    modalImg.src = images[currentIndex];
-  }
-
-  function openModal(index) {
+  function updateMainImage(index) {
     currentIndex = index;
-    updateModalImage();
-    modal.classList.add('is-open');
-    document.body.style.overflow = 'hidden';
-  }
+    mainImage.src = images[currentIndex];
+    mainImage.alt = productName;
 
-  function closeModal() {
-    modal.classList.remove('is-open');
-    modalImg.src = '';
-    document.body.style.overflow = '';
-  }
+    const thumbs = Array.from(
+      thumbsContainer.querySelectorAll('.product-gallery__thumb')
+    );
 
-  function showNext() {
-    currentIndex = (currentIndex + 1) % images.length;
-    updateModalImage();
-  }
-
-  function showPrev() {
-    currentIndex = (currentIndex - 1 + images.length) % images.length;
-    updateModalImage();
-  }
-
-  mainImage.style.cursor = 'zoom-in';
-  mainImage.addEventListener('click', () => {
-    const currentMainSrc = mainImage.getAttribute('src');
-    const foundIndex = images.findIndex(src => src === currentMainSrc);
-    openModal(foundIndex >= 0 ? foundIndex : 0);
-  });
-
-  thumbs.forEach((thumb, index) => {
-    thumb.addEventListener('dblclick', () => {
-      openModal(index);
+    thumbs.forEach((thumb, i) => {
+      thumb.classList.toggle('is-active', i === currentIndex);
     });
+  }
+
+  thumbsContainer.innerHTML = '';
+
+  images.forEach((imageSrc, index) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'product-gallery__thumb';
+    if (index === 0) button.classList.add('is-active');
+
+    button.innerHTML = `
+      <img src="${imageSrc}" alt="${productName} ${index + 1}">
+    `;
+
+    button.addEventListener('click', () => {
+      updateMainImage(index);
+    });
+
+    thumbsContainer.appendChild(button);
   });
 
-  closeBtn?.addEventListener('click', event => {
-    event.stopPropagation();
-    closeModal();
-  });
+  mainImage.src = images[0];
+  mainImage.alt = productName;
 
-  prevBtn?.addEventListener('click', event => {
-    event.stopPropagation();
-    showPrev();
-  });
-
-  nextBtn?.addEventListener('click', event => {
-    event.stopPropagation();
-    showNext();
-  });
-
-  modal.addEventListener('click', event => {
-    if (event.target === modal) {
-      closeModal();
-    }
-  });
-
-  document.addEventListener('keydown', event => {
-    if (!modal.classList.contains('is-open')) return;
-
-    if (event.key === 'Escape') closeModal();
-    if (event.key === 'ArrowRight') showNext();
-    if (event.key === 'ArrowLeft') showPrev();
+  mainImage.addEventListener('click', () => {
+    openImageModal(images[currentIndex], productName);
   });
 }
 
-/* =========================
-   📦 ЗАГРУЗКА ТОВАРА
-========================= */
+/* RENDER PRODUCT */
 
-async function loadProduct() {
-  if (!productContainer) return;
+function renderProduct(product) {
+  const pageTitle = document.getElementById('product-page-title');
+  const category = document.getElementById('product-category');
+  const title = document.getElementById('product-title');
+  const description = document.getElementById('product-description');
+  const price = document.getElementById('product-price');
+  const oldPrice = document.getElementById('product-old-price');
+  const stock = document.getElementById('product-stock');
+  const specsList = document.getElementById('product-specs');
+  const buyButton = document.getElementById('product-buy-button');
+  const mainImage = document.getElementById('product-main-image');
+  const infoCard = document.querySelector('.product-details__info');
 
-  const productId = getProductIdFromUrl();
+  if (pageTitle) pageTitle.textContent = 'Карточка товара';
+  if (category) category.textContent = product.category;
+  if (title) title.textContent = product.name;
+  if (description) description.textContent = product.description;
+  if (price) price.textContent = formatPrice(product.price);
 
-  if (!productId) {
-    productContainer.innerHTML = '<p>Товар не указан.</p>';
-    return;
+  if (oldPrice) {
+    if (product.oldPrice) {
+      oldPrice.textContent = formatPrice(product.oldPrice);
+      oldPrice.style.display = 'inline';
+    } else {
+      oldPrice.textContent = '';
+      oldPrice.style.display = 'none';
+    }
   }
 
-  try {
-    const response = await fetch(`/api/products/${productId}`);
+  if (stock) {
+    stock.textContent = product.inStock ? 'В наличии' : 'Нет в наличии';
+    stock.classList.remove('in-stock', 'out-of-stock');
+    stock.classList.add(product.inStock ? 'in-stock' : 'out-of-stock');
+  }
 
+  if (specsList) {
+    specsList.innerHTML = `
+      <li><strong>CPU:</strong> ${product.cpu}</li>
+      <li><strong>GPU:</strong> ${product.gpu}</li>
+      <li><strong>RAM:</strong> ${product.ram}</li>
+      <li><strong>SSD:</strong> ${product.ssd}</li>
+    `;
+  }
+
+  if (buyButton) {
+    buyButton.onclick = () => {
+      const imageForAnimation = mainImage || document.querySelector('.product-gallery__main img');
+      animateFly(imageForAnimation, infoCard);
+
+      setTimeout(() => {
+        if (window.CartUtils && typeof window.CartUtils.addToCart === 'function') {
+          window.CartUtils.addToCart(product);
+        }
+      }, 180);
+    };
+  }
+
+  renderGallery(product.images, product.name);
+}
+
+async function loadProduct() {
+  const productId = getProductIdFromUrl();
+  if (!productId) return;
+
+  try {
+    const response = await fetch(`${PRODUCT_API_URL}/${productId}`);
     if (!response.ok) {
-      throw new Error('Товар не найден');
+      throw new Error('Не удалось загрузить товар');
     }
 
     const rawProduct = await response.json();
     const product = normalizeProduct(rawProduct);
-
-    productContainer.innerHTML = `
-      <div class="product-details">
-        <div class="product-gallery">
-          <div class="product-gallery__main product-details__image">
-            <img
-              src="${product.images[0] || '/images/logo-glorionpc.png'}"
-              alt="${product.name}"
-              class="product-details__image-tag"
-            />
-          </div>
-
-          <div class="product-gallery__thumbs"></div>
-        </div>
-
-        <div class="product-details__info">
-          <span class="product-card__category">${product.category}</span>
-          <h1 class="product-details__title">${product.name}</h1>
-          <p class="product-details__desc">${product.description}</p>
-
-          <div class="product-details__prices">
-            <span class="product-details__price">${formatPrice(product.price)}</span>
-            ${
-              product.oldPrice
-                ? `<span class="product-details__old-price">${formatPrice(product.oldPrice)}</span>`
-                : ''
-            }
-          </div>
-
-          <div class="product-details__stock">
-            <span class="${product.inStock ? 'in-stock' : 'out-of-stock'}">
-              ${product.inStock ? 'В наличии' : 'Нет в наличии'}
-            </span>
-          </div>
-
-          <div class="product-details__specs">
-            <h3>Характеристики</h3>
-            <ul>
-              <li><strong>CPU:</strong> ${product.cpu}</li>
-              <li><strong>GPU:</strong> ${product.gpu}</li>
-              <li><strong>RAM:</strong> ${product.ram}</li>
-              <li><strong>SSD:</strong> ${product.ssd}</li>
-            </ul>
-          </div>
-
-          <button type="button" class="btn btn-gold" id="add-to-cart-btn">
-            Купить
-          </button>
-        </div>
-      </div>
-    `;
-
-    const addToCartBtn = document.getElementById('add-to-cart-btn');
-    addToCartBtn?.addEventListener('click', () => {
-      const img = productContainer.querySelector('.product-details__image-tag');
-      const pulseTarget = productContainer.querySelector('.product-details');
-
-      animateFly(img, pulseTarget);
-
-      setTimeout(() => {
-        CartUtils.addToCart(product);
-      }, 200);
-    });
-
-    initProductGallery(productContainer, product.images);
-    initImageZoom(product.images);
+    renderProduct(product);
   } catch (error) {
     console.error('Ошибка загрузки товара:', error);
-    productContainer.innerHTML = '<p>Не удалось загрузить товар.</p>';
+
+    const title = document.getElementById('product-title');
+    const description = document.getElementById('product-description');
+
+    if (title) title.textContent = 'Товар не найден';
+    if (description) {
+      description.textContent =
+        'Не удалось загрузить информацию о товаре. Попробуйте обновить страницу.';
+    }
   }
 }
 
-document.addEventListener('DOMContentLoaded', loadProduct);
+document.addEventListener('DOMContentLoaded', () => {
+  initImageModal();
+  loadProduct();
+});
