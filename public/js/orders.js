@@ -61,9 +61,22 @@ function renderEmptyState(message) {
   if (!customerOrdersList) return;
 
   customerOrdersList.innerHTML = `
-    <div class="orders-empty">
-      <p class="orders-empty__text">${message}</p>
-      <a href="/catalog.html" class="btn btn-gold orders-empty__btn">
+    <div class="cart-empty">
+      <p>${message}</p>
+      <a href="/catalog.html" class="btn btn-gold" style="margin-top: 16px;">
+        Перейти в каталог
+      </a>
+    </div>
+  `;
+}
+
+function renderErrorState(message) {
+  if (!customerOrdersList) return;
+
+  customerOrdersList.innerHTML = `
+    <div class="cart-empty">
+      <p>${message}</p>
+      <a href="/catalog.html" class="btn btn-gold" style="margin-top: 16px;">
         Перейти в каталог
       </a>
     </div>
@@ -252,12 +265,7 @@ async function loadCustomerOrders() {
     });
   } catch (error) {
     console.error('Ошибка загрузки заказов:', error);
-
-    customerOrdersList.innerHTML = `
-      <div class="orders-empty">
-        <p class="orders-empty__text">Не удалось загрузить заказы.</p>
-      </div>
-    `;
+    renderErrorState('Не удалось загрузить заказы.');
   }
 }
 
