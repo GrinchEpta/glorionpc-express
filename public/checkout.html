@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Оформление заказа — GlorionPC</title>
+  <title>GlorionPC — Оформление заказа</title>
   <meta
     name="description"
-    content="Оформление заказа в интернет-магазине GlorionPC."
+    content="Оформление заказа в магазине GlorionPC."
   />
   <link rel="stylesheet" href="/css/style.css" />
 </head>
@@ -51,41 +51,68 @@
         </div>
 
         <div class="checkout-layout">
-          <div class="checkout-form-block reveal">
+          <div class="checkout-form-block reveal-left">
             <form id="checkout-form" class="checkout-form">
               <div class="form-group">
                 <label for="name">Имя</label>
-                <input id="name" name="name" type="text" required />
+                <input type="text" id="name" name="name" required />
               </div>
 
               <div class="form-group">
                 <label for="phone">Телефон</label>
-                <input id="phone" name="phone" type="text" required />
+                <input
+                      type="tel"
+                      name="phone"
+                      id="phone"
+                      placeholder="+7 (___) ___-__-__"
+                      maxlength="18"
+                      required
+                  />
               </div>
 
               <div class="form-group">
-                <label for="address">Адрес</label>
-                <textarea id="address" name="address" rows="5" required></textarea>
+                <label for="email">Email</label>
+                <input
+                  type="email"
+                  id="email"
+                  name="email"
+                  placeholder="example@mail.com"
+                  required
+                />
               </div>
 
-              <button type="submit" class="checkout-submit-btn">Оформить заказ</button>
+              <div class="form-group">
+  <label for="address">Адрес доставки</label>
+      <textarea
+                  id="address"
+                  name="address"
+                  rows="6"
+                  placeholder="Например: СДЭК, пункт выдачи Москва, ул. Ленина 10 или Яндекс Маркет"
+                  required
+      ></textarea>
+    <div class="form-hint">
+    Укажите пункт выдачи СДЭК или Яндекс Маркет (город, адрес или название пункта)
+  </div>
+</div>
+
+              <button type="submit" class="checkout-submit-btn">
+                Оформить заказ
+              </button>
             </form>
 
             <div id="checkout-message"></div>
           </div>
 
-          <div class="checkout-summary reveal-right">
+          <aside class="checkout-summary reveal-right">
             <h2>Ваш заказ</h2>
 
-            <div id="checkout-items" class="checkout-items">
-              <p>Загрузка товаров...</p>
-            </div>
+            <div id="checkout-items" class="checkout-items"></div>
 
             <div class="checkout-summary__total">
               <span>Итого:</span>
               <span id="checkout-total">0 ₽</span>
             </div>
-          </div>
+          </aside>
         </div>
       </div>
     </section>
@@ -116,9 +143,71 @@
     </div>
   </footer>
 
-  <script src="/js/cart-utils.js"></script>
-  <script src="/js/checkout.js"></script>
-  <script src="/js/reveal.js"></script>
+  <div class="payment-modal" id="payment-modal">
+    <div class="payment-modal__backdrop" id="payment-modal-backdrop"></div>
+
+    <div class="payment-modal__dialog">
+      <button
+        type="button"
+        class="payment-modal__close"
+        id="payment-modal-close"
+        aria-label="Закрыть окно оплаты"
+      >
+        ×
+      </button>
+
+      <h2 class="payment-modal__title">ГОТОВО</h2>
+
+      <p class="payment-modal__text" id="payment-modal-order-id"></p>
+
+      <p class="payment-modal__text">
+        Ваш заказ успешно сформирован и уже обрабатывается.
+      </p>
+
+      <p class="payment-modal__text">
+        Мы свяжемся с вами в ближайшее время, чтобы подтвердить заказ и уточнить детали.
+      </p>
+
+      <p class="payment-modal__text">
+        Сумма к оплате:
+        <strong id="payment-modal-total">0 ₽</strong>
+      </p>
+
+      <p class="payment-modal__text">
+        Для быстрой оплаты используйте QR-код.
+      </p>
+
+      <div class="payment-modal__qr" id="payment-modal-qr">
+        <img
+          src="/images/qrbank.png"
+          alt="QR-код для оплаты"
+        />
+      </div>
+
+      <div id="payment-status-message"></div>
+
+      <div class="payment-modal__actions">
+        <button
+          type="button"
+          class="btn btn-gold payment-open-bank"
+          id="open-bank-btn"
+          style="display: none;"
+        >
+          Открыть в банке
+        </button>
+
+        <button
+          type="button"
+          class="btn btn-secondary"
+          id="payment-paid-btn"
+        >
+          Я оплатил
+        </button>
+
+        <a href="/catalog.html" class="btn btn-gold">Перейти в каталог</a>
+      </div>
+    </div>
+  </div>
 
   <div class="support-widget">
     <div class="support-widget__panel">
@@ -132,7 +221,12 @@
           </span>
         </a>
 
-        <a href="https://vk.com/" class="support-widget__item" target="_blank" rel="noopener noreferrer">
+        <a
+          href="https://vk.com/"
+          class="support-widget__item"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
           <span class="support-widget__icon">
             <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
               <path d="M12.785 16.241s.287-.031.435-.188c.135-.144.13-.414.13-.414s-.019-1.263.568-1.448c.579-.182 1.322 1.221 2.111 1.761.596.407 1.05.318 1.05.318l2.109-.03s1.103-.068.58-.936c-.043-.071-.305-.645-1.566-1.811-1.319-1.222-1.143-1.024.447-3.149.97-1.296 1.358-2.088 1.237-2.427-.115-.323-.826-.237-.826-.237l-2.373.015s-.176-.024-.306.054c-.127.076-.21.253-.21.253s-.375.999-.876 1.848c-1.057 1.793-1.48 1.888-1.652 1.777-.4-.260-.3-1.042-.3-1.599 0-1.737.264-2.462-.513-2.649-.258-.063-.448-.104-1.108-.11-.847-.009-1.563.003-1.97.203-.27.132-.477.425-.35.442.157.021.514.097.702.352.243.33.235 1.07.235 1.07s.139 2.045-.324 2.298c-.318.173-.754-.18-1.69-1.808-.48-.835-.84-1.76-.84-1.76s-.07-.17-.197-.262c-.155-.112-.372-.148-.372-.148l-2.254.015s-.338.01-.461.158c-.11.131-.009.403-.009.403s1.763 4.126 3.761 6.205c1.833 1.903 3.912 1.779 3.912 1.779h.945z"/>
@@ -143,7 +237,12 @@
           </span>
         </a>
 
-        <a href="https://www.avito.ru/brands/a4bbd309b2f33e4a6f1094337908086e" class="support-widget__item" target="_blank" rel="noopener noreferrer">
+        <a
+          href="https://www.avito.ru/"
+          class="support-widget__item"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
           <span class="support-widget__icon">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <circle cx="7" cy="12" r="3" fill="#97CF26"/>
@@ -159,12 +258,16 @@
       </div>
     </div>
 
-    <button class="support-widget__button">
+    <button class="support-widget__button" aria-label="Поддержка">
       <svg viewBox="0 0 24 24" fill="none">
         <path d="M12 12c2.761 0 5-2.239 5-5S14.761 2 12 2 7 4.239 7 7s2.239 5 5 5z" fill="currentColor"/>
         <path d="M4 20c0-3.314 3.582-6 8-6s8 2.686 8 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
       </svg>
     </button>
   </div>
+
+  <script src="/js/cart-utils.js"></script>
+  <script src="/js/checkout.js"></script>
+  <script src="/js/reveal.js"></script>
 </body>
 </html>

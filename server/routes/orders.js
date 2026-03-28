@@ -103,4 +103,36 @@ router.put('/:id/status', async (req, res) => {
   }
 })
 
+router.delete('/:id', async (req, res) => {
+  try {
+    const orderId = Number(req.params.id);
+
+    if (Number.isNaN(orderId)) {
+      return res.status(400).json({ message: 'Некорректный ID заказа' });
+    }
+
+    const existingOrder = await prisma.order.findUnique({
+      where: { id: orderId },
+      include: { items: true }
+    });
+
+    if (!existingOrder) {
+      return res.status(404).json({ message: 'Заказ не найден' });
+    }
+
+    await prisma.orderItem.deleteMany({
+      where: { orderId }
+    });
+
+    await prisma.order.delete({
+      where: { id: orderId }
+    });
+
+    res.json({ message: 'Заказ удалён' });
+  } catch (error) {
+    console.error('Ошибка удаления заказа:', error);
+    res.status(500).json({ message: 'Ошибка удаления заказа' });
+  }
+});
+
 module.exports = router

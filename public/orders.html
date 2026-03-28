@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>GlorionPC — Карточка товара</title>
+  <title>GlorionPC — Мои заказы</title>
   <meta
     name="description"
-    content="Карточка товара GlorionPC — подробная информация о компьютере, характеристики и заказ."
+    content="История и отслеживание заказов GlorionPC."
   />
   <link rel="stylesheet" href="/css/style.css" />
 </head>
@@ -43,52 +43,19 @@
   </header>
 
   <main>
-    <section class="product-page">
+    <section class="orders-page">
       <div class="container">
-        <div class="section-heading">
+        <div class="section-heading reveal">
           <p class="section-heading__eyebrow">GlorionPC</p>
-          <h1 class="section-heading__title" id="product-page-title">Карточка товара</h1>
+          <h1 class="section-heading__title">Мои заказы</h1>
+          <p class="section-heading__text">
+            Здесь вы можете посмотреть историю заказов, текущий статус и состав каждой сборки.
+          </p>
         </div>
 
-        <div class="product-details">
-          <div class="product-gallery">
-            <div class="product-gallery__main">
-              <img
-                id="product-main-image"
-                src="/images/logo-glorionpc.png"
-                alt="Изображение товара"
-              />
-            </div>
-
-            <div class="product-gallery__thumbs" id="product-gallery-thumbs"></div>
-          </div>
-
-          <div class="product-details__info">
-            <span id="product-category" class="product-card__category">Игровые</span>
-
-            <h2 class="product-details__title" id="product-title">Название товара</h2>
-
-            <p class="product-details__desc" id="product-description">
-              Описание товара
-            </p>
-
-            <div class="product-details__prices">
-              <span class="product-details__price" id="product-price"></span>
-              <span class="product-details__old-price" id="product-old-price"></span>
-            </div>
-
-            <div class="product-details__stock" id="product-stock"></div>
-
-            <div class="product-details__specs">
-              <h3>Характеристики</h3>
-              <ul id="product-specs"></ul>
-            </div>
-
-            <button type="button" class="product-card__button" id="product-buy-button">
-              Купить
-            </button>
-          </div>
-        </div>
+        <section class="orders-block reveal">
+          <div id="customer-orders-list" class="customer-orders-list"></div>
+        </section>
       </div>
     </section>
   </main>
@@ -114,27 +81,10 @@
         <a href="/">Главная</a>
         <a href="/catalog.html">Каталог</a>
         <a href="/cart.html">Корзина</a>
+        <a href="/orders.html">Заказы</a>
       </div>
     </div>
   </footer>
-
-  <div class="image-modal" id="image-modal">
-    <button
-      type="button"
-      class="image-modal__close"
-      id="image-modal-close"
-      aria-label="Закрыть изображение"
-    >
-      ×
-    </button>
-
-    <img
-      class="image-modal__img"
-      id="image-modal-img"
-      src=""
-      alt="Увеличенное изображение товара"
-    />
-  </div>
 
   <div class="support-widget">
     <div class="support-widget__panel">
@@ -148,7 +98,12 @@
           </span>
         </a>
 
-        <a href="https://vk.com/" class="support-widget__item" target="_blank" rel="noopener noreferrer">
+        <a
+          href="https://vk.com/"
+          class="support-widget__item"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
           <span class="support-widget__icon">
             <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
               <path d="M12.785 16.241s.287-.031.435-.188c.135-.144.13-.414.13-.414s-.019-1.263.568-1.448c.579-.182 1.322 1.221 2.111 1.761.596.407 1.05.318 1.05.318l2.109-.03s1.103-.068.58-.936c-.043-.071-.305-.645-1.566-1.811-1.319-1.222-1.143-1.024.447-3.149.97-1.296 1.358-2.088 1.237-2.427-.115-.323-.826-.237-.826-.237l-2.373.015s-.176-.024-.306.054c-.127.076-.21.253-.21.253s-.375.999-.876 1.848c-1.057 1.793-1.48 1.888-1.652 1.777-.4-.260-.3-1.042-.3-1.599 0-1.737.264-2.462-.513-2.649-.258-.063-.448-.104-1.108-.11-.847-.009-1.563.003-1.97.203-.27.132-.477.425-.35.442.157.021.514.097.702.352.243.33.235 1.07.235 1.07s.139 2.045-.324 2.298c-.318.173-.754-.18-1.69-1.808-.48-.835-.84-1.76-.84-1.76s-.07-.17-.197-.262c-.155-.112-.372-.148-.372-.148l-2.254.015s-.338.01-.461.158c-.11.131-.009.403-.009.403s1.763 4.126 3.761 6.205c1.833 1.903 3.912 1.779 3.912 1.779h.945z"/>
@@ -159,13 +114,18 @@
           </span>
         </a>
 
-        <a href="https://www.avito.ru/brands/a4bbd309b2f33e4a6f1094337908086e" class="support-widget__item" target="_blank" rel="noopener noreferrer">
+        <a
+          href="https://www.avito.ru/"
+          class="support-widget__item"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
           <span class="support-widget__icon">
             <svg viewBox="0 0 24 24" aria-hidden="true">
-              <circle cx="7" cy="12" r="3" fill="#97CF26"/>
-              <circle cx="12" cy="7" r="3" fill="#FF4053"/>
-              <circle cx="17" cy="12" r="3" fill="#009CF0"/>
-              <circle cx="12" cy="17" r="3" fill="#A169F7"/>
+              <circle cx="7" cy="12" r="3" fill="#97CF26"></circle>
+              <circle cx="12" cy="7" r="3" fill="#FF4053"></circle>
+              <circle cx="17" cy="12" r="3" fill="#009CF0"></circle>
+              <circle cx="12" cy="17" r="3" fill="#A169F7"></circle>
             </svg>
           </span>
           <span class="support-widget__text">
@@ -175,15 +135,16 @@
       </div>
     </div>
 
-    <button type="button" class="support-widget__button" aria-label="Открыть поддержку">
-      <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
-        <path d="M12 12c2.761 0 5-2.239 5-5S14.761 2 12 2 7 4.239 7 7s2.239 5 5 5z" fill="currentColor"/>
-        <path d="M4 20c0-3.314 3.582-6 8-6s8 2.686 8 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+    <button class="support-widget__button" aria-label="Поддержка">
+      <svg viewBox="0 0 24 24" fill="none">
+        <path d="M12 12c2.761 0 5-2.239 5-5S14.761 2 12 2 7 4.239 7 7s2.239 5 5 5z" fill="currentColor"></path>
+        <path d="M4 20c0-3.314 3.582-6 8-6s8 2.686 8 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
       </svg>
     </button>
   </div>
 
   <script src="/js/cart-utils.js"></script>
-  <script src="/js/product.js"></script>
+  <script src="/js/orders.js"></script>
+  <script src="/js/reveal.js"></script>
 </body>
 </html>

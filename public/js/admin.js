@@ -1,20 +1,49 @@
 const API_URL = '/api/products';
+const ORDERS_API_URL = '/api/orders';
 
 const adminForm = document.getElementById('admin-form');
 const productIdInput = document.getElementById('product-id');
 const formTitle = document.getElementById('admin-form-title');
 const cancelEditBtn = document.getElementById('cancel-edit-btn');
 const productsList = document.getElementById('admin-products-list');
+const ordersList = document.getElementById('admin-orders-list');
 const imagesInput = document.getElementById('images');
 const imagesPreview = document.getElementById('admin-images-preview');
 
 let imageItems = [];
-// Формат:
-// старое фото: { type: 'existing', url: '/images/xxx.jpg' }
-// новое фото:  { type: 'new', file: File, previewUrl: 'blob:...' }
 
 function formatPrice(price) {
   return new Intl.NumberFormat('ru-RU').format(Number(price) || 0) + ' ₽';
+}
+
+function getStatusText(status) {
+  switch (status) {
+    case 'new':
+      return 'Новый';
+    case 'processing':
+      return 'В обработке';
+    case 'completed':
+      return 'Завершён';
+    case 'cancelled':
+      return 'Отменён';
+    default:
+      return status || 'Неизвестно';
+  }
+}
+
+function getStatusClass(status) {
+  switch (status) {
+    case 'new':
+      return 'order-status order-status--new';
+    case 'processing':
+      return 'order-status order-status--processing';
+    case 'completed':
+      return 'order-status order-status--completed';
+    case 'cancelled':
+      return 'order-status order-status--cancelled';
+    default:
+      return 'order-status';
+  }
 }
 
 function resetForm() {
@@ -229,6 +258,122 @@ async function loadProducts() {
   }
 }
 
+async function loadOrders() {
+  if (!ordersList) return;
+
+  try {
+    const response = await fetch(ORDERS_API_URL);
+    const orders = await response.json();
+
+    ordersList.innerHTML = '';
+
+    if (!orders.length) {
+      ordersList.innerHTML = '<p>Заказов пока нет.</p>';
+      return;
+    }
+
+    orders.forEach(order => {
+      const item = document.createElement('div');
+      item.className = 'admin-item';
+
+      const itemsHtml = Array.isArray(order.items)
+        ? order.items
+            .map(orderItem => {
+              const productName = orderItem.product?.name || 'Товар';
+              return `<li>${productName} — ${orderItem.quantity} шт. × ${formatPrice(orderItem.price)}</li>`;
+            })
+            .join('')
+        : '';
+
+      item.innerHTML = `
+        <div class="admin-item__content">
+          <h3>Заказ #${order.id}</h3>
+          <p><strong>Имя:</strong> ${order.customerName || '-'}</p>
+          <p><strong>Телефон:</strong> ${order.phone || '-'}</p>
+          <p><strong>Email:</strong> ${order.email || '-'}</p>
+          <p><strong>Комментарий:</strong> ${order.comment || '-'}</p>
+          <p><strong>Сумма:</strong> ${formatPrice(order.total)}</p>
+          <p>
+            <strong>Статус:</strong>
+            <span class="${getStatusClass(order.status)}">${getStatusText(order.status)}</span>
+          </p>
+
+          <div class="admin-order-items">
+            <strong>Товары:</strong>
+            <ul>${itemsHtml}</ul>
+          </div>
+
+          <div class="admin-order-status">
+            <select class="order-status-select">
+              <option value="new" ${order.status === 'new' ? 'selected' : ''}>Новый</option>
+              <option value="processing" ${order.status === 'processing' ? 'selected' : ''}>В обработке</option>
+              <option value="completed" ${order.status === 'completed' ? 'selected' : ''}>Завершён</option>
+              <option value="cancelled" ${order.status === 'cancelled' ? 'selected' : ''}>Отменён</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="admin-item__actions">
+          <button type="button" class="btn btn-secondary btn-small delete-order-btn">
+            Удалить заказ
+          </button>
+        </div>
+      `;
+
+      const select = item.querySelector('.order-status-select');
+      const deleteBtn = item.querySelector('.delete-order-btn');
+
+      select.addEventListener('change', async () => {
+        try {
+          const updateResponse = await fetch(`${ORDERS_API_URL}/${order.id}/status`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ status: select.value })
+          });
+
+          if (!updateResponse.ok) {
+            throw new Error('Не удалось обновить статус');
+          }
+
+          await loadOrders();
+        } catch (error) {
+          console.error(error);
+          alert('Не удалось обновить статус заказа');
+        }
+      });
+
+      deleteBtn.addEventListener('click', async () => {
+        const confirmed = confirm(`Удалить заказ #${order.id}?`);
+        if (!confirmed) return;
+
+        try {
+          const deleteResponse = await fetch(`${ORDERS_API_URL}/${order.id}`, {
+            method: 'DELETE'
+          });
+
+          const data = await deleteResponse.json();
+
+          if (!deleteResponse.ok) {
+            throw new Error(data.message || 'Не удалось удалить заказ');
+          }
+
+          await loadOrders();
+        } catch (error) {
+          console.error(error);
+          alert(error.message || 'Не удалось удалить заказ');
+        }
+      });
+
+      ordersList.appendChild(item);
+    });
+  } catch (error) {
+    console.error('Ошибка загрузки заказов:', error);
+    ordersList.innerHTML = '<p>Не удалось загрузить заказы.</p>';
+  }
+}
+
 adminForm?.addEventListener('submit', async event => {
   event.preventDefault();
 
@@ -283,4 +428,7 @@ adminForm?.addEventListener('submit', async event => {
   }
 });
 
-document.addEventListener('DOMContentLoaded', loadProducts);
+document.addEventListener('DOMContentLoaded', async () => {
+  await loadProducts();
+  await loadOrders();
+});

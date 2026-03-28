@@ -3,10 +3,143 @@ const checkoutItemsContainer = document.getElementById('checkout-items');
 const checkoutTotalElement = document.getElementById('checkout-total');
 const checkoutMessage = document.getElementById('checkout-message');
 
+const paymentModal = document.getElementById('payment-modal');
+const paymentModalClose = document.getElementById('payment-modal-close');
+const paymentModalBackdrop = document.getElementById('payment-modal-backdrop');
+const openBankBtn = document.getElementById('open-bank-btn');
+const paymentQrBlock = document.getElementById('payment-modal-qr');
+const paymentTotal = document.getElementById('payment-modal-total');
+const paymentOrderId = document.getElementById('payment-modal-order-id');
+const paymentPaidBtn = document.getElementById('payment-paid-btn');
+const paymentStatusMessage = document.getElementById('payment-status-message');
+const phoneInput = document.getElementById('phone');
+
+/* =========================
+   ⚠️ ВСТАВЬ СВОЮ ССЫЛКУ ОПЛАТЫ
+========================= */
+const PAYMENT_LINK = 'https://example.com/payment-link';
+
+/* =========================
+   💾 ДАННЫЕ ДЛЯ МОДАЛКИ
+========================= */
+let lastOrderTotal = 0;
+let currentOrderId = null;
+
+/* =========================
+   📱 ПРОВЕРКА МОБИЛЬНОГО
+========================= */
+function isMobileDevice() {
+  return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+}
+
+/* =========================
+   🔁 СОСТОЯНИЕ ФОРМЫ
+========================= */
+function setCheckoutFormState(isEnabled) {
+  if (!checkoutForm) return;
+
+  checkoutForm.style.pointerEvents = isEnabled ? 'auto' : 'none';
+  checkoutForm.style.opacity = isEnabled ? '1' : '0.6';
+}
+
+/* =========================
+   💾 СОХРАНЕНИЕ ID ЗАКАЗА
+========================= */
+function saveOrderIdToLocalStorage(orderId) {
+  if (!orderId) return;
+
+  try {
+    const existingOrders = JSON.parse(localStorage.getItem('glorionpc_orders') || '[]');
+
+    if (!existingOrders.includes(orderId)) {
+      existingOrders.unshift(orderId);
+      localStorage.setItem('glorionpc_orders', JSON.stringify(existingOrders));
+    }
+  } catch (error) {
+    console.error('Ошибка сохранения ID заказа в localStorage:', error);
+  }
+}
+
+/* =========================
+   📞 МАСКА ТЕЛЕФОНА
+========================= */
+function getPhoneDigits(value) {
+  return value.replace(/\D/g, '');
+}
+
+function formatPhoneValue(value) {
+  let digits = getPhoneDigits(value);
+
+  if (!digits.length) {
+    return '';
+  }
+
+  if (digits[0] === '8') {
+    digits = '7' + digits.slice(1);
+  }
+
+  if (digits[0] !== '7') {
+    digits = '7' + digits;
+  }
+
+  digits = digits.slice(0, 11);
+
+  let result = '+7';
+
+  if (digits.length > 1) {
+    result += ' (' + digits.slice(1, 4);
+  }
+
+  if (digits.length >= 5) {
+    result += ') ' + digits.slice(4, 7);
+  }
+
+  if (digits.length >= 8) {
+    result += '-' + digits.slice(7, 9);
+  }
+
+  if (digits.length >= 10) {
+    result += '-' + digits.slice(9, 11);
+  }
+
+  return result;
+}
+
+function setupPhoneMask() {
+  if (!phoneInput) return;
+
+  phoneInput.addEventListener('focus', () => {
+    if (!phoneInput.value.trim()) {
+      phoneInput.value = '+7';
+    }
+  });
+
+  phoneInput.addEventListener('input', () => {
+    phoneInput.value = formatPhoneValue(phoneInput.value);
+  });
+
+  phoneInput.addEventListener('blur', () => {
+    const digits = getPhoneDigits(phoneInput.value);
+
+    if (digits.length <= 1) {
+      phoneInput.value = '';
+    }
+  });
+
+  phoneInput.addEventListener('keydown', (event) => {
+    if (
+      event.key === 'Backspace' &&
+      (phoneInput.value === '+7' || phoneInput.value === '+7 ')
+    ) {
+      phoneInput.value = '';
+      event.preventDefault();
+    }
+  });
+}
+
 /* =========================
    🧾 РЕНДЕР ТОВАРОВ
 ========================= */
-
 function renderCheckoutItems() {
   if (!checkoutItemsContainer || !checkoutTotalElement) return;
 
@@ -23,56 +156,187 @@ function renderCheckoutItems() {
     `;
 
     checkoutTotalElement.textContent = CartUtils.formatPrice(0);
-
-    if (checkoutForm) {
-      checkoutForm.style.opacity = '0.6';
-      checkoutForm.style.pointerEvents = 'none';
-    }
-
+    setCheckoutFormState(false);
     return;
   }
 
-  if (checkoutForm) {
-    checkoutForm.style.opacity = '1';
-    checkoutForm.style.pointerEvents = 'auto';
-  }
+  setCheckoutFormState(true);
 
-  checkoutItemsContainer.innerHTML = cart.map(item => {
-    const quantity = Number(item.quantity) || 1;
-    const price = Number(item.price) || 0;
-    const subtotal = price * quantity;
+  checkoutItemsContainer.innerHTML = cart
+    .map((item) => {
+      const quantity = Number(item.quantity) || 1;
+      const price = Number(item.price) || 0;
+      const subtotal = price * quantity;
+      const image = item.image || '/images/logo-glorionpc.png';
+      const name = item.name || 'Товар';
 
-    return `
-      <div class="checkout-item">
-        <div class="checkout-item__left">
-          <div class="checkout-item__thumb">
-            <img src="${item.image || '/images/logo-glorionpc.png'}" alt="${item.name}">
-          </div>
+      return `
+        <div class="checkout-item">
+          <div class="checkout-item__left">
+            <div class="checkout-item__thumb">
+              <img src="${image}" alt="${name}">
+            </div>
 
-          <div>
-            <div class="checkout-item__title">${item.name}</div>
-            <div class="checkout-item__meta">
-              ${item.category || 'Сборка'} · ${quantity} шт.
+            <div>
+              <div class="checkout-item__title">${name}</div>
+              <div class="checkout-item__meta">
+                ${item.category || 'Сборка'} · ${quantity} шт.
+              </div>
             </div>
           </div>
-        </div>
 
-        <div class="checkout-item__price">
-          ${CartUtils.formatPrice(subtotal)}
+          <div class="checkout-item__price">
+            ${CartUtils.formatPrice(subtotal)}
+          </div>
         </div>
-      </div>
-    `;
-  }).join('');
+      `;
+    })
+    .join('');
 
-  checkoutTotalElement.textContent = CartUtils.formatPrice(
-    CartUtils.getCartTotal()
-  );
+  checkoutTotalElement.textContent = CartUtils.formatPrice(CartUtils.getCartTotal());
+}
+
+/* =========================
+   💬 СООБЩЕНИЯ
+========================= */
+function showCheckoutMessage(text, type) {
+  if (!checkoutMessage) return;
+
+  if (!text) {
+    checkoutMessage.innerHTML = '';
+    return;
+  }
+
+  checkoutMessage.innerHTML = `
+    <div class="checkout-message checkout-message--${type}">
+      ${text}
+    </div>
+  `;
+}
+
+function showPaymentStatusMessage(text, type = 'success') {
+  if (!paymentStatusMessage) return;
+
+  if (!text) {
+    paymentStatusMessage.innerHTML = '';
+    return;
+  }
+
+  paymentStatusMessage.innerHTML = `
+    <div class="checkout-message checkout-message--${type}">
+      ${text}
+    </div>
+  `;
+}
+
+/* =========================
+   💳 МОДАЛКА ОПЛАТЫ
+========================= */
+function setupPaymentView() {
+  const mobile = isMobileDevice();
+
+  if (paymentQrBlock) {
+    paymentQrBlock.style.display = mobile ? 'none' : 'flex';
+  }
+
+  if (openBankBtn) {
+    openBankBtn.style.display = mobile ? 'inline-flex' : 'none';
+  }
+}
+
+function setPaymentTotalValue(total) {
+  if (!paymentTotal) return;
+  paymentTotal.textContent = CartUtils.formatPrice(total || 0);
+}
+
+function setPaymentOrderId(orderId) {
+  if (!paymentOrderId) return;
+  paymentOrderId.textContent = orderId ? `Номер заказа: #${orderId}` : '';
+}
+
+function resetPaymentModalState() {
+  showPaymentStatusMessage('');
+
+  if (paymentPaidBtn) {
+    paymentPaidBtn.disabled = false;
+    paymentPaidBtn.textContent = 'Я оплатил';
+  }
+}
+
+function openPaymentModal(total, orderId) {
+  if (!paymentModal) return;
+
+  setPaymentTotalValue(total);
+  setPaymentOrderId(orderId);
+  setupPaymentView();
+  resetPaymentModalState();
+
+  paymentModal.classList.add('is-open');
+  document.body.classList.add('modal-open');
+}
+
+function closePaymentModal() {
+  if (!paymentModal) return;
+
+  paymentModal.classList.remove('is-open');
+  document.body.classList.remove('modal-open');
+}
+
+/* =========================
+   ✅ Я ОПЛАТИЛ
+========================= */
+async function markOrderAsPaid() {
+  if (!currentOrderId) {
+    showPaymentStatusMessage('Не найден номер заказа.', 'error');
+    return;
+  }
+
+  try {
+    if (paymentPaidBtn) {
+      paymentPaidBtn.disabled = true;
+      paymentPaidBtn.textContent = 'Обновляем статус...';
+    }
+
+    const response = await fetch(`/api/orders/${currentOrderId}/status`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ status: 'processing' })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Не удалось обновить статус заказа');
+    }
+
+    showPaymentStatusMessage(
+      'Статус заказа обновлён. Мы видим, что вы оплатили заказ, и скоро свяжемся с вами.',
+      'success'
+    );
+
+    if (paymentPaidBtn) {
+      paymentPaidBtn.textContent = 'Статус обновлён';
+    }
+  } catch (error) {
+    console.error('Ошибка обновления статуса заказа:', error);
+
+    showPaymentStatusMessage(
+      error.message || 'Не удалось обновить статус заказа.',
+      'error'
+    );
+
+    if (paymentPaidBtn) {
+      paymentPaidBtn.disabled = false;
+      paymentPaidBtn.textContent = 'Я оплатил';
+    }
+  }
 }
 
 /* =========================
    📦 ОТПРАВКА ЗАКАЗА
 ========================= */
-
 async function submitOrder(event) {
   event.preventDefault();
 
@@ -90,105 +354,111 @@ async function submitOrder(event) {
   const customerName = formData.get('name')?.toString().trim();
   const customerPhone = formData.get('phone')?.toString().trim();
   const customerAddress = formData.get('address')?.toString().trim();
+  const customerEmail = formData.get('email')?.toString().trim();
 
-  // простая валидация
-  if (!customerName || !customerPhone || !customerAddress) {
+  if (!customerName || !customerPhone || !customerEmail || !customerAddress) {
     showCheckoutMessage('Заполните все поля формы.', 'error');
     return;
   }
 
-  if (customerPhone.length < 6) {
-    showCheckoutMessage('Введите корректный номер телефона.', 'error');
+  const phoneDigits = getPhoneDigits(customerPhone);
+
+  if (phoneDigits.length !== 11 || phoneDigits[0] !== '7') {
+    showCheckoutMessage('Введите телефон в формате +7 (999) 999-99-99.', 'error');
     return;
   }
 
+  if (!customerEmail.includes('@')) {
+    showCheckoutMessage('Введите корректный email.', 'error');
+    return;
+  }
+
+  const orderTotal = CartUtils.getCartTotal();
+  lastOrderTotal = orderTotal;
+
   const orderPayload = {
-    customerName,
-    customerPhone,
-    customerAddress,
-    items: cart.map(item => ({
-      productId: item.id,
-      name: item.name,
-      price: Number(item.price) || 0,
+    customer: {
+      name: customerName,
+      phone: customerPhone,
+      email: customerEmail,
+      comment: customerAddress
+    },
+    items: cart.map((item) => ({
+      id: item.id,
       quantity: Number(item.quantity) || 1,
-      image: item.image || '',
-      category: item.category || '',
-      cpu: item.cpu || '-',
-      gpu: item.gpu || '-',
-      ram: item.ram || '-',
-      ssd: item.ssd || '-'
+      price: Number(item.price) || 0
     })),
-    totalAmount: CartUtils.getCartTotal(),
-    createdAt: new Date().toISOString()
+    total: orderTotal
   };
 
   try {
-    // 🔒 блокируем форму
-    checkoutForm.style.pointerEvents = 'none';
-    checkoutForm.style.opacity = '0.6';
+    showCheckoutMessage('');
+    setCheckoutFormState(false);
 
     const response = await fetch('/api/orders', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json'
+      },
       body: JSON.stringify(orderPayload)
     });
 
+    const data = await response.json();
+
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(errorText || 'Ошибка сервера');
+      throw new Error(data.message || 'Ошибка сервера');
     }
+
+    currentOrderId = data?.order?.id || null;
+    saveOrderIdToLocalStorage(currentOrderId);
 
     CartUtils.clearCart();
     renderCheckoutItems();
-    checkoutForm.reset();
 
-    // обновляем кружок
     if (window.updateCartIndicator) {
-      updateCartIndicator();
+      window.updateCartIndicator();
     }
 
-    showCheckoutMessage('Заказ успешно оформлен!', 'success');
-
-    setTimeout(() => {
-      window.location.href = '/';
-    }, 1500);
-
+    openPaymentModal(lastOrderTotal, currentOrderId);
   } catch (error) {
     console.error('Ошибка оформления заказа:', error);
 
     showCheckoutMessage(
-      'Не удалось оформить заказ. Попробуйте ещё раз.',
+      error.message || 'Не удалось оформить заказ. Попробуйте ещё раз.',
       'error'
     );
 
-    // разблокируем форму обратно
-    checkoutForm.style.pointerEvents = 'auto';
-    checkoutForm.style.opacity = '1';
+    setCheckoutFormState(true);
   }
-}
-
-/* =========================
-   💬 СООБЩЕНИЕ
-========================= */
-
-function showCheckoutMessage(text, type) {
-  if (!checkoutMessage) return;
-
-  checkoutMessage.innerHTML = `
-    <div class="checkout-message checkout-message--${type}">
-      ${text}
-    </div>
-  `;
 }
 
 /* =========================
    🚀 ЗАПУСК
 ========================= */
-
 document.addEventListener('DOMContentLoaded', () => {
   renderCheckoutItems();
+  setupPhoneMask();
 
   if (checkoutForm) {
     checkoutForm.addEventListener('submit', submitOrder);
   }
+
+  paymentModalClose?.addEventListener('click', closePaymentModal);
+  paymentModalBackdrop?.addEventListener('click', closePaymentModal);
+  paymentPaidBtn?.addEventListener('click', markOrderAsPaid);
+
+  openBankBtn?.addEventListener('click', () => {
+    if (!PAYMENT_LINK || PAYMENT_LINK === 'https://example.com/payment-link') {
+      alert('Сначала вставь свою ссылку оплаты в checkout.js');
+      return;
+    }
+
+    window.location.href = PAYMENT_LINK;
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && paymentModal?.classList.contains('is-open')) {
+      closePaymentModal();
+    }
+  });
 });
