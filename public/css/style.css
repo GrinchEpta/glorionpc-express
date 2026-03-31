@@ -2713,3 +2713,242 @@ body.modal-open {
     padding: 7px 12px;
   }
 }
+/* =========================
+   MOBILE FIX: HEADER + CUSTOM PC
+========================= */
+@media (max-width: 720px) {
+  .header {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+  }
+
+  .header__inner {
+    min-height: auto;
+    gap: 12px;
+    padding: 10px 0;
+    align-items: flex-start;
+  }
+
+  .brand {
+    width: 100%;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .brand__logo-wrap {
+    width: 42px;
+    height: 42px;
+  }
+
+  .brand__mark {
+    font-size: 18px;
+    line-height: 1.1;
+  }
+
+  .brand__text {
+    font-size: 9px;
+    letter-spacing: 0.1em;
+  }
+
+  .nav {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px 14px;
+    align-items: center;
+    justify-items: start;
+  }
+
+  .nav a,
+  .cart-link {
+    font-size: 14px;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
+  .cart-link {
+    padding-right: 16px;
+  }
+
+  .cart-link__target {
+    margin-left: 4px;
+    width: 12px;
+    height: 12px;
+  }
+
+  .checkout-page {
+    padding: 34px 0 20px;
+  }
+
+  .section-heading {
+    margin-bottom: 20px;
+  }
+
+  .section-heading__eyebrow {
+    font-size: 12px;
+    margin-bottom: 10px;
+  }
+
+  .section-heading__title {
+    font-size: 28px;
+    line-height: 1.1;
+  }
+
+  .hero__description {
+    font-size: 15px;
+    line-height: 1.5;
+    max-width: 100%;
+  }
+
+  .checkout-layout {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+
+  .checkout-form-block,
+  .checkout-summary {
+    padding: 18px;
+    border-radius: 18px;
+  }
+
+  .checkout-form {
+    gap: 16px;
+  }
+
+  .form-group {
+    gap: 8px;
+  }
+
+  .form-group label {
+    font-size: 14px;
+  }
+
+  .form-group input,
+  .form-group textarea,
+  .form-group select {
+    width: 100%;
+    min-height: 48px;
+    padding: 14px 14px;
+    font-size: 16px;
+    border-radius: 14px;
+  }
+
+  .form-group textarea {
+    min-height: 120px;
+    resize: vertical;
+  }
+
+  .checkout-submit-btn,
+  .cart-summary__button {
+    min-height: 48px;
+    padding: 14px 16px;
+    font-size: 15px;
+    border-radius: 14px;
+  }
+
+  .checkout-summary h2 {
+    font-size: 22px;
+    margin-bottom: 16px;
+  }
+
+  .cart-summary__row {
+    font-size: 14px;
+  }
+
+  .checkout-summary__total {
+    font-size: 18px;
+  }
+
+  .support-widget {
+    left: 12px;
+    bottom: 12px;
+    z-index: 900;
+  }
+
+  .support-widget__button {
+    width: 58px;
+    height: 58px;
+  }
+
+  .support-widget__button svg {
+    width: 26px;
+    height: 26px;
+  }
+
+  .support-widget__panel {
+    width: min(270px, calc(100vw - 24px));
+    bottom: 66px;
+  }
+}
+
+/* =========================
+   EXTRA SMALL PHONES
+========================= */
+@media (max-width: 480px) {
+  .container {
+    width: min(100%, calc(100% - 20px));
+  }
+
+  .header__inner {
+    padding: 8px 0;
+  }
+
+  .brand__logo-wrap {
+    width: 38px;
+    height: 38px;
+  }
+
+  .brand__mark {
+    font-size: 16px;
+  }
+
+  .brand__text {
+    font-size: 8px;
+  }
+
+  .nav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px 12px;
+  }
+
+  .nav a,
+  .cart-link {
+    font-size: 13px;
+  }
+
+  .section-heading__title {
+    font-size: 24px;
+  }
+
+  .hero__description {
+    font-size: 14px;
+  }
+
+  .checkout-form-block,
+  .checkout-summary {
+    padding: 16px;
+  }
+
+  .form-group input,
+  .form-group textarea,
+  .form-group select {
+    font-size: 16px;
+    padding: 13px 12px;
+  }
+
+  .form-group textarea {
+    min-height: 110px;
+  }
+
+  .support-widget {
+    left: 10px;
+    bottom: 10px;
+  }
+
+  .support-widget__button {
+    width: 54px;
+    height: 54px;
+  }
+}
