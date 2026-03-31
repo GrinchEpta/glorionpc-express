@@ -1,5 +1,6 @@
 const API_URL = '/api/products';
 const ORDERS_API_URL = '/api/orders';
+const CUSTOM_PC_REQUESTS_API_URL = '/api/custom-pc-requests';
 
 const adminForm = document.getElementById('admin-form');
 const productIdInput = document.getElementById('product-id');
@@ -7,6 +8,7 @@ const formTitle = document.getElementById('admin-form-title');
 const cancelEditBtn = document.getElementById('cancel-edit-btn');
 const productsList = document.getElementById('admin-products-list');
 const ordersList = document.getElementById('admin-orders-list');
+const adminCustomPcRequestsList = document.getElementById('admin-custom-pc-requests-list');
 const imagesInput = document.getElementById('images');
 const imagesPreview = document.getElementById('admin-images-preview');
 
@@ -14,6 +16,20 @@ let imageItems = [];
 
 function formatPrice(price) {
   return new Intl.NumberFormat('ru-RU').format(Number(price) || 0) + ' ₽';
+}
+
+function formatAdminDate(dateString) {
+  if (!dateString) return '-';
+
+  const date = new Date(dateString);
+
+  return new Intl.DateTimeFormat('ru-RU', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  }).format(date);
 }
 
 function getStatusText(status) {
@@ -46,7 +62,39 @@ function getStatusClass(status) {
   }
 }
 
+function getAdminStatusText(status) {
+  switch (status) {
+    case 'new':
+      return 'Новая';
+    case 'processing':
+      return 'В обработке';
+    case 'completed':
+      return 'Завершена';
+    case 'cancelled':
+      return 'Отменена';
+    default:
+      return status || 'Неизвестно';
+  }
+}
+
+function getAdminStatusClass(status) {
+  switch (status) {
+    case 'new':
+      return 'order-status order-status--new';
+    case 'processing':
+      return 'order-status order-status--processing';
+    case 'completed':
+      return 'order-status order-status--completed';
+    case 'cancelled':
+      return 'order-status order-status--cancelled';
+    default:
+      return 'order-status';
+  }
+}
+
 function resetForm() {
+  if (!adminForm) return;
+
   adminForm.reset();
   productIdInput.value = '';
   formTitle.textContent = 'Добавить товар';
@@ -117,6 +165,7 @@ function renderAllPreviews() {
 
     removeBtn.addEventListener('click', () => {
       const removed = imageItems[index];
+
       if (removed?.type === 'new' && removed.previewUrl) {
         URL.revokeObjectURL(removed.previewUrl);
       }
@@ -141,7 +190,7 @@ imagesInput?.addEventListener('change', () => {
   const selectedFiles = Array.from(imagesInput.files || []);
   const availableSlots = 10 - imageItems.length;
 
-  selectedFiles.slice(0, Math.max(0, availableSlots)).forEach(file => {
+  selectedFiles.slice(0, Math.max(0, availableSlots)).forEach((file) => {
     imageItems.push({
       type: 'new',
       file,
@@ -173,7 +222,7 @@ function fillForm(product) {
   formTitle.textContent = 'Редактировать товар';
 
   imageItems = Array.isArray(product.images)
-    ? product.images.map(image => ({
+    ? product.images.map((image) => ({
         type: 'existing',
         url: image.url
       }))
@@ -183,13 +232,20 @@ function fillForm(product) {
 }
 
 async function loadProducts() {
+  if (!productsList) return;
+
   try {
     const response = await fetch(API_URL);
     const products = await response.json();
 
     productsList.innerHTML = '';
 
-    products.forEach(product => {
+    if (!Array.isArray(products) || !products.length) {
+      productsList.innerHTML = '<p>Товаров пока нет.</p>';
+      return;
+    }
+
+    products.forEach((product) => {
       const item = document.createElement('div');
       item.className = 'admin-item';
 
@@ -208,15 +264,18 @@ async function loadProducts() {
             <h3>${product.name}</h3>
             <p><strong>Категория:</strong> ${product.category || '-'}</p>
             <p><strong>Цена:</strong> ${formatPrice(product.price)}</p>
+            <p><strong>Старая цена:</strong> ${product.oldPrice ? formatPrice(product.oldPrice) : '-'}</p>
             <p><strong>CPU:</strong> ${product.cpu || '-'}</p>
             <p><strong>GPU:</strong> ${product.gpu || '-'}</p>
             <p><strong>RAM:</strong> ${product.ram || '-'}</p>
             <p><strong>SSD:</strong> ${product.ssd || '-'}</p>
+            <p><strong>Описание:</strong> ${product.description || '-'}</p>
+            <p><strong>В наличии:</strong> ${product.inStock ? 'Да' : 'Нет'}</p>
           </div>
         </div>
 
         <div class="admin-item__actions">
-          <button type="button" class="btn btn-secondary btn-small edit-btn">Редактировать</button>
+          <button type="button" class="btn btn-gold btn-small edit-btn">Редактировать</button>
           <button type="button" class="btn btn-secondary btn-small delete-btn">Удалить</button>
         </div>
       `;
@@ -234,11 +293,11 @@ async function loadProducts() {
         if (!confirmed) return;
 
         try {
-          const response = await fetch(`${API_URL}/${product.id}`, {
+          const deleteResponse = await fetch(`${API_URL}/${product.id}`, {
             method: 'DELETE'
           });
 
-          if (!response.ok) {
+          if (!deleteResponse.ok) {
             throw new Error('Ошибка удаления');
           }
 
@@ -267,18 +326,18 @@ async function loadOrders() {
 
     ordersList.innerHTML = '';
 
-    if (!orders.length) {
+    if (!Array.isArray(orders) || !orders.length) {
       ordersList.innerHTML = '<p>Заказов пока нет.</p>';
       return;
     }
 
-    orders.forEach(order => {
+    orders.forEach((order) => {
       const item = document.createElement('div');
       item.className = 'admin-item';
 
       const itemsHtml = Array.isArray(order.items)
         ? order.items
-            .map(orderItem => {
+            .map((orderItem) => {
               const productName = orderItem.product?.name || 'Товар';
               return `<li>${productName} — ${orderItem.quantity} шт. × ${formatPrice(orderItem.price)}</li>`;
             })
@@ -288,6 +347,7 @@ async function loadOrders() {
       item.innerHTML = `
         <div class="admin-item__content">
           <h3>Заказ #${order.id}</h3>
+          <p><strong>Дата:</strong> ${formatAdminDate(order.createdAt)}</p>
           <p><strong>Имя:</strong> ${order.customerName || '-'}</p>
           <p><strong>Телефон:</strong> ${order.phone || '-'}</p>
           <p><strong>Email:</strong> ${order.email || '-'}</p>
@@ -374,7 +434,153 @@ async function loadOrders() {
   }
 }
 
-adminForm?.addEventListener('submit', async event => {
+async function loadCustomPcRequests() {
+  if (!adminCustomPcRequestsList) return;
+
+  try {
+    const response = await fetch(CUSTOM_PC_REQUESTS_API_URL);
+    const requests = await response.json();
+
+    if (!response.ok) {
+      throw new Error('Не удалось загрузить заявки на ПК');
+    }
+
+    adminCustomPcRequestsList.innerHTML = '';
+
+    if (!Array.isArray(requests) || !requests.length) {
+      adminCustomPcRequestsList.innerHTML = '<p>Заявок на ПК пока нет.</p>';
+      return;
+    }
+
+    requests.forEach((request) => {
+      const item = document.createElement('div');
+      item.className = 'admin-item';
+
+      item.innerHTML = `
+        <div class="admin-item__content">
+          <h3>Заявка #${request.id}</h3>
+          <p><strong>Дата:</strong> ${formatAdminDate(request.createdAt)}</p>
+          <p><strong>Имя:</strong> ${request.customerName || '-'}</p>
+          <p><strong>Телефон:</strong> ${request.phone || '-'}</p>
+          <p><strong>Email:</strong> ${request.email || '-'}</p>
+          <p><strong>Бюджет:</strong> ${
+            request.budget
+              ? new Intl.NumberFormat('ru-RU').format(request.budget) + ' ₽'
+              : '-'
+          }</p>
+          <p><strong>Дизайн:</strong> ${request.designWishes || '-'}</p>
+          <p><strong>Размер корпуса:</strong> ${request.caseSize || '-'}</p>
+          <p><strong>Назначение:</strong> ${request.purpose || '-'}</p>
+          <p><strong>Комментарий:</strong> ${request.comment || '-'}</p>
+          <p>
+            <strong>Статус:</strong>
+            <span class="${getAdminStatusClass(request.status)}">${getAdminStatusText(request.status)}</span>
+          </p>
+
+          <div class="admin-order-status">
+            <select class="order-status-select">
+              <option value="new" ${request.status === 'new' ? 'selected' : ''}>Новая</option>
+              <option value="processing" ${request.status === 'processing' ? 'selected' : ''}>В обработке</option>
+              <option value="completed" ${request.status === 'completed' ? 'selected' : ''}>Завершена</option>
+              <option value="cancelled" ${request.status === 'cancelled' ? 'selected' : ''}>Отменена</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="admin-item__actions">
+          <button type="button" class="btn btn-secondary btn-small delete-custom-pc-request-btn">
+            Удалить
+          </button>
+        </div>
+      `;
+
+      const statusSelect = item.querySelector('.order-status-select');
+      const deleteBtn = item.querySelector('.delete-custom-pc-request-btn');
+
+      statusSelect.addEventListener('change', async () => {
+        try {
+          const updateResponse = await fetch(
+            `${CUSTOM_PC_REQUESTS_API_URL}/${request.id}/status`,
+            {
+              method: 'PUT',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify({ status: statusSelect.value })
+            }
+          );
+
+          const data = await updateResponse.json();
+
+          if (!updateResponse.ok) {
+            throw new Error(data.message || 'Не удалось обновить статус');
+          }
+
+          await loadCustomPcRequests();
+        } catch (error) {
+          console.error('Ошибка обновления статуса заявки:', error);
+          alert(error.message || 'Не удалось обновить статус заявки');
+        }
+      });
+
+      deleteBtn.addEventListener('click', async () => {
+        const confirmed = confirm(`Удалить заявку #${request.id}?`);
+        if (!confirmed) return;
+
+        try {
+          const deleteResponse = await fetch(
+            `${CUSTOM_PC_REQUESTS_API_URL}/${request.id}`,
+            {
+              method: 'DELETE'
+            }
+          );
+
+          const data = await deleteResponse.json();
+
+          if (!deleteResponse.ok) {
+            throw new Error(data.message || 'Не удалось удалить заявку');
+          }
+
+          await loadCustomPcRequests();
+        } catch (error) {
+          console.error('Ошибка удаления заявки:', error);
+          alert(error.message || 'Не удалось удалить заявку');
+        }
+      });
+
+      adminCustomPcRequestsList.appendChild(item);
+    });
+  } catch (error) {
+    console.error('Ошибка загрузки заявок на ПК:', error);
+    adminCustomPcRequestsList.innerHTML = '<p>Не удалось загрузить заявки на ПК.</p>';
+  }
+}
+
+function setupAdminTabs() {
+  const tabs = document.querySelectorAll('.admin-tab');
+  const sections = document.querySelectorAll('.admin-section');
+
+  if (!tabs.length || !sections.length) return;
+
+  tabs.forEach((tab) => {
+    tab.addEventListener('click', () => {
+      const target = tab.dataset.tab;
+
+      tabs.forEach((button) => button.classList.remove('active'));
+      tab.classList.add('active');
+
+      sections.forEach((section) => {
+        section.classList.remove('active');
+
+        if (section.id === `tab-${target}`) {
+          section.classList.add('active');
+        }
+      });
+    });
+  });
+}
+
+adminForm?.addEventListener('submit', async (event) => {
   event.preventDefault();
 
   const formData = new FormData();
@@ -394,14 +600,14 @@ adminForm?.addEventListener('submit', async event => {
   );
 
   const existingImageUrls = imageItems
-    .filter(item => item.type === 'existing')
-    .map(item => item.url);
+    .filter((item) => item.type === 'existing')
+    .map((item) => item.url);
 
   formData.append('existingImages', JSON.stringify(existingImageUrls));
 
   imageItems
-    .filter(item => item.type === 'new')
-    .forEach(item => {
+    .filter((item) => item.type === 'new')
+    .forEach((item) => {
       formData.append('images', item.file);
     });
 
@@ -429,6 +635,8 @@ adminForm?.addEventListener('submit', async event => {
 });
 
 document.addEventListener('DOMContentLoaded', async () => {
+  setupAdminTabs();
   await loadProducts();
   await loadOrders();
+  await loadCustomPcRequests();
 });

@@ -17,6 +17,7 @@
             class="brand__logo"
           />
         </div>
+
         <div class="brand__content">
           <span class="brand__mark">GlorionPC</span>
           <span class="brand__text">Admin Panel</span>
@@ -33,90 +34,113 @@
     <div class="container">
       <div class="section-heading reveal">
         <p class="section-heading__eyebrow">GlorionPC</p>
-        <h1 class="section-heading__title">Управление товарами</h1>
+        <h1 class="section-heading__title">Панель администратора</h1>
       </div>
 
-      <section class="admin-block reveal">
-        <h2 id="admin-form-title">Добавить товар</h2>
+      <div class="admin-tabs reveal">
+        <button type="button" class="admin-tab active" data-tab="products">
+          Товары
+        </button>
+        <button type="button" class="admin-tab" data-tab="orders">
+          Заказы
+        </button>
+        <button type="button" class="admin-tab" data-tab="custom">
+          Заявки на ПК
+        </button>
+      </div>
 
-        <form id="admin-form" class="admin-form">
-          <input type="hidden" id="product-id" />
+      <div class="admin-section active" id="tab-products">
+        <section class="admin-block reveal">
+          <h2 id="admin-form-title">Добавить товар</h2>
 
-          <div class="form-group">
-            <label for="name">Название</label>
-            <input type="text" id="name" name="name" required />
-          </div>
+          <form id="admin-form" class="admin-form">
+            <input type="hidden" id="product-id" />
 
-          <div class="form-group">
-            <label for="category">Категория</label>
-            <input type="text" id="category" name="category" required />
-          </div>
+            <div class="form-group">
+              <label for="name">Название</label>
+              <input type="text" id="name" name="name" required />
+            </div>
 
-          <div class="form-group">
-            <label for="price">Цена</label>
-            <input type="number" id="price" name="price" required />
-          </div>
+            <div class="form-group">
+              <label for="category">Категория</label>
+              <input type="text" id="category" name="category" required />
+            </div>
 
-          <div class="form-group">
-            <label for="oldPrice">Старая цена</label>
-            <input type="number" id="oldPrice" name="oldPrice" />
-          </div>
+            <div class="form-group">
+              <label for="price">Цена</label>
+              <input type="number" id="price" name="price" required />
+            </div>
 
-          <div class="form-group">
-            <label for="cpu">CPU</label>
-            <input type="text" id="cpu" name="cpu" />
-          </div>
+            <div class="form-group">
+              <label for="oldPrice">Старая цена</label>
+              <input type="number" id="oldPrice" name="oldPrice" />
+            </div>
 
-          <div class="form-group">
-            <label for="gpu">GPU</label>
-            <input type="text" id="gpu" name="gpu" />
-          </div>
+            <div class="form-group">
+              <label for="cpu">CPU</label>
+              <input type="text" id="cpu" name="cpu" />
+            </div>
 
-          <div class="form-group">
-            <label for="ram">RAM</label>
-            <input type="text" id="ram" name="ram" />
-          </div>
+            <div class="form-group">
+              <label for="gpu">GPU</label>
+              <input type="text" id="gpu" name="gpu" />
+            </div>
 
-          <div class="form-group">
-            <label for="ssd">SSD</label>
-            <input type="text" id="ssd" name="ssd" />
-          </div>
+            <div class="form-group">
+              <label for="ram">RAM</label>
+              <input type="text" id="ram" name="ram" />
+            </div>
 
-          <div class="form-group" style="grid-column: 1 / -1;">
-            <label for="description">Описание</label>
-            <textarea id="description" name="description" rows="4" required></textarea>
-          </div>
+            <div class="form-group">
+              <label for="ssd">SSD</label>
+              <input type="text" id="ssd" name="ssd" />
+            </div>
 
-          <div class="admin-file-group">
-            <label for="images">Фотографии товара (до 10 шт.)</label>
-            <input id="images" name="images" type="file" accept="image/*" multiple />
-          </div>
+            <div class="form-group" style="grid-column: 1 / -1;">
+              <label for="description">Описание</label>
+              <textarea id="description" name="description" rows="5" required></textarea>
+            </div>
 
-          <div id="admin-images-preview" class="admin-image-preview"></div>
+            <div class="admin-file-group">
+              <label for="images">Фотографии товара (до 10 шт.)</label>
+              <input id="images" name="images" type="file" accept="image/*" multiple />
+            </div>
 
-          <label class="admin-checkbox">
-            <input type="checkbox" id="inStock" name="inStock" checked />
-            В наличии
-          </label>
+            <div id="admin-images-preview" class="admin-image-preview"></div>
 
-          <div class="admin-form-actions">
-            <button type="submit" class="btn btn-gold">Сохранить изменения</button>
-            <button type="button" class="btn btn-secondary" id="cancel-edit-btn">
-              Отменить редактирование
-            </button>
-          </div>
-        </form>
-      </section>
+            <label class="admin-checkbox">
+              <input type="checkbox" id="inStock" name="inStock" checked />
+              В наличии
+            </label>
 
-      <section class="admin-block reveal">
-        <h2>Список товаров</h2>
-        <div id="admin-products-list" class="admin-list"></div>
-      </section>
+            <div class="admin-form-actions">
+              <button type="submit" class="btn btn-gold">Сохранить изменения</button>
+              <button type="button" class="btn btn-secondary" id="cancel-edit-btn">
+                Отменить редактирование
+              </button>
+            </div>
+          </form>
+        </section>
 
-      <section class="admin-block reveal">
-        <h2>История заказов</h2>
-        <div id="admin-orders-list" class="admin-list"></div>
-      </section>
+        <section class="admin-block reveal">
+          <h2>Список товаров</h2>
+          <div id="admin-products-list" class="admin-list"></div>
+        </section>
+      </div>
+
+      <div class="admin-section" id="tab-orders">
+        <section class="admin-block reveal">
+          <h2>История заказов</h2>
+          <div id="admin-orders-list" class="admin-list"></div>
+        </section>
+      </div>
+
+      <div class="admin-section" id="tab-custom">
+        <section class="admin-block reveal">
+          <h2>Заявки на индивидуальную сборку ПК</h2>
+          <div id="admin-custom-pc-requests-list" class="admin-list"></div>
+        </section>
+      </div>
     </div>
   </main>
 

@@ -1270,8 +1270,10 @@ video {
 
 .form-group input,
 .form-group textarea,
+.form-group select,
 .admin-form input,
 .admin-form textarea,
+.admin-form select,
 .admin-order-status select,
 .order-status-select {
   width: 100%;
@@ -1285,8 +1287,10 @@ video {
 
 .form-group input:focus,
 .form-group textarea:focus,
+.form-group select:focus,
 .admin-form input:focus,
 .admin-form textarea:focus,
+.admin-form select:focus,
 .admin-order-status select:focus,
 .order-status-select:focus {
   border-color: var(--gold-border);
@@ -2172,6 +2176,67 @@ body.modal-open {
   line-height: 1.4;
 }
 
+/* CUSTOM-PC-BUILD */
+
+.custom-pc-section {
+  padding: 62px 0;
+}
+
+.custom-pc-box {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.035), rgba(255, 255, 255, 0.02));
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  padding: 24px;
+}
+
+.custom-pc-form {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 18px;
+}
+
+/* СОРТИРОВКА В АДМИНКЕ */
+
+.admin-tabs {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.admin-tab {
+  padding: 10px 18px;
+  border-radius: 10px;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--line);
+  color: var(--text);
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.admin-tab:hover {
+  border-color: var(--gold);
+}
+
+.admin-tab.active {
+  background: var(--gold);
+  color: #000;
+  border-color: var(--gold);
+}
+
+.admin-section {
+  display: none;
+}
+
+.admin-section.active {
+  display: block;
+}
+
+@media (max-width: 720px) {
+  .custom-pc-form {
+    grid-template-columns: 1fr;
+  }
+}
+
 /* RESPONSIVE */
 
 @media (max-width: 1280px) {
@@ -2196,6 +2261,8 @@ body.modal-open {
     --hero-slide-width: calc(100vw - 110px);
   }
 
+  /* СЕТКИ */
+
   .product-details,
   .cart-layout,
   .checkout-layout {
@@ -2212,18 +2279,43 @@ body.modal-open {
     max-width: 340px;
   }
 
+  /* КАРТОЧКИ */
+
   .product-card__image-slider {
     height: 460px;
   }
+
+  /* HERO */
 
   .hero__title {
     font-size: 48px;
   }
 
+  /* ✅ ГЛАВНЫЙ ФИКС ПЛИТОК */
   .hero__stats {
-    grid-template-columns: 1fr;
-    max-width: 480px;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    max-width: 100%;
+    margin: 0 auto;
   }
+
+  .stat-card {
+    padding: 14px 12px;
+    border-radius: 14px;
+    text-align: center;
+    min-width: 0;
+  }
+
+  .stat-card__value {
+    font-size: 18px;
+  }
+
+  .stat-card__label {
+    font-size: 13px;
+  }
+
+  /* СЛАЙДЕР */
 
   .hero-media-slide {
     height: 390px;
@@ -2236,6 +2328,8 @@ body.modal-open {
   .hero-media-slide__content p {
     font-size: 15px;
   }
+
+  /* PRODUCT */
 
   .product-gallery__main,
   .product-details__image {

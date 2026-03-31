@@ -3,10 +3,10 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>GlorionPC — Оформление заказа</title>
+  <title>Заказать ПК — GlorionPC</title>
   <meta
     name="description"
-    content="Оформление заказа в магазине GlorionPC."
+    content="Оставьте заявку на индивидуальную сборку ПК в GlorionPC."
   />
   <link rel="stylesheet" href="/css/style.css" />
 </head>
@@ -38,7 +38,7 @@
           <span class="cart-link__target" id="cart-target"></span>
         </a>
 
-        <a href="/checkout.html">Заказы</a>
+        <a href="/orders.html">Заказы</a>
       </nav>
     </div>
   </header>
@@ -48,71 +48,123 @@
       <div class="container">
         <div class="section-heading reveal">
           <p class="section-heading__eyebrow">GlorionPC</p>
-          <h1 class="section-heading__title">Оформление заказа</h1>
+          <h1 class="section-heading__title">Заказать свой ПК</h1>
+          <p class="hero__description" style="max-width: 760px; margin: 0;">
+            Опиши, какой компьютер тебе нужен, и мы подберём комплектующие,
+            соберём ПК под твой бюджет и свяжемся с тобой.
+          </p>
         </div>
 
         <div class="checkout-layout">
-          <div class="checkout-form-block reveal-left">
-            <form id="checkout-form" class="checkout-form">
+          <section class="checkout-form-block reveal">
+            <form id="custom-pc-form" class="checkout-form">
               <div class="form-group">
-                <label for="name">Имя</label>
-                <input type="text" id="name" name="name" required />
+                <label for="custom-pc-name">Имя</label>
+                <input type="text" id="custom-pc-name" required />
               </div>
 
               <div class="form-group">
-                <label for="phone">Телефон</label>
+                <label for="custom-pc-phone">Телефон</label>
                 <input
-                      type="tel"
-                      name="phone"
-                      id="phone"
-                      placeholder="+7 (___) ___-__-__"
-                      maxlength="18"
-                      required
-                  />
-              </div>
-
-              <div class="form-group">
-                <label for="email">Email</label>
-                <input
-                  type="email"
-                  id="email"
-                  name="email"
-                  placeholder="example@mail.com"
+                  type="tel"
+                  id="custom-pc-phone"
+                  placeholder="+7 (___) ___-__-__"
+                  maxlength="18"
                   required
                 />
               </div>
 
               <div class="form-group">
-  <label for="address">Адрес доставки</label>
-      <textarea
-                  id="address"
-                  name="address"
-                  rows="6"
-                  placeholder="Например: СДЭК, пункт выдачи Москва, ул. Ленина 10 или Яндекс Маркет"
-                  required
-      ></textarea>
-    <div class="form-hint">
-    Укажите пункт выдачи СДЭК или Яндекс Маркет (город, адрес или название пункта)
-  </div>
-</div>
+                <label for="custom-pc-email">Email</label>
+                <input type="email" id="custom-pc-email" required />
+              </div>
+
+              <div class="form-group">
+                <label for="custom-pc-budget">Бюджет</label>
+                <input
+                  type="number"
+                  id="custom-pc-budget"
+                  placeholder="Например: 120000"
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="custom-pc-design">Пожелания по дизайну</label>
+                <input
+                  type="text"
+                  id="custom-pc-design"
+                  placeholder="Белый корпус, RGB, минимализм и т.д."
+                />
+              </div>
+
+              <div class="form-group">
+                <label for="custom-pc-size">Размер корпуса</label>
+                <select id="custom-pc-size">
+                  <option value="">Выберите вариант</option>
+                  <option value="mini">Компактный</option>
+                  <option value="mid">Средний</option>
+                  <option value="full">Большой</option>
+                  <option value="any">Без разницы</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label for="custom-pc-purpose">Для чего нужен ПК</label>
+                <textarea
+                  id="custom-pc-purpose"
+                  rows="5"
+                  placeholder="Например: игры в 2K, монтаж видео, стримы, работа в 3D, офисная работа"
+                ></textarea>
+              </div>
+
+              <div class="form-group">
+                <label for="custom-pc-comment">Дополнительный комментарий</label>
+                <textarea
+                  id="custom-pc-comment"
+                  rows="5"
+                  placeholder="Любые дополнительные пожелания: тишина, подсветка, цвет корпуса, конкретные игры или программы"
+                ></textarea>
+              </div>
 
               <button type="submit" class="checkout-submit-btn">
-                Оформить заказ
+                Отправить заявку
               </button>
             </form>
 
-            <div id="checkout-message"></div>
-          </div>
+            <div id="custom-pc-message"></div>
+          </section>
 
-          <aside class="checkout-summary reveal-right">
-            <h2>Ваш заказ</h2>
+          <aside class="checkout-summary reveal">
+            <h2>Что можно указать</h2>
 
-            <div id="checkout-items" class="checkout-items"></div>
+            <div class="cart-summary__row">
+              <span>Бюджет</span>
+              <span>от и до</span>
+            </div>
+
+            <div class="cart-summary__row">
+              <span>Стиль</span>
+              <span>RGB / минимализм</span>
+            </div>
+
+            <div class="cart-summary__row">
+              <span>Размер</span>
+              <span>Mini / Mid / Full</span>
+            </div>
+
+            <div class="cart-summary__row">
+              <span>Назначение</span>
+              <span>Игры / работа / монтаж</span>
+            </div>
 
             <div class="checkout-summary__total">
-              <span>Итого:</span>
-              <span id="checkout-total">0 ₽</span>
+              <span>GlorionPC</span>
+              <span>Индивидуальная сборка</span>
             </div>
+
+            <a href="/catalog.html" class="cart-summary__button" style="display: inline-flex; justify-content: center; text-decoration: none;">
+              Смотреть готовые ПК
+            </a>
           </aside>
         </div>
       </div>
@@ -139,76 +191,12 @@
       <div class="footer__nav">
         <a href="/">Главная</a>
         <a href="/catalog.html">Каталог</a>
+        <a href="/custom-pc.html">Заказать ПК</a>
         <a href="/cart.html">Корзина</a>
+        <a href="/orders.html">Заказы</a>
       </div>
     </div>
   </footer>
-
-  <div class="payment-modal" id="payment-modal">
-    <div class="payment-modal__backdrop" id="payment-modal-backdrop"></div>
-
-    <div class="payment-modal__dialog">
-      <button
-        type="button"
-        class="payment-modal__close"
-        id="payment-modal-close"
-        aria-label="Закрыть окно оплаты"
-      >
-        ×
-      </button>
-
-      <h2 class="payment-modal__title">ГОТОВО</h2>
-
-      <p class="payment-modal__text" id="payment-modal-order-id"></p>
-
-      <p class="payment-modal__text">
-        Ваш заказ успешно сформирован и уже обрабатывается.
-      </p>
-
-      <p class="payment-modal__text">
-        Мы свяжемся с вами в ближайшее время, чтобы подтвердить заказ и уточнить детали.
-      </p>
-
-      <p class="payment-modal__text">
-        Сумма к оплате:
-        <strong id="payment-modal-total">0 ₽</strong>
-      </p>
-
-      <p class="payment-modal__text">
-        Для быстрой оплаты используйте QR-код.
-      </p>
-
-      <div class="payment-modal__qr" id="payment-modal-qr">
-        <img
-          src="/images/qrbank.png"
-          alt="QR-код для оплаты"
-        />
-      </div>
-
-      <div id="payment-status-message"></div>
-
-      <div class="payment-modal__actions">
-        <button
-          type="button"
-          class="btn btn-gold payment-open-bank"
-          id="open-bank-btn"
-          style="display: none;"
-        >
-          Открыть в банке
-        </button>
-
-        <button
-          type="button"
-          class="btn btn-secondary"
-          id="payment-paid-btn"
-        >
-          Я оплатил
-        </button>
-
-        <a href="/catalog.html" class="btn btn-gold">Перейти в каталог</a>
-      </div>
-    </div>
-  </div>
 
   <div class="support-widget">
     <div class="support-widget__panel">
@@ -239,7 +227,7 @@
         </a>
 
         <a
-          href="https://www.avito.ru/"
+          href="https://www.avito.ru/brands/a4bbd309b2f33e4a6f1094337908086e"
           class="support-widget__item"
           target="_blank"
           rel="noopener noreferrer"
@@ -268,7 +256,7 @@
   </div>
 
   <script src="/js/cart-utils.js"></script>
-  <script src="/js/checkout.js"></script>
+  <script src="/js/custom-pc-request.js"></script>
   <script src="/js/reveal.js"></script>
 </body>
 </html>

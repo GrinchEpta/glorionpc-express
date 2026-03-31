@@ -57,6 +57,20 @@ model OrderItem {
   product Product @relation(fields: [productId], references: [id])
 }
 
+model CustomPcRequest {
+  id            Int         @id @default(autoincrement())
+  customerName  String
+  phone         String
+  email         String
+  budget        Int?
+  designWishes  String?
+  caseSize      String?
+  purpose       String?
+  comment       String?
+  status        OrderStatus @default(new)
+  createdAt     DateTime    @default(now())
+}
+
 enum OrderStatus {
   new
   processing
