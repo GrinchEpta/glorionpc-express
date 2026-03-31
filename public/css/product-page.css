@@ -1,0 +1,212 @@
+.product-details {
+  display: grid;
+  grid-template-columns: 620px minmax(0, 1fr);
+  gap: 32px;
+  align-items: start;
+}
+
+.product-gallery {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.product-gallery__main,
+.product-details__image {
+  width: 100%;
+  height: 820px;
+  min-height: 820px;
+  max-height: 820px;
+  border-radius: 24px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at top left, rgba(212, 166, 74, 0.16), transparent 22%),
+    linear-gradient(135deg, #151b26, #0c1017);
+  border: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #8d866f;
+  font-size: 18px;
+}
+
+.product-details__image-tag,
+.product-gallery__main img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.product-gallery__thumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.product-gallery__thumb {
+  width: 88px;
+  height: 72px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  overflow: hidden;
+  background: #0f141e;
+  cursor: pointer;
+  padding: 0;
+  transition: 0.2s ease;
+}
+
+.product-gallery__thumb:hover {
+  border-color: var(--gold-border);
+}
+
+.product-gallery__thumb.is-active {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 1px rgba(212, 166, 74, 0.25);
+}
+
+.product-gallery__thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.product-details__info {
+  min-width: 0;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0.02));
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  padding: 28px;
+}
+
+.product-details__title {
+  font-size: 40px;
+  margin: 14px 0;
+  line-height: 1.1;
+  word-break: break-word;
+}
+
+.product-details__desc {
+  color: var(--muted);
+  font-size: 16px;
+  margin-bottom: 22px;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+.product-details__prices {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.product-details__price {
+  font-size: 36px;
+  font-weight: 800;
+  color: var(--gold-soft);
+}
+
+.product-details__old-price {
+  font-size: 18px;
+  color: #7e786f;
+  text-decoration: line-through;
+}
+
+.product-details__stock {
+  margin-bottom: 24px;
+  font-weight: 700;
+}
+
+.in-stock { color: var(--success); }
+.out-of-stock { color: var(--danger); }
+
+.product-details__specs {
+  margin-bottom: 24px;
+}
+
+.product-details__specs h3 {
+  font-size: 24px;
+  margin-bottom: 12px;
+}
+
+.product-details__specs ul {
+  list-style: none;
+}
+
+.product-details__specs li {
+  margin-bottom: 10px;
+  color: #ddd5c6;
+  word-break: break-word;
+}
+
+.product-gallery__main,
+.product-gallery__main img,
+.product-details__image img,
+#product-main-image {
+  cursor: zoom-in;
+}
+
+.image-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(3, 5, 10, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  z-index: 999999;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.28s ease, visibility 0.28s ease;
+}
+
+.image-modal.is-open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.image-modal__img {
+  max-width: min(92vw, 1400px);
+  max-height: 88vh;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  border-radius: 18px;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: #0b0f18;
+}
+
+.image-modal__close {
+  position: absolute;
+  top: 18px;
+  right: 22px;
+  width: 52px;
+  height: 52px;
+  border: none;
+  border-radius: 50%;
+  background: rgba(5, 7, 13, 0.82);
+  color: #fff;
+  font-size: 34px;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: 0.2s ease;
+}
+
+.image-modal__close:hover {
+  background: rgba(212, 166, 74, 0.18);
+  border-color: rgba(212, 166, 74, 0.25);
+  color: #f1cf79;
+}

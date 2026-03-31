@@ -1,0 +1,228 @@
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --bg: #05070d;
+  --text: #f5f2e8;
+  --muted: #a7a29a;
+  --gold: #d4a64a;
+  --gold-soft: #f1cf79;
+  --gold-border: rgba(212, 166, 74, 0.25);
+  --line: rgba(255, 255, 255, 0.08);
+  --danger: #d96565;
+  --success: #59b57c;
+  --hero-slide-width: min(1380px, 88vw);
+  --hero-slide-gap: 18px;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: Arial, sans-serif;
+  background:
+    radial-gradient(circle at top right, rgba(212, 166, 74, 0.08), transparent 22%),
+    radial-gradient(circle at top left, rgba(212, 166, 74, 0.05), transparent 18%),
+    var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+body.modal-open {
+  overflow: hidden;
+}
+
+main {
+  flex: 1;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+img,
+video {
+  max-width: 100%;
+}
+
+.container {
+  width: min(1320px, calc(100% - 32px));
+  margin: 0 auto;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 22px;
+  border-radius: 12px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-weight: 700;
+  transition: 0.2s ease;
+}
+
+.btn-gold {
+  background: linear-gradient(135deg, var(--gold-soft), var(--gold));
+  color: #0b0f18;
+}
+
+.btn-gold:hover {
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+}
+
+.btn-dark {
+  background: rgba(5, 7, 13, 0.42);
+  border-color: var(--gold-border);
+  color: var(--text);
+  backdrop-filter: blur(6px);
+}
+
+.btn-dark:hover {
+  border-color: var(--gold);
+  color: var(--gold-soft);
+}
+
+.btn-secondary {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--gold-border);
+}
+
+.btn-secondary:hover {
+  border-color: var(--gold);
+  color: var(--gold-soft);
+}
+
+.btn-small {
+  padding: 10px 14px;
+}
+
+.form-hint {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.4;
+}
+
+.order-status {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  border: 1px solid transparent;
+  white-space: nowrap;
+}
+
+.order-status--new {
+  background: rgba(212, 166, 74, 0.12);
+  color: var(--gold-soft);
+  border-color: rgba(212, 166, 74, 0.28);
+}
+
+.order-status--processing {
+  background: rgba(71, 141, 255, 0.12);
+  color: #8eb8ff;
+  border-color: rgba(71, 141, 255, 0.24);
+}
+
+.order-status--completed {
+  background: rgba(89, 181, 124, 0.12);
+  color: #7ee0a0;
+  border-color: rgba(89, 181, 124, 0.26);
+}
+
+.order-status--cancelled {
+  background: rgba(217, 101, 101, 0.12);
+  color: #ff9d9d;
+  border-color: rgba(217, 101, 101, 0.24);
+}
+
+.reveal,
+.reveal-left,
+.reveal-right,
+.reveal-zoom {
+  opacity: 0;
+  filter: blur(6px);
+  will-change: opacity, transform, filter;
+}
+
+.reveal {
+  transform: translateY(40px);
+  transition: opacity 0.8s ease, transform 0.8s ease, filter 0.8s ease;
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: translateY(0);
+  filter: blur(0);
+}
+
+.reveal-left {
+  transform: translateX(-40px);
+  transition: opacity 0.8s ease, transform 0.8s ease, filter 0.8s ease;
+}
+
+.reveal-left.is-visible {
+  opacity: 1;
+  transform: translateX(0);
+  filter: blur(0);
+}
+
+.reveal-right {
+  transform: translateX(40px);
+  transition: opacity 0.8s ease, transform 0.8s ease, filter 0.8s ease;
+}
+
+.reveal-right.is-visible {
+  opacity: 1;
+  transform: translateX(0);
+  filter: blur(0);
+}
+
+.reveal-zoom {
+  transform: scale(0.94);
+  transition: opacity 0.85s ease, transform 0.85s ease, filter 0.85s ease;
+}
+
+.reveal-zoom.is-visible {
+  opacity: 1;
+  transform: scale(1);
+  filter: blur(0);
+}
+
+.reveal-delay-1 { transition-delay: 0.08s; }
+.reveal-delay-2 { transition-delay: 0.16s; }
+.reveal-delay-3 { transition-delay: 0.24s; }
+.reveal-delay-4 { transition-delay: 0.32s; }
+
+body.admin-page-mobile .reveal,
+body.admin-page-mobile .reveal-left,
+body.admin-page-mobile .reveal-right,
+body.admin-page-mobile .reveal-zoom {
+  opacity: 1 !important;
+  transform: none !important;
+  filter: blur(0) !important;
+}
