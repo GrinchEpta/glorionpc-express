@@ -3131,3 +3131,12 @@ body.modal-open {
     height: 82px;
   }
 }
+
+body.admin-page-mobile .reveal,
+body.admin-page-mobile .reveal-left,
+body.admin-page-mobile .reveal-right,
+body.admin-page-mobile .reveal-zoom {
+  opacity: 1 !important;
+  transform: none !important;
+  filter: blur(0) !important;
+}
