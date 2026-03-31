@@ -2952,3 +2952,182 @@ body.modal-open {
     height: 54px;
   }
 }
+
+/* =========================
+   ADMIN MOBILE FIX
+========================= */
+@media (max-width: 720px) {
+  .admin-page {
+    padding: 28px 0 24px;
+  }
+
+  .admin-tabs {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+    margin-bottom: 18px;
+  }
+
+  .admin-tab {
+    width: 100%;
+    min-height: 46px;
+    justify-content: center;
+  }
+
+  .admin-block {
+    padding: 16px;
+    border-radius: 18px;
+  }
+
+  .admin-block h2 {
+    font-size: 24px;
+    margin-bottom: 16px;
+  }
+
+  .admin-form {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .admin-form textarea,
+  .admin-form-actions,
+  .admin-checkbox,
+  .admin-file-group,
+  .admin-image-preview {
+    grid-column: 1 / -1;
+  }
+
+  .admin-checkbox {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+    flex-wrap: wrap;
+    font-size: 15px;
+  }
+
+  .admin-checkbox input[type='checkbox'] {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+  }
+
+  .admin-form-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .admin-form-actions .btn,
+  .admin-form-actions button {
+    width: 100%;
+    min-height: 48px;
+    padding: 14px 16px;
+    font-size: 15px;
+    border-radius: 14px;
+  }
+
+  .admin-file-group input[type='file'] {
+    padding: 12px;
+    font-size: 14px;
+  }
+
+  .admin-image-preview {
+    padding: 10px;
+    gap: 8px;
+  }
+
+  .admin-preview-item img {
+    width: 120px;
+    height: 96px;
+  }
+
+  .admin-item {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px;
+  }
+
+  .admin-item__actions {
+    width: 100%;
+    align-items: stretch;
+  }
+
+  .admin-item__actions .btn,
+  .admin-item__actions button {
+    width: 100%;
+    min-height: 44px;
+    justify-content: center;
+  }
+
+  .admin-product-row {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    align-items: stretch;
+  }
+
+  .admin-product-thumb {
+    width: 100%;
+    height: 190px;
+    border-radius: 16px;
+  }
+
+  .admin-item__content h3 {
+    font-size: 24px;
+    line-height: 1.15;
+  }
+
+  .admin-item__content p {
+    font-size: 15px;
+    line-height: 1.5;
+    word-break: break-word;
+  }
+
+  .admin-order-status {
+    margin-top: 14px;
+    margin-bottom: 0;
+  }
+
+  .order-status-select {
+    width: 100%;
+    min-height: 46px;
+    font-size: 15px;
+  }
+}
+
+/* =========================
+   ADMIN EXTRA SMALL PHONES
+========================= */
+@media (max-width: 480px) {
+  .admin-block {
+    padding: 14px;
+  }
+
+  .admin-block h2 {
+    font-size: 22px;
+  }
+
+  .admin-item {
+    padding: 14px;
+  }
+
+  .admin-product-thumb {
+    height: 170px;
+  }
+
+  .admin-item__content h3 {
+    font-size: 22px;
+  }
+
+  .admin-item__content p {
+    font-size: 14px;
+  }
+
+  .admin-preview-item img {
+    width: 100px;
+    height: 82px;
+  }
+}
