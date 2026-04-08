@@ -5,6 +5,16 @@ function formatPrice(price) {
   return new Intl.NumberFormat('ru-RU').format(Number(price) || 0) + ' ₽';
 }
 
+function isReadyPc(product) {
+  const category = String(product?.category || '').toLowerCase().trim();
+
+  return (
+    !product?.componentType &&
+    product?.isConfiguratorItem !== true &&
+    category !== 'комплектующие'
+  );
+}
+
 function getImages(product) {
   if (Array.isArray(product.images) && product.images.length > 0) {
     return product.images.map(image => {
@@ -136,24 +146,6 @@ function animateFly(imageElement, pulseElement = null) {
     } else {
       clone.remove();
 
-      const cartTargetElement = document.getElementById('cart-target');
-      const cartCount = document.getElementById('cart-count');
-
-      if (cartTargetElement) {
-        cartTargetElement.classList.add('cart-bump-strong');
-
-        setTimeout(() => {
-          cartTargetElement.classList.remove('cart-bump-strong');
-        }, 450);
-      }
-
-      if (cartCount) {
-        cartCount.classList.add('cart-count-pop');
-        setTimeout(() => {
-          cartCount.classList.remove('cart-count-pop');
-        }, 450);
-      }
-
       createCartParticles(
         cartRect.left + cartRect.width / 2,
         cartRect.top + cartRect.height / 2
@@ -276,9 +268,18 @@ async function loadCatalogProducts() {
 
     const products = await response.json();
 
+    const readyProducts = Array.isArray(products)
+      ? products.filter(isReadyPc)
+      : [];
+
     catalogProductsContainer.innerHTML = '';
 
-    products.forEach((product, index) => {
+    if (!readyProducts.length) {
+      catalogProductsContainer.innerHTML = '<p>Готовых ПК пока нет.</p>';
+      return;
+    }
+
+    readyProducts.forEach((product, index) => {
       catalogProductsContainer.appendChild(createProductCard(product, index));
     });
   } catch (error) {

@@ -314,3 +314,54 @@
 .admin-section.active {
   display: block;
 }
+
+.admin-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 52px;
+  width: 100%;
+  color: var(--text);
+  font-size: 15px;
+  justify-content: flex-start;
+}
+
+.admin-checkbox span {
+  display: inline-block;
+  line-height: 1.4;
+}
+
+.admin-checkbox input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  accent-color: var(--gold);
+}
+
+.admin-order-specs {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.admin-order-spec-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.admin-order-spec-label {
+  color: var(--muted);
+}
+
+.admin-order-spec-value {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.admin-order-product-item {
+  margin-bottom: 12px;
+}

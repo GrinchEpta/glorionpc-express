@@ -11,9 +11,10 @@ function getProductIdFromUrl() {
 
 function getImages(product) {
   if (Array.isArray(product.images) && product.images.length > 0) {
-    return product.images.map((image) =>
-      typeof image === 'string' ? image : image.url
-    );
+    return product.images.map((image) => {
+      if (typeof image === 'string') return image;
+      return image?.url || '/images/logo-glorionpc.png';
+    });
   }
 
   if (product.image) return [product.image];
@@ -27,66 +28,110 @@ function normalizeProduct(product) {
   return {
     id: product.id,
     name: product.name || 'Без названия',
-    description: product.description || '',
+    description: product.description || 'Описание отсутствует',
     price: Number(product.price) || 0,
     oldPrice: product.oldPrice ? Number(product.oldPrice) : null,
-    category: product.category || 'Сборка',
+    category: product.category || 'Товар',
     cpu: product.cpu || '-',
     gpu: product.gpu || '-',
     ram: product.ram || '-',
     ssd: product.ssd || '-',
-    inStock: product.inStock !== false,
+    inStock: Boolean(product.inStock),
     images: getImages(product)
   };
 }
 
-/* IMAGE MODAL */
-
-function openImageModal(src, alt = '') {
-  const modal = document.getElementById('image-modal');
-  const modalImg = document.getElementById('image-modal-img');
-
-  if (!modal || !modalImg || !src) return;
-
-  modalImg.src = src;
-  modalImg.alt = alt || 'Увеличенное изображение товара';
-  modal.classList.add('is-open');
-  document.body.style.overflow = 'hidden';
+function setText(id, value) {
+  const element = document.getElementById(id);
+  if (element) {
+    element.textContent = value;
+  }
 }
 
-function closeImageModal() {
-  const modal = document.getElementById('image-modal');
-  const modalImg = document.getElementById('image-modal-img');
+function renderGallery(images) {
+  const mainImage = document.getElementById('product-main-image');
+  const thumbsContainer = document.getElementById('product-gallery-thumbs');
 
-  if (!modal || !modalImg) return;
+  if (!mainImage || !thumbsContainer) return;
 
-  modal.classList.remove('is-open');
-  modalImg.src = '';
-  document.body.style.overflow = '';
-}
+  const safeImages = images.length ? images : ['/images/logo-glorionpc.png'];
+  mainImage.src = safeImages[0];
 
-function initImageModal() {
-  const modal = document.getElementById('image-modal');
-  const closeBtn = document.getElementById('image-modal-close');
+  thumbsContainer.innerHTML = '';
 
-  if (!modal || !closeBtn) return;
+  safeImages.forEach((src, index) => {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = `product-gallery__thumb ${index === 0 ? 'active' : ''}`;
+    button.innerHTML = `<img src="${src}" alt="Фото товара ${index + 1}">`;
 
-  closeBtn.addEventListener('click', closeImageModal);
+    button.addEventListener('click', () => {
+      mainImage.src = src;
 
-  modal.addEventListener('click', (event) => {
-    if (event.target === modal) {
-      closeImageModal();
-    }
-  });
+      thumbsContainer
+        .querySelectorAll('.product-gallery__thumb')
+        .forEach((thumb) => thumb.classList.remove('active'));
 
-  document.addEventListener('keydown', (event) => {
-    if (event.key === 'Escape') {
-      closeImageModal();
-    }
+      button.classList.add('active');
+    });
+
+    thumbsContainer.appendChild(button);
   });
 }
 
-/* FLY TO CART */
+function renderPrices(product) {
+  setText('product-price', formatPrice(product.price));
+
+  const oldPriceElement = document.getElementById('product-old-price');
+  if (!oldPriceElement) return;
+
+  if (product.oldPrice) {
+    oldPriceElement.textContent = formatPrice(product.oldPrice);
+    oldPriceElement.style.display = '';
+  } else {
+    oldPriceElement.textContent = '';
+    oldPriceElement.style.display = 'none';
+  }
+}
+
+function renderStock(product) {
+  const stockElement = document.getElementById('product-stock');
+  if (!stockElement) return;
+
+  stockElement.textContent = product.inStock ? 'В наличии' : 'Нет в наличии';
+}
+
+function renderSpecs(product) {
+  const specsList = document.getElementById('product-specs');
+  if (!specsList) return;
+
+  const specs = [
+    ['CPU', product.cpu],
+    ['GPU', product.gpu],
+    ['RAM', product.ram],
+    ['SSD', product.ssd]
+  ].filter(([, value]) => value && value !== '-');
+
+  if (!specs.length) {
+    specsList.innerHTML = '<li>Характеристики отсутствуют</li>';
+    return;
+  }
+
+  specsList.innerHTML = specs
+    .map(
+      ([label, value]) => `
+        <li class="product-spec-item">
+          <span class="product-spec-item__label">${label}</span>
+          <span class="product-spec-item__value">${value}</span>
+        </li>
+      `
+    )
+    .join('');
+}
+
+/* =========================
+   АНИМАЦИЯ В КОРЗИНУ
+========================= */
 
 function getCartTarget() {
   return document.querySelector('#cart-target');
@@ -182,17 +227,15 @@ function animateFly(imageElement, pulseElement = null) {
     } else {
       clone.remove();
 
-      const cartIcon = document.querySelector('#cart-icon');
+      const cartTargetElement = document.getElementById('cart-target');
       const cartCount = document.getElementById('cart-count');
 
-      if (cartIcon) {
-        cartIcon.classList.add('cart-bump-strong');
-        cartIcon.classList.add('cart-flash');
+      if (cartTargetElement) {
+        cartTargetElement.classList.add('cart-bump-strong');
 
         setTimeout(() => {
-          cartIcon.classList.remove('cart-bump-strong');
-          cartIcon.classList.remove('cart-flash');
-        }, 500);
+          cartTargetElement.classList.remove('cart-bump-strong');
+        }, 450);
       }
 
       if (cartCount) {
@@ -212,147 +255,142 @@ function animateFly(imageElement, pulseElement = null) {
   requestAnimationFrame(animate);
 }
 
-/* GALLERY */
+/* =========================
+   УВЕЛИЧЕНИЕ КАРТИНКИ
+========================= */
 
-function renderGallery(images, productName) {
+function initImageModal() {
   const mainImage = document.getElementById('product-main-image');
-  const thumbsContainer = document.getElementById('product-gallery-thumbs');
+  const modal = document.getElementById('image-modal');
+  const modalImg = document.getElementById('image-modal-img');
+  const closeBtn = document.getElementById('image-modal-close');
 
-  if (!mainImage || !thumbsContainer) return;
+  if (!mainImage || !modal || !modalImg || !closeBtn) return;
 
-  let currentIndex = 0;
-
-  function updateMainImage(index) {
-    currentIndex = index;
-    mainImage.src = images[currentIndex];
-    mainImage.alt = productName;
-
-    const thumbs = Array.from(
-      thumbsContainer.querySelectorAll('.product-gallery__thumb')
-    );
-
-    thumbs.forEach((thumb, i) => {
-      thumb.classList.toggle('is-active', i === currentIndex);
-    });
+  function openModal(src) {
+    modalImg.src = src;
+    modal.classList.add('is-open');
+    document.body.classList.add('modal-open');
   }
 
-  thumbsContainer.innerHTML = '';
-
-  images.forEach((imageSrc, index) => {
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'product-gallery__thumb';
-    if (index === 0) button.classList.add('is-active');
-
-    button.innerHTML = `
-      <img src="${imageSrc}" alt="${productName} ${index + 1}">
-    `;
-
-    button.addEventListener('click', () => {
-      updateMainImage(index);
-    });
-
-    thumbsContainer.appendChild(button);
-  });
-
-  mainImage.src = images[0];
-  mainImage.alt = productName;
+  function closeModal() {
+    modal.classList.remove('is-open');
+    document.body.classList.remove('modal-open');
+    modalImg.src = '';
+  }
 
   mainImage.addEventListener('click', () => {
-    openImageModal(images[currentIndex], productName);
+    if (mainImage.src) {
+      openModal(mainImage.src);
+    }
+  });
+
+  closeBtn.addEventListener('click', closeModal);
+
+  modal.addEventListener('click', (event) => {
+    if (event.target === modal) {
+      closeModal();
+    }
+  });
+
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && modal.classList.contains('is-open')) {
+      closeModal();
+    }
   });
 }
 
-/* RENDER PRODUCT */
+function bindBuyButton(product) {
+  const button = document.getElementById('product-buy-button');
+  if (!button) return;
 
-function renderProduct(product) {
-  const pageTitle = document.getElementById('product-page-title');
-  const category = document.getElementById('product-category');
-  const title = document.getElementById('product-title');
-  const description = document.getElementById('product-description');
-  const price = document.getElementById('product-price');
-  const oldPrice = document.getElementById('product-old-price');
-  const stock = document.getElementById('product-stock');
-  const specsList = document.getElementById('product-specs');
-  const buyButton = document.getElementById('product-buy-button');
-  const mainImage = document.getElementById('product-main-image');
-  const infoCard = document.querySelector('.product-details__info');
+  button.addEventListener('click', () => {
+    if (!window.CartUtils) return;
 
-  if (pageTitle) pageTitle.textContent = 'Карточка товара';
-  if (category) category.textContent = product.category;
-  if (title) title.textContent = product.name;
-  if (description) description.textContent = product.description;
-  if (price) price.textContent = formatPrice(product.price);
+    const mainImage = document.getElementById('product-main-image');
+    const productInfoCard = document.querySelector('.product-details__info');
 
-  if (oldPrice) {
-    if (product.oldPrice) {
-      oldPrice.textContent = formatPrice(product.oldPrice);
-      oldPrice.style.display = 'inline';
-    } else {
-      oldPrice.textContent = '';
-      oldPrice.style.display = 'none';
+    if (mainImage) {
+      animateFly(mainImage, productInfoCard);
     }
-  }
 
-  if (stock) {
-    stock.textContent = product.inStock ? 'В наличии' : 'Нет в наличии';
-    stock.classList.remove('in-stock', 'out-of-stock');
-    stock.classList.add(product.inStock ? 'in-stock' : 'out-of-stock');
-  }
+    setTimeout(() => {
+      window.CartUtils.addToCart({
+        id: product.id,
+        name: product.name,
+        slug: product.slug || `product-${product.id}`,
+        category: product.category || 'Товар',
+        price: Number(product.price) || 0,
+        oldPrice: product.oldPrice ? Number(product.oldPrice) : null,
+        image: product.images[0] || '/images/logo-glorionpc.png',
+        quantity: 1,
+        specs: {
+          cpu: product.cpu || '',
+          gpu: product.gpu || '',
+          ram: product.ram || '',
+          storage: product.ssd || ''
+        }
+      });
 
-  if (specsList) {
-    specsList.innerHTML = `
-      <li><strong>CPU:</strong> ${product.cpu}</li>
-      <li><strong>GPU:</strong> ${product.gpu}</li>
-      <li><strong>RAM:</strong> ${product.ram}</li>
-      <li><strong>SSD:</strong> ${product.ssd}</li>
-    `;
-  }
+      if (window.updateCartIndicator) {
+        window.updateCartIndicator();
+      }
 
-  if (buyButton) {
-    buyButton.onclick = () => {
-      const imageForAnimation = mainImage || document.querySelector('.product-gallery__main img');
-      animateFly(imageForAnimation, infoCard);
+      const originalText = button.textContent;
+      button.textContent = 'Добавлено';
+      button.disabled = true;
 
       setTimeout(() => {
-        if (window.CartUtils && typeof window.CartUtils.addToCart === 'function') {
-          window.CartUtils.addToCart(product);
-        }
-      }, 180);
-    };
-  }
+        button.textContent = originalText;
+        button.disabled = false;
+      }, 1200);
+    }, 180);
+  });
+}
 
-  renderGallery(product.images, product.name);
+function renderProduct(product) {
+  document.title = `${product.name} — GlorionPC`;
+
+  setText('product-page-title', product.name);
+  setText('product-category', product.category);
+  setText('product-title', product.name);
+  setText('product-description', product.description);
+
+  renderGallery(product.images);
+  renderPrices(product);
+  renderStock(product);
+  renderSpecs(product);
+  bindBuyButton(product);
+  initImageModal();
 }
 
 async function loadProduct() {
   const productId = getProductIdFromUrl();
-  if (!productId) return;
+
+  if (!productId) {
+    setText('product-page-title', 'Товар не найден');
+    setText('product-title', 'Товар не найден');
+    setText('product-description', 'В ссылке отсутствует ID товара.');
+    return;
+  }
 
   try {
     const response = await fetch(`${PRODUCT_API_URL}/${productId}`);
+
     if (!response.ok) {
       throw new Error('Не удалось загрузить товар');
     }
 
     const rawProduct = await response.json();
     const product = normalizeProduct(rawProduct);
+
     renderProduct(product);
   } catch (error) {
     console.error('Ошибка загрузки товара:', error);
-
-    const title = document.getElementById('product-title');
-    const description = document.getElementById('product-description');
-
-    if (title) title.textContent = 'Товар не найден';
-    if (description) {
-      description.textContent =
-        'Не удалось загрузить информацию о товаре. Попробуйте обновить страницу.';
-    }
+    setText('product-page-title', 'Ошибка загрузки');
+    setText('product-title', 'Ошибка загрузки');
+    setText('product-description', 'Не удалось загрузить карточку товара.');
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  initImageModal();
-  loadProduct();
-});
+document.addEventListener('DOMContentLoaded', loadProduct);

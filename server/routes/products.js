@@ -1,18 +1,61 @@
 const express = require('express');
 const router = express.Router();
 const prisma = require('../prisma');
-const upload = require('../middleware/upload');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs');
 
-function normalizeBoolean(value) {
-  return value === 'true' || value === 'on' || value === true;
+/* =========================
+   MULTER CONFIG
+========================= */
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const uploadPath = path.join(__dirname, '../../public/images');
+
+    if (!fs.existsSync(uploadPath)) {
+      fs.mkdirSync(uploadPath, { recursive: true });
+    }
+
+    cb(null, uploadPath);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    const fileName = Date.now() + '-' + Math.round(Math.random() * 1e9) + ext;
+    cb(null, fileName);
+  }
+});
+
+const upload = multer({ storage });
+
+/* =========================
+   HELPERS
+========================= */
+
+function parseBool(value) {
+  return value === true || value === 'true';
 }
 
-function normalizeNumber(value, fallback = null) {
-  if (value === undefined || value === null || value === '') return fallback;
-  const parsed = Number(value);
-  return Number.isNaN(parsed) ? fallback : parsed;
+function parseNum(value) {
+  if (value === undefined || value === null || value === '') return null;
+  const num = Number(value);
+  return Number.isNaN(num) ? null : num;
 }
 
+function parseExistingImages(raw) {
+  if (!raw) return [];
+
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (error) {
+    return [];
+  }
+}
+
+/* =========================
+   GET ALL PRODUCTS
+========================= */
 router.get('/', async (req, res) => {
   try {
     const products = await prisma.product.findMany({
@@ -22,32 +65,30 @@ router.get('/', async (req, res) => {
         }
       },
       orderBy: {
-        id: 'desc'
+        createdAt: 'desc'
       }
     });
 
-    const normalized = products.map(product => ({
-      ...product,
-      image: product.images?.[0]?.url || null
-    }));
-
-    res.json(normalized);
+    res.json(products);
   } catch (error) {
     console.error('Ошибка получения товаров:', error);
     res.status(500).json({ message: 'Ошибка получения товаров' });
   }
 });
 
+/* =========================
+   GET PRODUCT BY ID
+========================= */
 router.get('/:id', async (req, res) => {
   try {
-    const id = Number(req.params.id);
+    const productId = Number(req.params.id);
 
-    if (Number.isNaN(id)) {
+    if (Number.isNaN(productId)) {
       return res.status(400).json({ message: 'Некорректный ID товара' });
     }
 
     const product = await prisma.product.findUnique({
-      where: { id },
+      where: { id: productId },
       include: {
         images: {
           orderBy: { order: 'asc' }
@@ -59,58 +100,73 @@ router.get('/:id', async (req, res) => {
       return res.status(404).json({ message: 'Товар не найден' });
     }
 
-    res.json({
-      ...product,
-      image: product.images?.[0]?.url || null
-    });
+    res.json(product);
   } catch (error) {
     console.error('Ошибка получения товара:', error);
     res.status(500).json({ message: 'Ошибка получения товара' });
   }
 });
 
+/* =========================
+   CREATE PRODUCT
+========================= */
 router.post('/', upload.array('images', 10), async (req, res) => {
   try {
-    const {
-      name,
-      description,
-      price,
-      oldPrice,
-      category,
-      cpu,
-      gpu,
-      ram,
-      ssd,
-      inStock
-    } = req.body;
+    const body = req.body;
+    const files = req.files || [];
+
+    if (!body.name || body.price === undefined || !body.category) {
+      return res.status(400).json({ message: 'Заполните обязательные поля' });
+    }
+
+    const existingImages = parseExistingImages(body.existingImages);
+    const uploadedImages = files.map((file) => `/images/${file.filename}`);
+    const allImages = [...existingImages, ...uploadedImages];
 
     const createdProduct = await prisma.product.create({
       data: {
-        name: name || '',
-        description: description || '',
-        price: normalizeNumber(price, 0),
-        oldPrice: normalizeNumber(oldPrice, null),
-        category: category || '',
-        cpu: cpu || null,
-        gpu: gpu || null,
-        ram: ram || null,
-        ssd: ssd || null,
-        inStock: normalizeBoolean(inStock)
-      }
-    });
+        name: body.name,
+        description: body.description || '',
+        price: Number(body.price),
+        oldPrice: parseNum(body.oldPrice),
+        category: body.category,
 
-    if (req.files && req.files.length > 0) {
-      await prisma.productImage.createMany({
-        data: req.files.map((file, index) => ({
-          url: `/images/${file.filename}`,
-          order: index,
-          productId: createdProduct.id
-        }))
-      });
-    }
+        cpu: body.cpu || null,
+        gpu: body.gpu || null,
+        ram: body.ram || null,
+        ssd: body.ssd || null,
 
-    const fullProduct = await prisma.product.findUnique({
-      where: { id: createdProduct.id },
+        inStock: parseBool(body.inStock),
+
+        componentType: body.componentType || null,
+        isConfiguratorItem: parseBool(body.isConfiguratorItem),
+
+        socket: body.socket || null,
+        ramType: body.ramType || null,
+        chipset: body.chipset || null,
+        formFactor: body.formFactor || null,
+        memoryCapacity: body.memoryCapacity || null,
+        storageType: body.storageType || null,
+        storageCapacity: body.storageCapacity || null,
+        powerDraw: parseNum(body.powerDraw),
+        recommendedPsu: parseNum(body.recommendedPsu),
+        psuWattage: parseNum(body.psuWattage),
+        coolingLevel: body.coolingLevel || null,
+        supportedSockets: body.supportedSockets || null,
+
+        gpuLength: parseNum(body.gpuLength),
+        gpuWidth: parseNum(body.gpuWidth),
+        gpuHeight: parseNum(body.gpuHeight),
+
+        specsJson: body.specsJson || null,
+
+        images: {
+          create: allImages.map((url, index) => ({
+            url,
+            order: index
+          }))
+        }
+      },
       include: {
         images: {
           orderBy: { order: 'asc' }
@@ -118,26 +174,29 @@ router.post('/', upload.array('images', 10), async (req, res) => {
       }
     });
 
-    res.status(201).json({
-      ...fullProduct,
-      image: fullProduct.images?.[0]?.url || null
-    });
+    res.status(201).json(createdProduct);
   } catch (error) {
     console.error('Ошибка создания товара:', error);
     res.status(500).json({ message: 'Ошибка создания товара' });
   }
 });
 
+/* =========================
+   UPDATE PRODUCT
+========================= */
 router.put('/:id', upload.array('images', 10), async (req, res) => {
   try {
-    const id = Number(req.params.id);
+    const productId = Number(req.params.id);
 
-    if (Number.isNaN(id)) {
+    if (Number.isNaN(productId)) {
       return res.status(400).json({ message: 'Некорректный ID товара' });
     }
 
+    const body = req.body;
+    const files = req.files || [];
+
     const existingProduct = await prisma.product.findUnique({
-      where: { id },
+      where: { id: productId },
       include: { images: true }
     });
 
@@ -145,72 +204,59 @@ router.put('/:id', upload.array('images', 10), async (req, res) => {
       return res.status(404).json({ message: 'Товар не найден' });
     }
 
-    const {
-      name,
-      description,
-      price,
-      oldPrice,
-      category,
-      cpu,
-      gpu,
-      ram,
-      ssd,
-      inStock,
-      existingImages
-    } = req.body;
-
-    await prisma.product.update({
-      where: { id },
-      data: {
-        name: name || '',
-        description: description || '',
-        price: normalizeNumber(price, 0),
-        oldPrice: normalizeNumber(oldPrice, null),
-        category: category || '',
-        cpu: cpu || null,
-        gpu: gpu || null,
-        ram: ram || null,
-        ssd: ssd || null,
-        inStock: normalizeBoolean(inStock)
-      }
-    });
-
-    let parsedExistingImages = [];
-
-    if (existingImages) {
-      try {
-        parsedExistingImages = JSON.parse(existingImages);
-      } catch (error) {
-        parsedExistingImages = [];
-      }
-    }
+    const existingImages = parseExistingImages(body.existingImages);
+    const uploadedImages = files.map((file) => `/images/${file.filename}`);
+    const allImages = [...existingImages, ...uploadedImages];
 
     await prisma.productImage.deleteMany({
-      where: { productId: id }
+      where: { productId }
     });
 
-    const oldImagesData = parsedExistingImages.map((url, index) => ({
-      url,
-      order: index,
-      productId: id
-    }));
+    const updatedProduct = await prisma.product.update({
+      where: { id: productId },
+      data: {
+        name: body.name,
+        description: body.description || '',
+        price: Number(body.price),
+        oldPrice: parseNum(body.oldPrice),
+        category: body.category,
 
-    const newImagesData = (req.files || []).map((file, index) => ({
-      url: `/images/${file.filename}`,
-      order: oldImagesData.length + index,
-      productId: id
-    }));
+        cpu: body.cpu || null,
+        gpu: body.gpu || null,
+        ram: body.ram || null,
+        ssd: body.ssd || null,
 
-    const allImagesData = [...oldImagesData, ...newImagesData];
+        inStock: parseBool(body.inStock),
 
-    if (allImagesData.length > 0) {
-      await prisma.productImage.createMany({
-        data: allImagesData
-      });
-    }
+        componentType: body.componentType || null,
+        isConfiguratorItem: parseBool(body.isConfiguratorItem),
 
-    const updatedProduct = await prisma.product.findUnique({
-      where: { id },
+        socket: body.socket || null,
+        ramType: body.ramType || null,
+        chipset: body.chipset || null,
+        formFactor: body.formFactor || null,
+        memoryCapacity: body.memoryCapacity || null,
+        storageType: body.storageType || null,
+        storageCapacity: body.storageCapacity || null,
+        powerDraw: parseNum(body.powerDraw),
+        recommendedPsu: parseNum(body.recommendedPsu),
+        psuWattage: parseNum(body.psuWattage),
+        coolingLevel: body.coolingLevel || null,
+        supportedSockets: body.supportedSockets || null,
+
+        gpuLength: parseNum(body.gpuLength),
+        gpuWidth: parseNum(body.gpuWidth),
+        gpuHeight: parseNum(body.gpuHeight),
+
+        specsJson: body.specsJson || null,
+
+        images: {
+          create: allImages.map((url, index) => ({
+            url,
+            order: index
+          }))
+        }
+      },
       include: {
         images: {
           orderBy: { order: 'asc' }
@@ -218,26 +264,26 @@ router.put('/:id', upload.array('images', 10), async (req, res) => {
       }
     });
 
-    res.json({
-      ...updatedProduct,
-      image: updatedProduct.images?.[0]?.url || null
-    });
+    res.json(updatedProduct);
   } catch (error) {
     console.error('Ошибка обновления товара:', error);
     res.status(500).json({ message: 'Ошибка обновления товара' });
   }
 });
 
+/* =========================
+   DELETE PRODUCT
+========================= */
 router.delete('/:id', async (req, res) => {
   try {
-    const id = Number(req.params.id);
+    const productId = Number(req.params.id);
 
-    if (Number.isNaN(id)) {
+    if (Number.isNaN(productId)) {
       return res.status(400).json({ message: 'Некорректный ID товара' });
     }
 
     const existingProduct = await prisma.product.findUnique({
-      where: { id }
+      where: { id: productId }
     });
 
     if (!existingProduct) {
@@ -245,11 +291,11 @@ router.delete('/:id', async (req, res) => {
     }
 
     await prisma.productImage.deleteMany({
-      where: { productId: id }
+      where: { productId }
     });
 
     await prisma.product.delete({
-      where: { id }
+      where: { id: productId }
     });
 
     res.json({ message: 'Товар удалён' });

@@ -48,12 +48,41 @@ function getStatusClass(status) {
   }
 }
 
+function parseSpecs(value) {
+  if (!value) return {};
+  if (typeof value === 'object') return value;
+
+  try {
+    return JSON.parse(value);
+  } catch (error) {
+    return {};
+  }
+}
+
 function getSavedOrderIds() {
   try {
-    return JSON.parse(localStorage.getItem('glorionpc_orders') || '[]');
+    const raw = JSON.parse(localStorage.getItem('glorionpc_orders') || '[]');
+
+    if (!Array.isArray(raw)) return [];
+
+    return raw
+      .map((item) => {
+        if (typeof item === 'number') return item;
+        if (typeof item === 'string' && item.trim() !== '') return item.trim();
+        return null;
+      })
+      .filter(Boolean);
   } catch (error) {
     console.error('Ошибка чтения заказов из localStorage:', error);
     return [];
+  }
+}
+
+function saveValidOrderIds(ids) {
+  try {
+    localStorage.setItem('glorionpc_orders', JSON.stringify(ids));
+  } catch (error) {
+    console.error('Ошибка сохранения заказов в localStorage:', error);
   }
 }
 
@@ -68,6 +97,7 @@ function getSavedCustomPcRequestIds() {
     return raw
       .map((item) => {
         if (typeof item === 'number') return item;
+        if (typeof item === 'string' && item.trim() !== '') return item.trim();
         if (item && typeof item === 'object' && item.id) return item.id;
         return null;
       })
@@ -79,10 +109,15 @@ function getSavedCustomPcRequestIds() {
 }
 
 function saveValidCustomPcRequestIds(ids) {
-  localStorage.setItem(
-    'glorionpc_custom_pc_requests',
-    JSON.stringify(ids)
-  );
+  try {
+    localStorage.setItem('glorionpc_custom_pc_requests', JSON.stringify(ids));
+  } catch (error) {
+    console.error('Ошибка сохранения заявок в localStorage:', error);
+  }
+}
+
+function idsEqual(a, b) {
+  return String(a) === String(b);
 }
 
 function renderEmptyState(message) {
@@ -111,6 +146,40 @@ function renderErrorState(message) {
   `;
 }
 
+function buildSpecsHtml(specs) {
+  const parsedSpecs = parseSpecs(specs);
+
+  const rows = [
+    ['Процессор', parsedSpecs.cpu],
+    ['Видеокарта', parsedSpecs.gpu],
+    ['Материнская плата', parsedSpecs.motherboard],
+    ['ОЗУ', parsedSpecs.ram],
+    ['Основной накопитель', parsedSpecs.storage],
+    ['Доп. накопитель', parsedSpecs.extraStorage],
+    ['Охлаждение CPU', parsedSpecs.cooler],
+    ['Блок питания', parsedSpecs.psu],
+    ['Корпус', parsedSpecs.case],
+    ['Вентиляторы', parsedSpecs.fans]
+  ].filter(([, value]) => value && String(value).trim() !== '');
+
+  if (!rows.length) return '';
+
+  return `
+    <div class="customer-order__specs">
+      ${rows
+        .map(
+          ([label, value]) => `
+            <div class="customer-order__spec-row">
+              <span class="customer-order__spec-label">${label}:</span>
+              <span class="customer-order__spec-value">${value}</span>
+            </div>
+          `
+        )
+        .join('')}
+    </div>
+  `;
+}
+
 function buildItemsHtml(items) {
   if (!Array.isArray(items) || !items.length) {
     return '<li>Нет данных о товарах</li>';
@@ -118,14 +187,20 @@ function buildItemsHtml(items) {
 
   return items
     .map((orderItem) => {
-      const productName = orderItem.product?.name || 'Товар';
+      const productName =
+        orderItem.productName ||
+        orderItem.product?.name ||
+        'Товар';
+
       const quantity = Number(orderItem.quantity) || 0;
       const price = Number(orderItem.price) || 0;
+      const specsHtml = buildSpecsHtml(orderItem.specs);
 
       return `
         <li class="customer-order__product-item">
           <span class="customer-order__product-name">${productName}</span>
           <span class="customer-order__product-meta">${quantity} шт. × ${formatPrice(price)}</span>
+          ${specsHtml}
         </li>
       `;
     })
@@ -397,15 +472,18 @@ async function loadCustomerOrders() {
     }
 
     const filteredOrders = Array.isArray(orders)
-      ? orders.filter((order) => savedOrderIds.includes(order.id))
+      ? orders.filter((order) =>
+          savedOrderIds.some((savedId) => idsEqual(savedId, order.id))
+        )
       : [];
 
     const filteredCustomPcRequests = Array.isArray(customPcRequests)
       ? customPcRequests.filter((request) =>
-          savedCustomPcRequestIds.includes(request.id)
+          savedCustomPcRequestIds.some((savedId) => idsEqual(savedId, request.id))
         )
       : [];
 
+    saveValidOrderIds(filteredOrders.map((order) => order.id));
     saveValidCustomPcRequestIds(
       filteredCustomPcRequests.map((request) => request.id)
     );

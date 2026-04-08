@@ -7,21 +7,49 @@ datasource db {
 }
 
 model Product {
-  id          Int            @id @default(autoincrement())
-  name        String
-  description String
-  price       Float
-  oldPrice    Float?
-  category    String
-  cpu         String?
-  gpu         String?
-  ram         String?
-  ssd         String?
-  inStock     Boolean        @default(true)
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-  orderItems  OrderItem[]
-  images      ProductImage[]
+  id                 Int            @id @default(autoincrement())
+  name               String
+  description        String
+  price              Float
+  oldPrice           Float?
+  category           String
+
+  cpu                String?
+  gpu                String?
+  ram                String?
+  ssd                String?
+
+  inStock            Boolean        @default(true)
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  componentType      String?
+  isConfiguratorItem Boolean        @default(false)
+
+  socket             String?
+  ramType            String?
+  chipset            String?
+  formFactor         String?
+
+  memoryCapacity     String?
+  storageType        String?
+  storageCapacity    String?
+
+  powerDraw          Int?
+  recommendedPsu     Int?
+  psuWattage         Int?
+
+  coolingLevel       String?
+  supportedSockets   String?
+
+  gpuLength          Int?
+  gpuWidth           Int?
+  gpuHeight          Int?
+
+  specsJson          String?
+
+  orderItems         OrderItem[]
+  images             ProductImage[]
 }
 
 model ProductImage {
@@ -42,19 +70,21 @@ model Order {
   status       OrderStatus @default(new)
   createdAt    DateTime    @default(now())
 
-  items OrderItem[]
+  items        OrderItem[]
 }
 
 model OrderItem {
-  id       Int   @id @default(autoincrement())
-  quantity Int
-  price    Float
+  id           Int      @id @default(autoincrement())
+  orderId      Int
+  productId    Int?
+  productName  String?
+  productImage String?
+  specs        String?
+  quantity     Int
+  price        Int
 
-  orderId   Int
-  productId Int
-
-  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product Product @relation(fields: [productId], references: [id])
+  order        Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product      Product? @relation(fields: [productId], references: [id])
 }
 
 model CustomPcRequest {

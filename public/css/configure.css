@@ -1,0 +1,233 @@
+.configure-page {
+  background:
+    radial-gradient(circle at top right, rgba(212, 166, 74, 0.07), transparent 22%),
+    radial-gradient(circle at top left, rgba(212, 166, 74, 0.05), transparent 18%),
+    var(--bg);
+}
+
+.configure-page .nav a.is-active {
+  color: var(--gold-soft);
+}
+
+.configure-hero {
+  position: relative;
+  padding: 72px 0 40px;
+  overflow: hidden;
+}
+
+.configure-hero__bg {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgba(5, 7, 13, 0.75), rgba(5, 7, 13, 0.92)),
+    radial-gradient(circle at 70% 30%, rgba(212, 166, 74, 0.12), transparent 22%);
+  pointer-events: none;
+}
+
+.configure-hero__layout {
+  position: relative;
+  z-index: 1;
+}
+
+.configure-hero__content {
+  max-width: 760px;
+}
+
+.configure-hero__title {
+  font-size: clamp(38px, 5vw, 72px);
+  line-height: 1.02;
+  margin-bottom: 18px;
+  color: var(--text);
+}
+
+.configure-hero__description {
+  max-width: 700px;
+  font-size: 18px;
+  line-height: 1.7;
+  color: var(--muted);
+  margin-bottom: 28px;
+}
+
+.configure-hero__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.configure-section {
+  padding: 36px 0 72px;
+}
+
+.configure-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.3fr) minmax(320px, 0.7fr);
+  gap: 24px;
+  align-items: start;
+}
+
+.configure-box,
+.configure-summary__card {
+  background: linear-gradient(180deg, rgba(14, 18, 30, 0.92), rgba(8, 10, 18, 0.96));
+  border: 1px solid var(--gold-border);
+  border-radius: 26px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.28);
+  backdrop-filter: blur(12px);
+}
+
+.configure-box {
+  padding: 26px;
+}
+
+.configure-box__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.configure-field {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.configure-field label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.configure-select {
+  width: 100%;
+  min-height: 52px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  border: 1px solid rgba(212, 166, 74, 0.18);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--text);
+  outline: none;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+}
+
+.configure-select:focus {
+  border-color: rgba(212, 166, 74, 0.55);
+  box-shadow: 0 0 0 4px rgba(212, 166, 74, 0.12);
+}
+
+.configure-summary__card {
+  padding: 24px;
+  position: sticky;
+  top: 110px;
+}
+
+.configure-summary__title {
+  font-size: 28px;
+  line-height: 1.1;
+  margin-bottom: 20px;
+  color: var(--text);
+}
+
+.configure-summary__list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 24px;
+}
+
+.configure-summary__row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.configure-summary__row span {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.configure-summary__row strong {
+  color: var(--text);
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+.configure-summary__total {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 18px 0 22px;
+}
+
+.configure-summary__total span {
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.configure-summary__total strong {
+  color: var(--gold-soft);
+  font-size: 34px;
+  line-height: 1;
+}
+
+.configure-summary__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+@media (max-width: 1024px) {
+  .configure-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .configure-summary__card {
+    position: static;
+  }
+}
+
+@media (max-width: 720px) {
+  .configure-hero {
+    padding: 48px 0 26px;
+  }
+
+  .configure-hero__title {
+    font-size: 34px;
+  }
+
+  .configure-hero__description {
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .configure-box {
+    padding: 18px;
+    border-radius: 22px;
+  }
+
+  .configure-box__grid {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .configure-summary__card {
+    padding: 18px;
+    border-radius: 22px;
+  }
+
+  .configure-summary__title {
+    font-size: 24px;
+  }
+
+  .configure-summary__total strong {
+    font-size: 28px;
+  }
+}
+
+@media (max-width: 480px) {
+  .configure-select {
+    min-height: 48px;
+    padding: 12px 14px;
+    font-size: 16px;
+  }
+}

@@ -26,6 +26,89 @@ let lastOrderTotal = 0;
 let currentOrderId = null;
 
 /* =========================
+   HELPERS
+========================= */
+function formatPrice(price) {
+  return new Intl.NumberFormat('ru-RU').format(Number(price) || 0) + ' ₽';
+}
+
+function normalizeCartItem(item = {}) {
+  const price = Number(item.price) || 0;
+  const quantity = Number(item.quantity) || 1;
+
+  return {
+    id: item.id ?? null,
+    name: item.name || 'Товар',
+    category: item.category || 'Сборка',
+    price,
+    quantity,
+    image:
+      item.image ||
+      item.imageUrl ||
+      item.photo ||
+      item.images?.[0]?.url ||
+      item.images?.[0] ||
+      '/images/logo-glorionpc.png',
+    specs:
+      item.specs && typeof item.specs === 'object'
+        ? item.specs
+        : {},
+    subtotal: price * quantity
+  };
+}
+
+function getCartItems() {
+  if (window.CartUtils && typeof window.CartUtils.getCart === 'function') {
+    const cart = window.CartUtils.getCart();
+    return Array.isArray(cart) ? cart.map(normalizeCartItem) : [];
+  }
+
+  try {
+    const cart = JSON.parse(localStorage.getItem('glorionpc_cart') || '[]');
+    return Array.isArray(cart) ? cart.map(normalizeCartItem) : [];
+  } catch (error) {
+    console.error('Ошибка чтения корзины:', error);
+    return [];
+  }
+}
+
+function getCartTotal(items = []) {
+  return items.reduce((sum, item) => sum + (Number(item.subtotal) || 0), 0);
+}
+
+function renderSpecsForCheckout(specs = {}) {
+  const rows = [
+    ['Процессор', specs.cpu],
+    ['Видеокарта', specs.gpu],
+    ['Материнская плата', specs.motherboard],
+    ['ОЗУ', specs.ram],
+    ['Основной накопитель', specs.storage],
+    ['Доп. накопитель', specs.extraStorage],
+    ['Охлаждение CPU', specs.cooler],
+    ['Блок питания', specs.psu],
+    ['Корпус', specs.case],
+    ['Вентиляторы', specs.fans]
+  ].filter(([, value]) => value && String(value).trim() !== '');
+
+  if (!rows.length) return '';
+
+  return `
+    <div class="checkout-item__specs">
+      ${rows
+        .map(
+          ([label, value]) => `
+            <div class="checkout-item__spec-row">
+              <span class="checkout-item__spec-label">${label}:</span>
+              <span class="checkout-item__spec-value">${value}</span>
+            </div>
+          `
+        )
+        .join('')}
+    </div>
+  `;
+}
+
+/* =========================
    📱 ПРОВЕРКА МОБИЛЬНОГО
 ========================= */
 function isMobileDevice() {
@@ -64,7 +147,7 @@ function saveOrderIdToLocalStorage(orderId) {
    📞 МАСКА ТЕЛЕФОНА
 ========================= */
 function getPhoneDigits(value) {
-  return value.replace(/\D/g, '');
+  return String(value || '').replace(/\D/g, '');
 }
 
 function formatPhoneValue(value) {
@@ -143,7 +226,7 @@ function setupPhoneMask() {
 function renderCheckoutItems() {
   if (!checkoutItemsContainer || !checkoutTotalElement) return;
 
-  const cart = CartUtils.getCart();
+  const cart = getCartItems();
 
   if (!cart.length) {
     checkoutItemsContainer.innerHTML = `
@@ -155,7 +238,7 @@ function renderCheckoutItems() {
       </div>
     `;
 
-    checkoutTotalElement.textContent = CartUtils.formatPrice(0);
+    checkoutTotalElement.textContent = formatPrice(0);
     setCheckoutFormState(false);
     return;
   }
@@ -164,36 +247,31 @@ function renderCheckoutItems() {
 
   checkoutItemsContainer.innerHTML = cart
     .map((item) => {
-      const quantity = Number(item.quantity) || 1;
-      const price = Number(item.price) || 0;
-      const subtotal = price * quantity;
-      const image = item.image || '/images/logo-glorionpc.png';
-      const name = item.name || 'Товар';
-
       return `
         <div class="checkout-item">
           <div class="checkout-item__left">
             <div class="checkout-item__thumb">
-              <img src="${image}" alt="${name}">
+              <img src="${item.image}" alt="${item.name}">
             </div>
 
-            <div>
-              <div class="checkout-item__title">${name}</div>
+            <div class="checkout-item__content">
+              <div class="checkout-item__title">${item.name}</div>
               <div class="checkout-item__meta">
-                ${item.category || 'Сборка'} · ${quantity} шт.
+                ${item.category} · ${item.quantity} шт.
               </div>
+              ${renderSpecsForCheckout(item.specs)}
             </div>
           </div>
 
           <div class="checkout-item__price">
-            ${CartUtils.formatPrice(subtotal)}
+            ${formatPrice(item.subtotal)}
           </div>
         </div>
       `;
     })
     .join('');
 
-  checkoutTotalElement.textContent = CartUtils.formatPrice(CartUtils.getCartTotal());
+  checkoutTotalElement.textContent = formatPrice(getCartTotal(cart));
 }
 
 /* =========================
@@ -246,7 +324,7 @@ function setupPaymentView() {
 
 function setPaymentTotalValue(total) {
   if (!paymentTotal) return;
-  paymentTotal.textContent = CartUtils.formatPrice(total || 0);
+  paymentTotal.textContent = formatPrice(total || 0);
 }
 
 function setPaymentOrderId(orderId) {
@@ -342,7 +420,7 @@ async function submitOrder(event) {
 
   if (!checkoutForm) return;
 
-  const cart = CartUtils.getCart();
+  const cart = getCartItems();
 
   if (!cart.length) {
     showCheckoutMessage('Корзина пуста. Добавьте товары.', 'error');
@@ -373,7 +451,7 @@ async function submitOrder(event) {
     return;
   }
 
-  const orderTotal = CartUtils.getCartTotal();
+  const orderTotal = getCartTotal(cart);
   lastOrderTotal = orderTotal;
 
   const orderPayload = {
@@ -385,8 +463,11 @@ async function submitOrder(event) {
     },
     items: cart.map((item) => ({
       id: item.id,
-      quantity: Number(item.quantity) || 1,
-      price: Number(item.price) || 0
+      quantity: item.quantity,
+      price: item.price,
+      name: item.name,
+      image: item.image,
+      specs: item.specs
     })),
     total: orderTotal
   };
@@ -412,11 +493,18 @@ async function submitOrder(event) {
     currentOrderId = data?.order?.id || null;
     saveOrderIdToLocalStorage(currentOrderId);
 
-    CartUtils.clearCart();
+    if (window.CartUtils && typeof window.CartUtils.clearCart === 'function') {
+      window.CartUtils.clearCart();
+    } else {
+      localStorage.setItem(CART_STORAGE_KEY, '[]');
+    }
+
     renderCheckoutItems();
 
     if (window.updateCartIndicator) {
       window.updateCartIndicator();
+    } else {
+      updateCartIndicator();
     }
 
     openPaymentModal(lastOrderTotal, currentOrderId);

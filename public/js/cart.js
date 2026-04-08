@@ -1,6 +1,42 @@
 const cartItemsContainer = document.getElementById('cart-items');
 
 /* =========================
+   КОМПЛЕКТУЮЩИЕ КОНФИГУРАТОРА
+========================= */
+
+function renderSpecs(specs = {}) {
+  const items = [
+    ['Процессор', specs.cpu],
+    ['Видеокарта', specs.gpu],
+    ['Материнская плата', specs.motherboard],
+    ['ОЗУ', specs.ram],
+    ['Основной накопитель', specs.storage],
+    ['Доп. накопитель', specs.extraStorage],
+    ['Охлаждение CPU', specs.cooler],
+    ['Блок питания', specs.psu],
+    ['Корпус', specs.case],
+    ['Вентиляторы', specs.fans]
+  ].filter(([, value]) => value && String(value).trim() !== '' && !String(value).includes('Без '));
+
+  if (!items.length) return '';
+
+  return `
+    <div class="cart-item__specs">
+      ${items
+        .map(
+          ([label, value]) => `
+            <div class="cart-item__spec-row">
+              <span class="cart-item__spec-label">${label}:</span>
+              <span class="cart-item__spec-value">${value}</span>
+            </div>
+          `
+        )
+        .join('')}
+    </div>
+  `;
+}
+
+/* =========================
    🛒 РЕНДЕР КОРЗИНЫ
 ========================= */
 
@@ -25,6 +61,7 @@ function renderCart() {
     const quantity = Number(item.quantity) || 1;
     const price = Number(item.price) || 0;
     const subtotal = price * quantity;
+    const specsHtml = renderSpecs(item.specs);
 
     return `
       <div class="cart-item">
@@ -40,6 +77,7 @@ function renderCart() {
           <h3 class="cart-item__title">${item.name}</h3>
           <div class="cart-item__category">${item.category || 'Сборка'}</div>
           <div class="cart-item__price">${CartUtils.formatPrice(price)}</div>
+          ${specsHtml}
         </div>
 
         <div class="cart-item__actions">
@@ -100,7 +138,6 @@ function renderCart() {
     </div>
   `;
 
-  // 🔥 на всякий случай обновляем кружок
   if (window.updateCartIndicator) {
     updateCartIndicator();
   }

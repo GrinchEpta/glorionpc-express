@@ -47,6 +47,9 @@
         <button type="button" class="admin-tab" data-tab="custom">
           Заявки на ПК
         </button>
+        <button type="button" class="admin-tab" data-tab="components">
+          Комплектующие
+        </button>
       </div>
 
       <div class="admin-section active" id="tab-products">
@@ -101,19 +104,19 @@
               <textarea id="description" name="description" rows="5" required></textarea>
             </div>
 
-            <div class="admin-file-group">
+            <div class="admin-file-group" style="grid-column: 1 / -1;">
               <label for="images">Фотографии товара (до 10 шт.)</label>
               <input id="images" name="images" type="file" accept="image/*" multiple />
             </div>
 
-            <div id="admin-images-preview" class="admin-image-preview"></div>
+            <div id="admin-images-preview" class="admin-image-preview" style="grid-column: 1 / -1;"></div>
 
-            <label class="admin-checkbox">
+            <label class="admin-checkbox" style="grid-column: 1 / -1;">
               <input type="checkbox" id="inStock" name="inStock" checked />
-              В наличии
+              <span>В наличии</span>
             </label>
 
-            <div class="admin-form-actions">
+            <div class="admin-form-actions" style="grid-column: 1 / -1;">
               <button type="submit" class="btn btn-gold">Сохранить изменения</button>
               <button type="button" class="btn btn-secondary" id="cancel-edit-btn">
                 Отменить редактирование
@@ -139,6 +142,88 @@
         <section class="admin-block reveal">
           <h2>Заявки на индивидуальную сборку ПК</h2>
           <div id="admin-custom-pc-requests-list" class="admin-list"></div>
+        </section>
+      </div>
+
+      <div class="admin-section" id="tab-components">
+        <section class="admin-block">
+          <h2 id="component-form-title">Добавить комплектующее</h2>
+
+          <form id="component-form" class="admin-form">
+            <input type="hidden" id="component-id" />
+
+            <div class="form-group">
+              <label for="component-name">Название</label>
+              <input type="text" id="component-name" required />
+            </div>
+
+            <div class="form-group">
+              <label for="component-type">Тип комплектующего</label>
+              <select id="component-type" required>
+                <option value="">Выберите тип</option>
+                <option value="cpu">Процессор</option>
+                <option value="gpu">Видеокарта</option>
+                <option value="motherboard">Материнская плата</option>
+                <option value="ram">Оперативная память</option>
+                <option value="storage">Накопитель</option>
+                <option value="cooler">Охлаждение CPU</option>
+                <option value="psu">Блок питания</option>
+                <option value="case">Корпус</option>
+                <option value="fans">Вентиляторы</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label for="component-category">Категория</label>
+              <input type="text" id="component-category" placeholder="Например: Комплектующие" />
+            </div>
+
+            <div class="form-group">
+              <label for="component-price">Цена</label>
+              <input type="number" id="component-price" min="0" required />
+            </div>
+
+            <div class="form-group">
+              <label for="component-old-price">Старая цена</label>
+              <input type="number" id="component-old-price" min="0" />
+            </div>
+
+            <div class="form-group" style="grid-column: 1 / -1;">
+              <label for="component-description">Описание</label>
+              <textarea id="component-description" rows="5"></textarea>
+            </div>
+
+            <div class="admin-file-group" style="grid-column: 1 / -1;">
+              <label for="component-images">Фотографии комплектующего (до 10 шт.)</label>
+              <input id="component-images" type="file" accept="image/*" multiple />
+            </div>
+
+            <div id="component-images-preview" class="admin-image-preview" style="grid-column: 1 / -1;"></div>
+
+            <label class="admin-checkbox" style="grid-column: 1 / -1;">
+              <input type="checkbox" id="component-in-stock" checked />
+              <span>В наличии</span>
+            </label>
+
+            <label class="admin-checkbox" style="grid-column: 1 / -1;">
+              <input type="checkbox" id="component-is-configurator-item" checked />
+              <span>Использовать в конфигураторе</span>
+            </label>
+
+            <div id="component-specs-dynamic" style="grid-column: 1 / -1;"></div>
+
+            <div class="admin-form-actions" style="grid-column: 1 / -1;">
+              <button type="submit" class="btn btn-gold">Сохранить комплектующее</button>
+              <button type="button" class="btn btn-secondary" id="component-cancel-edit-btn">
+                Отменить редактирование
+              </button>
+            </div>
+          </form>
+        </section>
+
+        <section class="admin-block reveal">
+          <h2>Список комплектующих</h2>
+          <div id="components-list" class="admin-list"></div>
         </section>
       </div>
     </div>

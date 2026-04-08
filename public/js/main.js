@@ -5,9 +5,25 @@ function formatPrice(price) {
   return new Intl.NumberFormat('ru-RU').format(Number(price) || 0) + ' ₽';
 }
 
+/* =========================
+   ФИЛЬТР: ТОЛЬКО ГОТОВЫЕ ПК
+========================= */
+function isReadyPc(product) {
+  const category = String(product?.category || '').toLowerCase().trim();
+
+  return (
+    !product?.componentType &&
+    product?.isConfiguratorItem !== true &&
+    category !== 'комплектующие'
+  );
+}
+
 function getImages(product) {
   if (Array.isArray(product.images) && product.images.length > 0) {
-    return product.images.map(image => image.url);
+    return product.images.map(image => {
+      if (typeof image === 'string') return image;
+      return image?.url || '/images/logo-glorionpc.png';
+    });
   }
 
   if (product.image) return [product.image];
@@ -299,11 +315,25 @@ async function loadFeaturedProducts() {
 
   try {
     const response = await fetch(MAIN_API_URL);
+
+    if (!response.ok) {
+      throw new Error('Не удалось загрузить товары');
+    }
+
     const products = await response.json();
+
+    const readyProducts = Array.isArray(products)
+      ? products.filter(isReadyPc)
+      : [];
 
     featuredProductsContainer.innerHTML = '';
 
-    products.slice(0, 10).forEach((product, index) => {
+    if (!readyProducts.length) {
+      featuredProductsContainer.innerHTML = '<p>Готовых ПК пока нет.</p>';
+      return;
+    }
+
+    readyProducts.slice(0, 10).forEach((product, index) => {
       featuredProductsContainer.appendChild(createProductCard(product, index));
     });
 

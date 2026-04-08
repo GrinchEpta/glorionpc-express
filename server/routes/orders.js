@@ -1,6 +1,17 @@
-const express = require('express')
-const router = express.Router()
-const prisma = require('../prisma')
+const express = require('express');
+const router = express.Router();
+const prisma = require('../prisma');
+
+function parseSpecs(value) {
+  if (!value) return null;
+  if (typeof value === 'string') return value;
+
+  try {
+    return JSON.stringify(value);
+  } catch (error) {
+    return null;
+  }
+}
 
 router.get('/', async (req, res) => {
   try {
@@ -9,28 +20,51 @@ router.get('/', async (req, res) => {
       include: {
         items: {
           include: {
-            product: true,
-          },
-        },
-      },
-    })
+            product: true
+          }
+        }
+      }
+    });
 
-    res.json(orders)
+    res.json(orders);
   } catch (error) {
-    console.error('Ошибка получения заказов:', error)
-    res.status(500).json({ message: 'Ошибка получения заказов' })
+    console.error('Ошибка получения заказов:', error);
+    res.status(500).json({ message: 'Ошибка получения заказов' });
   }
-})
+});
 
 router.post('/', async (req, res) => {
   try {
-    const order = req.body
+    const order = req.body;
 
-    if (!order.customer || !order.items || !order.items.length) {
+    if (
+      !order ||
+      !order.customer ||
+      !order.customer.name ||
+      !order.customer.phone ||
+      !order.customer.email ||
+      !Array.isArray(order.items) ||
+      !order.items.length
+    ) {
       return res.status(400).json({
-        message: 'Некорректные данные заказа',
-      })
+        message: 'Некорректные данные заказа'
+      });
     }
+
+    const normalizedItems = order.items.map((item) => {
+      const numericId = Number(item.id);
+
+      return {
+        productId: Number.isInteger(numericId) && !String(item.id).startsWith('config-')
+          ? numericId
+          : null,
+        productName: item.name || 'Товар',
+        productImage: item.image || '/images/logo-glorionpc.png',
+        specs: parseSpecs(item.specs),
+        quantity: Number(item.quantity) || 1,
+        price: Number(item.price) || 0
+      };
+    });
 
     const createdOrder = await prisma.order.create({
       data: {
@@ -38,70 +72,70 @@ router.post('/', async (req, res) => {
         phone: order.customer.phone,
         email: order.customer.email,
         comment: order.customer.comment || '',
-        total: order.total,
+        total: Number(order.total) || 0,
         status: 'new',
         items: {
-          create: order.items.map((item) => ({
-            productId: item.id,
-            quantity: item.quantity,
-            price: item.price,
-          })),
-        },
+          create: normalizedItems
+        }
       },
       include: {
-        items: true,
-      },
-    })
+        items: {
+          include: {
+            product: true
+          }
+        }
+      }
+    });
 
     res.status(201).json({
       message: 'Заказ успешно оформлен',
-      order: createdOrder,
-    })
+      order: createdOrder
+    });
   } catch (error) {
-    console.error('Ошибка при сохранении заказа:', error)
+    console.error('Ошибка при сохранении заказа:', error);
     res.status(500).json({
-      message: 'Ошибка при оформлении заказа',
-    })
+      message: 'Ошибка при оформлении заказа'
+    });
   }
-})
+});
 
 router.put('/:id/status', async (req, res) => {
   try {
-    const orderId = Number(req.params.id)
-    const { status } = req.body
+    const orderId = Number(req.params.id);
+    const { status } = req.body;
 
-    const allowedStatuses = ['new', 'processing', 'completed', 'cancelled']
+    const allowedStatuses = ['new', 'processing', 'completed', 'cancelled'];
 
     if (Number.isNaN(orderId)) {
-      return res.status(400).json({ message: 'Некорректный ID заказа' })
+      return res.status(400).json({ message: 'Некорректный ID заказа' });
     }
 
     if (!allowedStatuses.includes(status)) {
-      return res.status(400).json({ message: 'Некорректный статус заказа' })
+      return res.status(400).json({ message: 'Некорректный статус заказа' });
     }
 
     const existingOrder = await prisma.order.findUnique({
-      where: { id: orderId },
-    })
+      where: { id: orderId }
+    });
 
     if (!existingOrder) {
-      return res.status(404).json({ message: 'Заказ не найден' })
+      return res.status(404).json({ message: 'Заказ не найден' });
     }
 
     const updatedOrder = await prisma.order.update({
       where: { id: orderId },
-      data: { status },
-    })
+      data: { status }
+    });
 
     res.json({
       message: 'Статус заказа обновлён',
-      order: updatedOrder,
-    })
+      order: updatedOrder
+    });
   } catch (error) {
-    console.error('Ошибка обновления статуса заказа:', error)
-    res.status(500).json({ message: 'Ошибка обновления статуса заказа' })
+    console.error('Ошибка обновления статуса заказа:', error);
+    res.status(500).json({ message: 'Ошибка обновления статуса заказа' });
   }
-})
+});
 
 router.delete('/:id', async (req, res) => {
   try {
@@ -135,4 +169,4 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
-module.exports = router
+module.exports = router;

@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Конфигуратор ПК — GlorionPC</title>
+  <meta
+    name="description"
+    content="Конфигуратор ПК GlorionPC — соберите компьютер под свои задачи."
+  />
+
+  <link rel="stylesheet" href="/css/style.css" />
+  <link rel="stylesheet" href="/css/configure.css" />
+</head>
+<body class="configure-page">
+  <header class="header">
+    <div class="container header__inner">
+      <a href="/" class="brand">
+        <div class="brand__logo-wrap">
+          <img
+            src="/images/logo-glorionpc.png"
+            alt="Логотип GlorionPC"
+            class="brand__logo"
+          />
+        </div>
+
+        <div class="brand__content">
+          <span class="brand__mark">GlorionPC</span>
+          <span class="brand__text">Premium PC Store</span>
+        </div>
+      </a>
+
+      <nav class="nav">
+        <a href="/">Главная</a>
+        <a href="/catalog.html">Каталог</a>
+        <a href="/custom-pc.html">Заказать ПК</a>
+        <a href="/configure.html" class="is-active">Конфигуратор ПК</a>
+        <a href="/cart.html" class="cart-link" aria-label="Корзина">
+          <span class="cart-link__text">Корзина</span>
+          <span class="cart-link__target" id="cart-target"></span>
+        </a>
+        <a href="/orders.html">Заказы</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="configure-hero">
+      <div class="configure-hero__bg"></div>
+
+      <div class="container configure-hero__layout reveal-zoom">
+        <div class="configure-hero__content">
+          <p class="hero__eyebrow">GlorionPC</p>
+          <h1 class="configure-hero__title">Конфигуратор ПК</h1>
+
+          <p class="configure-hero__description">
+            Подберите конфигурацию компьютера под свои задачи. Выберите процессор,
+            видеокарту, материнскую плату, оперативную память, накопители,
+            охлаждение, блок питания, корпус и дополнительные вентиляторы,
+            а система сразу покажет итоговую стоимость вашей сборки.
+          </p>
+
+          <div class="configure-hero__actions">
+            <a href="#configurator" class="btn btn-gold">Собрать ПК</a>
+            <a href="/catalog.html" class="btn btn-ghost">Готовые сборки</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="configurator" class="configure-section">
+      <div class="container">
+        <div class="section-heading reveal">
+          <p class="section-heading__eyebrow">Конфигуратор</p>
+          <h2 class="section-heading__title">Соберите свою конфигурацию</h2>
+        </div>
+
+        <div class="configure-layout">
+          <div class="configure-box reveal-left">
+            <div class="configure-box__grid">
+              <div class="configure-field">
+                <label for="cpu">Процессор</label>
+                <select id="cpu" class="configure-select"></select>
+              </div>
+
+              <div class="configure-field">
+                <label for="gpu">Видеокарта</label>
+                <select id="gpu" class="configure-select"></select>
+              </div>
+
+              <div class="configure-field">
+                <label for="motherboard">Материнская плата</label>
+                <select id="motherboard" class="configure-select"></select>
+              </div>
+
+              <div class="configure-field">
+                <label for="ram">Оперативная память</label>
+                <select id="ram" class="configure-select"></select>
+              </div>
+
+              <div class="configure-field">
+                <label for="storage">Основной накопитель</label>
+                <select id="storage" class="configure-select"></select>
+              </div>
+
+              <div class="configure-field">
+                <label for="extra-storage">Дополнительный накопитель</label>
+                <select id="extra-storage" class="configure-select"></select>
+              </div>
+
+              <div class="configure-field">
+                <label for="cooler">Охлаждение CPU</label>
+                <select id="cooler" class="configure-select"></select>
+              </div>
+
+              <div class="configure-field">
+                <label for="psu">Блок питания</label>
+                <select id="psu" class="configure-select"></select>
+              </div>
+
+              <div class="configure-field">
+                <label for="pc-case">Корпус</label>
+                <select id="pc-case" class="configure-select"></select>
+              </div>
+
+              <div class="configure-field">
+                <label for="fans">Дополнительные вентиляторы</label>
+                <select id="fans" class="configure-select"></select>
+              </div>
+            </div>
+          </div>
+
+          <aside class="configure-summary reveal-right">
+            <div class="configure-summary__card">
+              <p class="section-heading__eyebrow">Итог</p>
+              <h3 class="configure-summary__title">Ваша сборка</h3>
+
+              <div class="configure-summary__list">
+                <div class="configure-summary__row">
+                  <span>Процессор</span>
+                  <strong id="summary-cpu">—</strong>
+                </div>
+
+                <div class="configure-summary__row">
+                  <span>Видеокарта</span>
+                  <strong id="summary-gpu">—</strong>
+                </div>
+
+                <div class="configure-summary__row">
+                  <span>Материнская плата</span>
+                  <strong id="summary-motherboard">—</strong>
+                </div>
+
+                <div class="configure-summary__row">
+                  <span>ОЗУ</span>
+                  <strong id="summary-ram">—</strong>
+                </div>
+
+                <div class="configure-summary__row">
+                  <span>Основной накопитель</span>
+                  <strong id="summary-storage">—</strong>
+                </div>
+
+                <div class="configure-summary__row">
+                  <span>Доп. накопитель</span>
+                  <strong id="summary-extra-storage">—</strong>
+                </div>
+
+                <div class="configure-summary__row">
+                  <span>Охлаждение CPU</span>
+                  <strong id="summary-cooler">—</strong>
+                </div>
+
+                <div class="configure-summary__row">
+                  <span>Блок питания</span>
+                  <strong id="summary-psu">—</strong>
+                </div>
+
+                <div class="configure-summary__row">
+                  <span>Корпус</span>
+                  <strong id="summary-case">—</strong>
+                </div>
+
+                <div class="configure-summary__row">
+                  <span>Доп. вентиляторы</span>
+                  <strong id="summary-fans">—</strong>
+                </div>
+              </div>
+
+              <div class="configure-summary__total-block">
+                <span class="configure-summary__total-label">Итоговая стоимость</span>
+                <strong class="configure-summary__total" id="config-total">0 ₽</strong>
+              </div>
+
+              <div class="configure-summary__actions">
+                <button
+                  type="button"
+                  class="btn btn-gold"
+                  id="add-config-to-cart"
+                >
+                  Добавить в корзину
+                </button>
+
+                <a href="/custom-pc.html" class="btn btn-ghost">
+                  Заказать индивидуально
+                </a>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer__inner">
+      <div class="brand brand--footer">
+        <div class="brand__logo-wrap brand__logo-wrap--small">
+          <img
+            src="/images/logo-glorionpc.png"
+            alt="Логотип GlorionPC"
+            class="brand__logo"
+          />
+        </div>
+
+        <div class="brand__content">
+          <span class="brand__mark">GlorionPC</span>
+          <span class="brand__text">Premium PC Store</span>
+        </div>
+      </div>
+
+      <div class="footer__nav">
+        <a href="/">Главная</a>
+        <a href="/catalog.html">Каталог</a>
+        <a href="/configure.html">Конфигуратор ПК</a>
+        <a href="/cart.html">Корзина</a>
+      </div>
+    </div>
+  </footer>
+
+  <div class="support-widget">
+    <div class="support-widget__panel">
+      <div class="support-widget__title">Поддержка</div>
+
+      <div class="support-widget__list">
+        <a href="tel:+79226976000" class="support-widget__item">
+          <span class="support-widget__icon">📞</span>
+          <span class="support-widget__text">
+            <span class="support-widget__value">+7 922 697 60 00</span>
+          </span>
+        </a>
+
+        <a href="https://vk.com/" class="support-widget__item" target="_blank" rel="noopener noreferrer">
+          <span class="support-widget__icon">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M12.785 16.241s.287-.031.435-.188c.135-.144.13-.414.13-.414s-.019-1.263.568-1.448c.579-.182 1.322 1.221 2.111 1.761.596.407 1.05.318 1.05.318l2.109-.03s1.103-.068.58-.936c-.043-.071-.305-.645-1.566-1.811-1.319-1.222-1.143-1.024.447-3.149.97-1.296 1.358-2.088 1.237-2.427-.115-.323-.826-.237-.826-.237l-2.373.015s-.176-.024-.306.054c-.127.076-.21.253-.21.253s-.375.999-.876 1.848c-1.057 1.793-1.48 1.888-1.652 1.777-.4-.260-.3-1.042-.3-1.599 0-1.737.264-2.462-.513-2.649-.258-.063-.448-.104-1.108-.11-.847-.009-1.563.003-1.97.203-.27.132-.477.425-.35.442.157.021.514.097.702.352.243.33.235 1.07.235 1.07s.139 2.045-.324 2.298c-.318.173-.754-.18-1.69-1.808-.48-.835-.84-1.76-.84-1.76s-.07-.17-.197-.262c-.155-.112-.372-.148-.372-.148l-2.254.015s-.338.01-.461.158c-.11.131-.009.403-.009.403s1.763 4.126 3.761 6.205c1.833 1.903 3.912 1.779 3.912 1.779h.945z"/>
+            </svg>
+          </span>
+          <span class="support-widget__text">
+            <span class="support-widget__value">ВКонтакте</span>
+          </span>
+        </a>
+
+        <a href="https://www.avito.ru/brands/a4bbd309b2f33e4a6f1094337908086e" class="support-widget__item" target="_blank" rel="noopener noreferrer">
+          <span class="support-widget__icon">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="7" cy="12" r="3" fill="#97CF26"></circle>
+              <circle cx="12" cy="7" r="3" fill="#FF4053"></circle>
+              <circle cx="17" cy="12" r="3" fill="#009CF0"></circle>
+              <circle cx="12" cy="17" r="3" fill="#A169F7"></circle>
+            </svg>
+          </span>
+          <span class="support-widget__text">
+            <span class="support-widget__value">Авито</span>
+          </span>
+        </a>
+      </div>
+    </div>
+
+    <button class="support-widget__button" type="button" aria-label="Открыть поддержку">
+      <svg viewBox="0 0 24 24" fill="none">
+        <path d="M12 12c2.761 0 5-2.239 5-5S14.761 2 12 2 7 4.239 7 7s2.239 5 5 5z" fill="currentColor"></path>
+        <path d="M4 20c0-3.314 3.582-6 8-6s8 2.686 8 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
+      </svg>
+    </button>
+  </div>
+
+  <script src="/js/configure.js"></script>
+  <script src="/js/reveal.js"></script>
+</body>
+</html>
