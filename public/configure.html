@@ -53,13 +53,6 @@
           <p class="hero__eyebrow">GlorionPC</p>
           <h1 class="configure-hero__title">Конфигуратор ПК</h1>
 
-          <p class="configure-hero__description">
-            Подберите конфигурацию компьютера под свои задачи. Выберите процессор,
-            видеокарту, материнскую плату, оперативную память, накопители,
-            охлаждение, блок питания, корпус и дополнительные вентиляторы,
-            а система сразу покажет итоговую стоимость вашей сборки.
-          </p>
-
           <div class="configure-hero__actions">
             <a href="#configurator" class="btn btn-gold">Собрать ПК</a>
             <a href="/catalog.html" class="btn btn-ghost">Готовые сборки</a>
@@ -73,60 +66,133 @@
         <div class="section-heading reveal">
           <p class="section-heading__eyebrow">Конфигуратор</p>
           <h2 class="section-heading__title">Соберите свою конфигурацию</h2>
+          <h2 class="section-heading__title"></h2>Выберите комплектующие, а конфигуратор поможет вам с совместимостью.
         </div>
 
         <div class="configure-layout">
           <div class="configure-box reveal-left">
             <div class="configure-box__grid">
+
               <div class="configure-field">
                 <label for="cpu">Процессор</label>
                 <select id="cpu" class="configure-select"></select>
+                <div class="config-preview" id="preview-cpu">
+                  <img id="preview-cpu-image" src="/images/logo-glorionpc.png" alt="Процессор">
+                  <div class="config-preview__info">
+                    <strong id="preview-cpu-title">Не выбрано</strong>
+                    <span id="preview-cpu-price">0 ₽</span>
+                  </div>
+                </div>
               </div>
 
               <div class="configure-field">
                 <label for="gpu">Видеокарта</label>
                 <select id="gpu" class="configure-select"></select>
+                <div class="config-preview" id="preview-gpu">
+                  <img id="preview-gpu-image" src="/images/logo-glorionpc.png" alt="Видеокарта">
+                  <div class="config-preview__info">
+                    <strong id="preview-gpu-title">Не выбрано</strong>
+                    <span id="preview-gpu-price">0 ₽</span>
+                  </div>
+                </div>
               </div>
 
               <div class="configure-field">
                 <label for="motherboard">Материнская плата</label>
                 <select id="motherboard" class="configure-select"></select>
+                <div class="config-preview" id="preview-motherboard">
+                  <img id="preview-motherboard-image" src="/images/logo-glorionpc.png" alt="Материнская плата">
+                  <div class="config-preview__info">
+                    <strong id="preview-motherboard-title">Не выбрано</strong>
+                    <span id="preview-motherboard-price">0 ₽</span>
+                  </div>
+                </div>
               </div>
 
               <div class="configure-field">
                 <label for="ram">Оперативная память</label>
                 <select id="ram" class="configure-select"></select>
+                <div class="config-preview" id="preview-ram">
+                  <img id="preview-ram-image" src="/images/logo-glorionpc.png" alt="Оперативная память">
+                  <div class="config-preview__info">
+                    <strong id="preview-ram-title">Не выбрано</strong>
+                    <span id="preview-ram-price">0 ₽</span>
+                  </div>
+                </div>
               </div>
 
               <div class="configure-field">
                 <label for="storage">Основной накопитель</label>
                 <select id="storage" class="configure-select"></select>
+                <div class="config-preview" id="preview-storage">
+                  <img id="preview-storage-image" src="/images/logo-glorionpc.png" alt="Основной накопитель">
+                  <div class="config-preview__info">
+                    <strong id="preview-storage-title">Не выбрано</strong>
+                    <span id="preview-storage-price">0 ₽</span>
+                  </div>
+                </div>
               </div>
 
               <div class="configure-field">
                 <label for="extra-storage">Дополнительный накопитель</label>
                 <select id="extra-storage" class="configure-select"></select>
+                <div class="config-preview" id="preview-extra-storage">
+                  <img id="preview-extra-storage-image" src="/images/logo-glorionpc.png" alt="Дополнительный накопитель">
+                  <div class="config-preview__info">
+                    <strong id="preview-extra-storage-title">Не выбрано</strong>
+                    <span id="preview-extra-storage-price">0 ₽</span>
+                  </div>
+                </div>
               </div>
 
               <div class="configure-field">
                 <label for="cooler">Охлаждение CPU</label>
                 <select id="cooler" class="configure-select"></select>
+                <div class="config-preview" id="preview-cooler">
+                  <img id="preview-cooler-image" src="/images/logo-glorionpc.png" alt="Охлаждение CPU">
+                  <div class="config-preview__info">
+                    <strong id="preview-cooler-title">Не выбрано</strong>
+                    <span id="preview-cooler-price">0 ₽</span>
+                  </div>
+                </div>
               </div>
 
               <div class="configure-field">
                 <label for="psu">Блок питания</label>
                 <select id="psu" class="configure-select"></select>
+                <div class="config-preview" id="preview-psu">
+                  <img id="preview-psu-image" src="/images/logo-glorionpc.png" alt="Блок питания">
+                  <div class="config-preview__info">
+                    <strong id="preview-psu-title">Не выбрано</strong>
+                    <span id="preview-psu-price">0 ₽</span>
+                  </div>
+                </div>
               </div>
 
               <div class="configure-field">
                 <label for="pc-case">Корпус</label>
                 <select id="pc-case" class="configure-select"></select>
+                <div class="config-preview" id="preview-pc-case">
+                  <img id="preview-pc-case-image" src="/images/logo-glorionpc.png" alt="Корпус">
+                  <div class="config-preview__info">
+                    <strong id="preview-pc-case-title">Не выбрано</strong>
+                    <span id="preview-pc-case-price">0 ₽</span>
+                  </div>
+                </div>
               </div>
 
               <div class="configure-field">
                 <label for="fans">Дополнительные вентиляторы</label>
                 <select id="fans" class="configure-select"></select>
+                <div class="config-preview" id="preview-fans">
+                  <img id="preview-fans-image" src="/images/logo-glorionpc.png" alt="Дополнительные вентиляторы">
+                  <div class="config-preview__info">
+                    <strong id="preview-fans-title">Не выбрано</strong>
+                    <span id="preview-fans-price">0 ₽</span>
+                  </div>
+                </div>
               </div>
+
             </div>
           </div>
 

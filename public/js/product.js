@@ -37,6 +37,7 @@ function normalizeProduct(product) {
     ram: product.ram || '-',
     ssd: product.ssd || '-',
     inStock: Boolean(product.inStock),
+    slug: product.slug || `product-${product.id}`,
     images: getImages(product)
   };
 }
@@ -137,6 +138,17 @@ function getCartTarget() {
   return document.querySelector('#cart-target');
 }
 
+function updateCartIndicatorAfterAdd() {
+  if (window.CartUtils && typeof window.CartUtils.updateCartCount === 'function') {
+    window.CartUtils.updateCartCount();
+  }
+
+  const cartTarget = getCartTarget();
+  if (cartTarget) {
+    cartTarget.classList.add('is-visible');
+  }
+}
+
 function createCartParticles(x, y) {
   for (let i = 0; i < 6; i++) {
     const particle = document.createElement('span');
@@ -158,23 +170,30 @@ function createCartParticles(x, y) {
   }
 }
 
-function animateFly(imageElement, pulseElement = null) {
+function animateFlyFromButton(buttonElement, imageSrc, pulseElement = null) {
   const cartTarget = getCartTarget();
-  if (!imageElement || !cartTarget) return;
+  if (!buttonElement || !cartTarget) return;
 
-  const imgRect = imageElement.getBoundingClientRect();
+  const buttonRect = buttonElement.getBoundingClientRect();
   const cartRect = cartTarget.getBoundingClientRect();
 
-  const clone = imageElement.cloneNode(true);
+  const clone = document.createElement('img');
+  clone.src = imageSrc || '/images/logo-glorionpc.png';
   clone.className = 'fly-cart-image';
   clone.style.position = 'fixed';
-  clone.style.left = `${imgRect.left}px`;
-  clone.style.top = `${imgRect.top}px`;
-  clone.style.width = `${imgRect.width}px`;
-  clone.style.height = `${imgRect.height}px`;
+  clone.style.left = `${buttonRect.left + buttonRect.width / 2 - 36}px`;
+  clone.style.top = `${buttonRect.top + buttonRect.height / 2 - 36}px`;
+  clone.style.width = '72px';
+  clone.style.height = '72px';
   clone.style.zIndex = '99999';
   clone.style.pointerEvents = 'none';
   clone.style.margin = '0';
+  clone.style.borderRadius = '14px';
+  clone.style.objectFit = 'cover';
+  clone.style.border = '1px solid rgba(212, 166, 74, 0.35)';
+  clone.style.boxShadow =
+    '0 14px 30px rgba(0, 0, 0, 0.35), 0 0 18px rgba(212, 166, 74, 0.22)';
+  clone.style.background = 'rgba(10, 12, 20, 0.96)';
 
   document.body.appendChild(clone);
 
@@ -185,15 +204,15 @@ function animateFly(imageElement, pulseElement = null) {
     }, 280);
   }
 
-  const startX = imgRect.left;
-  const startY = imgRect.top;
-  const endX = cartRect.left + cartRect.width / 2 - 20;
-  const endY = cartRect.top + cartRect.height / 2 - 20;
+  const startX = buttonRect.left + buttonRect.width / 2 - 36;
+  const startY = buttonRect.top + buttonRect.height / 2 - 36;
+  const endX = cartRect.left + cartRect.width / 2 - 11;
+  const endY = cartRect.top + cartRect.height / 2 - 11;
 
   const diffX = endX - startX;
   const diffY = endY - startY;
 
-  const duration = 900;
+  const duration = 850;
   const startTime = performance.now();
 
   function easeInOutCubic(t) {
@@ -206,19 +225,22 @@ function animateFly(imageElement, pulseElement = null) {
     const progress = Math.min((currentTime - startTime) / duration, 1);
     const eased = easeInOutCubic(progress);
 
-    const arcHeight = -180;
+    const arcHeight = -160;
     const currentX = startX + diffX * eased;
     const currentY =
       startY +
       diffY * eased +
       arcHeight * 4 * eased * (1 - eased);
 
-    const scale = 1 - 0.78 * eased;
-    const rotate = 18 * eased;
-    const opacity = 1 - 0.55 * eased;
+    const scale = 1 - 0.75 * eased;
+    const rotate = 16 * eased;
+    const opacity = 1 - 0.6 * eased;
+    const size = 72 - 50 * eased;
 
     clone.style.left = `${currentX}px`;
     clone.style.top = `${currentY}px`;
+    clone.style.width = `${size}px`;
+    clone.style.height = `${size}px`;
     clone.style.transform = `scale(${scale}) rotate(${rotate}deg)`;
     clone.style.opacity = `${opacity}`;
 
@@ -227,8 +249,19 @@ function animateFly(imageElement, pulseElement = null) {
     } else {
       clone.remove();
 
-      const cartTargetElement = document.getElementById('cart-target');
+      const cartIcon = document.querySelector('#cart-icon');
       const cartCount = document.getElementById('cart-count');
+      const cartTargetElement = document.getElementById('cart-target');
+
+      if (cartIcon) {
+        cartIcon.classList.add('cart-bump-strong');
+        cartIcon.classList.add('cart-flash');
+
+        setTimeout(() => {
+          cartIcon.classList.remove('cart-bump-strong');
+          cartIcon.classList.remove('cart-flash');
+        }, 500);
+      }
 
       if (cartTargetElement) {
         cartTargetElement.classList.add('cart-bump-strong');
@@ -307,44 +340,37 @@ function bindBuyButton(product) {
   button.addEventListener('click', () => {
     if (!window.CartUtils) return;
 
-    const mainImage = document.getElementById('product-main-image');
     const productInfoCard = document.querySelector('.product-details__info');
+    const imageSrc = product.images[0] || '/images/logo-glorionpc.png';
 
-    if (mainImage) {
-      animateFly(mainImage, productInfoCard);
-    }
+    window.CartUtils.addToCart({
+      id: product.id,
+      name: product.name,
+      slug: product.slug,
+      category: product.category || 'Товар',
+      price: Number(product.price) || 0,
+      oldPrice: product.oldPrice ? Number(product.oldPrice) : null,
+      image: imageSrc,
+      quantity: 1,
+      specs: {
+        cpu: product.cpu || '',
+        gpu: product.gpu || '',
+        ram: product.ram || '',
+        storage: product.ssd || ''
+      }
+    });
+
+    updateCartIndicatorAfterAdd();
+    animateFlyFromButton(button, imageSrc, productInfoCard);
+
+    const originalText = button.textContent;
+    button.textContent = 'Добавлено';
+    button.disabled = true;
 
     setTimeout(() => {
-      window.CartUtils.addToCart({
-        id: product.id,
-        name: product.name,
-        slug: product.slug || `product-${product.id}`,
-        category: product.category || 'Товар',
-        price: Number(product.price) || 0,
-        oldPrice: product.oldPrice ? Number(product.oldPrice) : null,
-        image: product.images[0] || '/images/logo-glorionpc.png',
-        quantity: 1,
-        specs: {
-          cpu: product.cpu || '',
-          gpu: product.gpu || '',
-          ram: product.ram || '',
-          storage: product.ssd || ''
-        }
-      });
-
-      if (window.updateCartIndicator) {
-        window.updateCartIndicator();
-      }
-
-      const originalText = button.textContent;
-      button.textContent = 'Добавлено';
-      button.disabled = true;
-
-      setTimeout(() => {
-        button.textContent = originalText;
-        button.disabled = false;
-      }, 1200);
-    }, 180);
+      button.textContent = originalText;
+      button.disabled = false;
+    }, 1200);
   });
 }
 

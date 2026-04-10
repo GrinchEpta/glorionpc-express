@@ -1,5 +1,9 @@
 const CATALOG_API_URL = '/api/products';
 const catalogProductsContainer = document.getElementById('catalog-products');
+const catalogSortButtons = Array.from(document.querySelectorAll('[data-sort]'));
+
+let catalogProductsData = [];
+let currentCatalogSort = 'cheap';
 
 function formatPrice(price) {
   return new Intl.NumberFormat('ru-RU').format(Number(price) || 0) + ' ₽';
@@ -17,7 +21,7 @@ function isReadyPc(product) {
 
 function getImages(product) {
   if (Array.isArray(product.images) && product.images.length > 0) {
-    return product.images.map(image => {
+    return product.images.map((image) => {
       if (typeof image === 'string') return image;
       return image?.url || '/images/logo-glorionpc.png';
     });
@@ -56,6 +60,17 @@ function getCartTarget() {
   return document.querySelector('#cart-target');
 }
 
+function updateCartIndicatorAfterAdd() {
+  if (window.CartUtils && typeof window.CartUtils.updateCartCount === 'function') {
+    window.CartUtils.updateCartCount();
+  }
+
+  const cartTarget = getCartTarget();
+  if (cartTarget) {
+    cartTarget.classList.add('is-visible');
+  }
+}
+
 function createCartParticles(x, y) {
   for (let i = 0; i < 6; i++) {
     const particle = document.createElement('span');
@@ -77,23 +92,30 @@ function createCartParticles(x, y) {
   }
 }
 
-function animateFly(imageElement, pulseElement = null) {
+function animateFlyFromButton(buttonElement, imageSrc, pulseElement = null) {
   const cartTarget = getCartTarget();
-  if (!imageElement || !cartTarget) return;
+  if (!buttonElement || !cartTarget) return;
 
-  const imgRect = imageElement.getBoundingClientRect();
+  const buttonRect = buttonElement.getBoundingClientRect();
   const cartRect = cartTarget.getBoundingClientRect();
 
-  const clone = imageElement.cloneNode(true);
+  const clone = document.createElement('img');
+  clone.src = imageSrc || '/images/logo-glorionpc.png';
   clone.className = 'fly-cart-image';
   clone.style.position = 'fixed';
-  clone.style.left = `${imgRect.left}px`;
-  clone.style.top = `${imgRect.top}px`;
-  clone.style.width = `${imgRect.width}px`;
-  clone.style.height = `${imgRect.height}px`;
+  clone.style.left = `${buttonRect.left + buttonRect.width / 2 - 36}px`;
+  clone.style.top = `${buttonRect.top + buttonRect.height / 2 - 36}px`;
+  clone.style.width = '72px';
+  clone.style.height = '72px';
   clone.style.zIndex = '99999';
   clone.style.pointerEvents = 'none';
   clone.style.margin = '0';
+  clone.style.borderRadius = '14px';
+  clone.style.objectFit = 'cover';
+  clone.style.border = '1px solid rgba(212, 166, 74, 0.35)';
+  clone.style.boxShadow =
+    '0 14px 30px rgba(0, 0, 0, 0.35), 0 0 18px rgba(212, 166, 74, 0.22)';
+  clone.style.background = 'rgba(10, 12, 20, 0.96)';
 
   document.body.appendChild(clone);
 
@@ -104,15 +126,15 @@ function animateFly(imageElement, pulseElement = null) {
     }, 280);
   }
 
-  const startX = imgRect.left;
-  const startY = imgRect.top;
-  const endX = cartRect.left + cartRect.width / 2 - 20;
-  const endY = cartRect.top + cartRect.height / 2 - 20;
+  const startX = buttonRect.left + buttonRect.width / 2 - 36;
+  const startY = buttonRect.top + buttonRect.height / 2 - 36;
+  const endX = cartRect.left + cartRect.width / 2 - 11;
+  const endY = cartRect.top + cartRect.height / 2 - 11;
 
   const diffX = endX - startX;
   const diffY = endY - startY;
 
-  const duration = 900;
+  const duration = 850;
   const startTime = performance.now();
 
   function easeInOutCubic(t) {
@@ -125,19 +147,22 @@ function animateFly(imageElement, pulseElement = null) {
     const progress = Math.min((currentTime - startTime) / duration, 1);
     const eased = easeInOutCubic(progress);
 
-    const arcHeight = -180;
+    const arcHeight = -160;
     const currentX = startX + diffX * eased;
     const currentY =
       startY +
       diffY * eased +
       arcHeight * 4 * eased * (1 - eased);
 
-    const scale = 1 - 0.78 * eased;
-    const rotate = 18 * eased;
-    const opacity = 1 - 0.55 * eased;
+    const scale = 1 - 0.75 * eased;
+    const rotate = 16 * eased;
+    const opacity = 1 - 0.6 * eased;
+    const size = 72 - 50 * eased;
 
     clone.style.left = `${currentX}px`;
     clone.style.top = `${currentY}px`;
+    clone.style.width = `${size}px`;
+    clone.style.height = `${size}px`;
     clone.style.transform = `scale(${scale}) rotate(${rotate}deg)`;
     clone.style.opacity = `${opacity}`;
 
@@ -145,6 +170,26 @@ function animateFly(imageElement, pulseElement = null) {
       requestAnimationFrame(animate);
     } else {
       clone.remove();
+
+      const cartIcon = document.querySelector('#cart-icon');
+      const cartCount = document.getElementById('cart-count');
+
+      if (cartIcon) {
+        cartIcon.classList.add('cart-bump-strong');
+        cartIcon.classList.add('cart-flash');
+
+        setTimeout(() => {
+          cartIcon.classList.remove('cart-bump-strong');
+          cartIcon.classList.remove('cart-flash');
+        }, 500);
+      }
+
+      if (cartCount) {
+        cartCount.classList.add('cart-count-pop');
+        setTimeout(() => {
+          cartCount.classList.remove('cart-count-pop');
+        }, 450);
+      }
 
       createCartParticles(
         cartRect.left + cartRect.width / 2,
@@ -171,14 +216,14 @@ function initCardSlider(card, images) {
     nextBtn.style.display = images.length > 1 ? 'flex' : 'none';
   }
 
-  prevBtn.addEventListener('click', event => {
+  prevBtn.addEventListener('click', (event) => {
     event.preventDefault();
     event.stopPropagation();
     currentIndex = (currentIndex - 1 + images.length) % images.length;
     updateImage();
   });
 
-  nextBtn.addEventListener('click', event => {
+  nextBtn.addEventListener('click', (event) => {
     event.preventDefault();
     event.stopPropagation();
     currentIndex = (currentIndex + 1) % images.length;
@@ -239,21 +284,77 @@ function createProductCard(rawProduct, index = 0) {
 
   const button = article.querySelector('.product-card__button');
 
-  button.addEventListener('click', event => {
+  button.addEventListener('click', (event) => {
     event.preventDefault();
     event.stopPropagation();
 
-    const img = article.querySelector('.product-card__image-main');
-    animateFly(img, article);
+    if (window.CartUtils && typeof window.CartUtils.addToCart === 'function') {
+      CartUtils.addToCart(product);
+      updateCartIndicatorAfterAdd();
+    }
+
+    animateFlyFromButton(button, product.images[0], article);
+
+    const originalText = button.textContent;
+    button.textContent = 'Добавлено';
+    button.disabled = true;
 
     setTimeout(() => {
-      CartUtils.addToCart(product);
-    }, 180);
+      button.textContent = originalText;
+      button.disabled = false;
+    }, 1200);
   });
 
   initCardSlider(article, product.images);
 
   return article;
+}
+
+function sortProducts(products, sortType) {
+  const sorted = [...products];
+
+  if (sortType === 'expensive') {
+    sorted.sort((a, b) => Number(b.price || 0) - Number(a.price || 0));
+    return sorted;
+  }
+
+  sorted.sort((a, b) => Number(a.price || 0) - Number(b.price || 0));
+  return sorted;
+}
+
+function renderCatalogProducts(products) {
+  if (!catalogProductsContainer) return;
+
+  catalogProductsContainer.innerHTML = '';
+
+  if (!products.length) {
+    catalogProductsContainer.innerHTML = '<p>Готовых ПК пока нет.</p>';
+    return;
+  }
+
+  products.forEach((product, index) => {
+    catalogProductsContainer.appendChild(createProductCard(product, index));
+  });
+}
+
+function applyCatalogSort(sortType) {
+  currentCatalogSort = sortType;
+
+  catalogSortButtons.forEach((button) => {
+    button.classList.toggle('is-active', button.dataset.sort === sortType);
+  });
+
+  renderCatalogProducts(sortProducts(catalogProductsData, currentCatalogSort));
+}
+
+function initCatalogSort() {
+  if (!catalogSortButtons.length) return;
+
+  catalogSortButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+      applyCatalogSort(button.dataset.sort || 'cheap');
+    });
+  });
 }
 
 async function loadCatalogProducts() {
@@ -272,20 +373,15 @@ async function loadCatalogProducts() {
       ? products.filter(isReadyPc)
       : [];
 
-    catalogProductsContainer.innerHTML = '';
-
-    if (!readyProducts.length) {
-      catalogProductsContainer.innerHTML = '<p>Готовых ПК пока нет.</p>';
-      return;
-    }
-
-    readyProducts.forEach((product, index) => {
-      catalogProductsContainer.appendChild(createProductCard(product, index));
-    });
+    catalogProductsData = readyProducts;
+    applyCatalogSort(currentCatalogSort);
   } catch (error) {
     console.error('Ошибка загрузки каталога:', error);
     catalogProductsContainer.innerHTML = '<p>Не удалось загрузить товары.</p>';
   }
 }
 
-document.addEventListener('DOMContentLoaded', loadCatalogProducts);
+document.addEventListener('DOMContentLoaded', () => {
+  initCatalogSort();
+  loadCatalogProducts();
+});

@@ -202,6 +202,15 @@ function createPreviewItem(item, index, itemsArray, renderFn, altText) {
   return wrapper;
 }
 
+function getRadiatorSizeLabel(value) {
+  const num = Number(value);
+
+  if (num === 0) return 'Нет поддержки СЖО';
+  if (!Number.isFinite(num) || !num) return '-';
+
+  return `${num} мм`;
+}
+
 /* =========================
    PRODUCT PREVIEWS
 ========================= */
@@ -551,18 +560,35 @@ function renderSpecsFields(type, values = {}) {
               <option value="liquid" ${values.coolingType === 'liquid' ? 'selected' : ''}>Жидкостное</option>
             </select>
           </div>
+
+          <div class="form-group">
+            <label for="spec-radiatorSize">Размер радиатора СЖО (мм)</label>
+            <select id="spec-radiatorSize">
+              <option value="">Выберите</option>
+              <option value="120" ${String(values.radiatorSize) === '120' ? 'selected' : ''}>120 мм</option>
+              <option value="140" ${String(values.radiatorSize) === '140' ? 'selected' : ''}>140 мм</option>
+              <option value="240" ${String(values.radiatorSize) === '240' ? 'selected' : ''}>240 мм</option>
+              <option value="280" ${String(values.radiatorSize) === '280' ? 'selected' : ''}>280 мм</option>
+              <option value="360" ${String(values.radiatorSize) === '360' ? 'selected' : ''}>360 мм</option>
+              <option value="420" ${String(values.radiatorSize) === '420' ? 'selected' : ''}>420 мм</option>
+            </select>
+          </div>
+
           <div class="form-group">
             <label for="spec-maxTdp">Максимальная рассеиваемая мощность</label>
             <input type="number" id="spec-maxTdp" value="${values.maxTdp || ''}" placeholder="250" />
           </div>
+
           <div class="form-group">
             <label for="spec-supportedSockets">Поддерживаемые сокеты</label>
             <input type="text" id="spec-supportedSockets" value="${values.supportedSockets || ''}" placeholder="AM4,AM5,LGA1700" />
           </div>
+
           <div class="form-group">
             <label for="spec-maxFanSpeed">Максимальная скорость вентиляторов</label>
             <input type="text" id="spec-maxFanSpeed" value="${values.maxFanSpeed || ''}" placeholder="2200 RPM" />
           </div>
+
           <div class="form-group">
             <label for="spec-rgb">Подсветка</label>
             <select id="spec-rgb">
@@ -571,6 +597,7 @@ function renderSpecsFields(type, values = {}) {
               <option value="false" ${values.rgb === false || values.rgb === 'false' ? 'selected' : ''}>Нет</option>
             </select>
           </div>
+
           <div class="form-group">
             <label for="spec-motherboardConnector">Подключение к мат. плате</label>
             <input type="text" id="spec-motherboardConnector" value="${values.motherboardConnector || ''}" placeholder="3-pin / 4-pin" />
@@ -591,6 +618,20 @@ function renderSpecsFields(type, values = {}) {
               value="${values.supportedMotherboardFormFactors || ''}"
               placeholder="ATX,mATX,ITX"
             />
+          </div>
+
+          <div class="form-group">
+            <label for="spec-maxRadiatorSize">Максимальный размер радиатора СЖО (мм)</label>
+            <select id="spec-maxRadiatorSize">
+              <option value="">Выберите</option>
+              <option value="0" ${String(values.maxRadiatorSize) === '0' ? 'selected' : ''}>Нет поддержки СЖО</option>
+              <option value="120" ${String(values.maxRadiatorSize) === '120' ? 'selected' : ''}>120 мм</option>
+              <option value="140" ${String(values.maxRadiatorSize) === '140' ? 'selected' : ''}>140 мм</option>
+              <option value="240" ${String(values.maxRadiatorSize) === '240' ? 'selected' : ''}>240 мм</option>
+              <option value="280" ${String(values.maxRadiatorSize) === '280' ? 'selected' : ''}>280 мм</option>
+              <option value="360" ${String(values.maxRadiatorSize) === '360' ? 'selected' : ''}>360 мм</option>
+              <option value="420" ${String(values.maxRadiatorSize) === '420' ? 'selected' : ''}>420 мм</option>
+            </select>
           </div>
 
           <div class="form-group">
@@ -799,6 +840,7 @@ function getSpecsFromForm(type) {
   if (type === 'cooler') {
     return {
       coolingType: document.getElementById('spec-coolingType')?.value || '',
+      radiatorSize: Number(document.getElementById('spec-radiatorSize')?.value) || null,
       maxTdp: Number(document.getElementById('spec-maxTdp')?.value) || null,
       supportedSockets: document.getElementById('spec-supportedSockets')?.value || '',
       maxFanSpeed: document.getElementById('spec-maxFanSpeed')?.value || '',
@@ -808,19 +850,23 @@ function getSpecsFromForm(type) {
   }
 
   if (type === 'case') {
+    const rawMaxRadiatorValue = document.getElementById('spec-maxRadiatorSize')?.value;
+
     return {
       supportedMotherboardFormFactors:
         document.getElementById('spec-supportedMotherboardFormFactors')?.value || '',
+      maxRadiatorSize:
+        rawMaxRadiatorValue === ''
+          ? null
+          : Number(rawMaxRadiatorValue),
       includedFans: Number(document.getElementById('spec-includedFans')?.value) || null,
       fansConnector: document.getElementById('spec-fansConnector')?.value || '',
       lightingType: document.getElementById('spec-lightingType')?.value || '',
       supportedPsuFormFactors:
         document.getElementById('spec-supportedPsuFormFactors')?.value || '',
-
       width: Number(document.getElementById('spec-width')?.value) || null,
       height: Number(document.getElementById('spec-height')?.value) || null,
       length: Number(document.getElementById('spec-length')?.value) || null,
-
       maxGpuLength: Number(document.getElementById('spec-maxGpuLength')?.value) || null,
       maxGpuWidth: Number(document.getElementById('spec-maxGpuWidth')?.value) || null,
       maxGpuHeight: Number(document.getElementById('spec-maxGpuHeight')?.value) || null
@@ -976,11 +1022,13 @@ function renderComponentSpecsSummary(product) {
         capacity: 'Объём',
         connectionType: 'Подключение',
         coolingType: 'Тип охлаждения',
+        radiatorSize: 'Размер радиатора СЖО',
         supportedSockets: 'Поддерживаемые сокеты',
         maxFanSpeed: 'Макс. обороты',
         rgb: 'Подсветка',
         motherboardConnector: 'Подключение к плате',
         supportedMotherboardFormFactors: 'Форм-факторы мат. плат',
+        maxRadiatorSize: 'Макс. размер радиатора СЖО',
         includedFans: 'Вентиляторов в комплекте',
         fansConnector: 'Подключение вентиляторов',
         lightingType: 'Тип подсветки',
@@ -993,7 +1041,13 @@ function renderComponentSpecsSummary(product) {
         maxGpuHeight: 'Макс. высота GPU'
       };
 
-      return `<p><strong>${labels[key] || key}:</strong> ${value}</p>`;
+      let displayValue = value;
+
+      if (key === 'radiatorSize' || key === 'maxRadiatorSize') {
+        displayValue = getRadiatorSizeLabel(value);
+      }
+
+      return `<p><strong>${labels[key] || key}:</strong> ${displayValue}</p>`;
     });
 
   return rows.join('');
@@ -1242,15 +1296,6 @@ async function loadOrders() {
             <strong>Товары:</strong>
             <ul>${itemsHtml}</ul>
           </div>
-
-          <div class="admin-order-status">
-            <select class="order-status-select">
-              <option value="new" ${order.status === 'new' ? 'selected' : ''}>Новый</option>
-              <option value="processing" ${order.status === 'processing' ? 'selected' : ''}>В обработке</option>
-              <option value="completed" ${order.status === 'completed' ? 'selected' : ''}>Завершён</option>
-              <option value="cancelled" ${order.status === 'cancelled' ? 'selected' : ''}>Отменён</option>
-            </select>
-          </div>
         </div>
 
         <div class="admin-item__actions">
@@ -1260,29 +1305,7 @@ async function loadOrders() {
         </div>
       `;
 
-      const select = item.querySelector('.order-status-select');
       const deleteBtn = item.querySelector('.delete-order-btn');
-
-      select.addEventListener('change', async () => {
-        try {
-          const updateResponse = await fetch(`${ORDERS_API_URL}/${order.id}/status`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ status: select.value })
-          });
-
-          if (!updateResponse.ok) {
-            throw new Error('Не удалось обновить статус');
-          }
-
-          await loadOrders();
-        } catch (error) {
-          console.error(error);
-          alert('Не удалось обновить статус заказа');
-        }
-      });
 
       deleteBtn.addEventListener('click', async () => {
         const confirmed = confirm(`Удалить заказ #${order.id}?`);

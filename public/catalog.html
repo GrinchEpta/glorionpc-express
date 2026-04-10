@@ -30,14 +30,13 @@
 
       <nav class="nav">
         <a href="/">Главная</a>
-        <a href="/catalog.html">Каталог</a>
+        <a href="/catalog.html" class="is-active">Каталог</a>
         <a href="/custom-pc.html">Заказать ПК</a>
         <a href="/configure.html">Конфигуратор ПК</a>
         <a href="/cart.html" class="cart-link" aria-label="Корзина">
           <span class="cart-link__text">Корзина</span>
           <span class="cart-link__target" id="cart-target"></span>
         </a>
-
         <a href="/orders.html">Заказы</a>
       </nav>
     </div>
@@ -49,6 +48,21 @@
         <div class="section-heading reveal">
           <p class="section-heading__eyebrow">Каталог</p>
           <h1 class="section-heading__title">Все товары</h1>
+        </div>
+
+        <div class="catalog-toolbar reveal reveal-delay-1">
+          <div class="catalog-toolbar__left">
+            <span class="catalog-toolbar__label">Сортировка</span>
+          </div>
+
+          <div class="catalog-toolbar__right">
+            <button type="button" class="catalog-sort-btn is-active" data-sort="cheap">
+              Дешевле
+            </button>
+            <button type="button" class="catalog-sort-btn" data-sort="expensive">
+              Дороже
+            </button>
+          </div>
         </div>
 
         <div id="catalog-products" class="products-grid"></div>

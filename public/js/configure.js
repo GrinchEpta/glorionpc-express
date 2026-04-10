@@ -120,7 +120,7 @@ function parseList(value) {
   }
 
   return String(value)
-    .split(/[,/;]/)
+    .split(/[,/;|]+/)
     .map((item) => normalizeText(item))
     .filter(Boolean);
 }
@@ -128,6 +128,15 @@ function parseList(value) {
 function getNumber(value) {
   const num = Number(value);
   return Number.isFinite(num) ? num : 0;
+}
+
+function getRawValue(...values) {
+  for (const value of values) {
+    if (value !== undefined && value !== null && value !== '') {
+      return value;
+    }
+  }
+  return '';
 }
 
 function getCart() {
@@ -280,6 +289,212 @@ function getSelectedItemData(selectId) {
 }
 
 /* =========================
+   PREVIEWS
+========================= */
+
+function updateComponentPreview(selectId) {
+  const data = getSelectedItemData(selectId);
+
+  const imageEl = document.getElementById(`preview-${selectId}-image`);
+  const titleEl = document.getElementById(`preview-${selectId}-title`);
+  const priceEl = document.getElementById(`preview-${selectId}-price`);
+
+  if (!imageEl || !titleEl || !priceEl) return;
+
+  imageEl.src = data.image || '/images/logo-glorionpc.png';
+  titleEl.textContent = data.title || 'Не выбрано';
+  priceEl.textContent = formatPrice(data.price || 0);
+}
+
+function updateAllComponentPreviews() {
+  updateComponentPreview('cpu');
+  updateComponentPreview('gpu');
+  updateComponentPreview('motherboard');
+  updateComponentPreview('ram');
+  updateComponentPreview('storage');
+  updateComponentPreview('extra-storage');
+  updateComponentPreview('cooler');
+  updateComponentPreview('psu');
+  updateComponentPreview('pc-case');
+  updateComponentPreview('fans');
+}
+
+/* =========================
+   ADD TO CART ANIMATION
+========================= */
+
+function getConfiguratorPreviewImage() {
+  const priorityIds = [
+    'pc-case',
+    'cpu',
+    'gpu',
+    'motherboard',
+    'cooler',
+    'ram',
+    'psu',
+    'storage'
+  ];
+
+  for (const id of priorityIds) {
+    const data = getSelectedItemData(id);
+
+    if (
+      data &&
+      data.image &&
+      data.image !== '/images/logo-glorionpc.png' &&
+      data.title &&
+      !data.title.toLowerCase().includes('нет ')
+    ) {
+      return data.image;
+    }
+  }
+
+  return '/images/logo-glorionpc.png';
+}
+
+function animateConfiguredPcToCart() {
+  const cartTarget = document.getElementById('cart-target');
+  const cartLink = document.querySelector('.cart-link');
+  const addButton = document.getElementById('add-config-to-cart');
+
+  if (!cartTarget || !cartLink || !addButton) return;
+
+  const imageSrc = getConfiguratorPreviewImage();
+  const buttonRect = addButton.getBoundingClientRect();
+  const cartRect = cartTarget.getBoundingClientRect();
+
+  const flyImage = document.createElement('img');
+  flyImage.className = 'config-fly-image';
+  flyImage.src = imageSrc;
+  flyImage.alt = 'Добавлено в корзину';
+
+  const startSize = 72;
+  const endSize = 22;
+
+  flyImage.style.left = `${buttonRect.left + buttonRect.width / 2 - startSize / 2}px`;
+  flyImage.style.top = `${buttonRect.top + buttonRect.height / 2 - startSize / 2}px`;
+  flyImage.style.width = `${startSize}px`;
+  flyImage.style.height = `${startSize}px`;
+  flyImage.style.opacity = '1';
+  flyImage.style.transform = 'scale(1) rotate(0deg)';
+
+  document.body.appendChild(flyImage);
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      flyImage.classList.add('is-flying');
+      flyImage.style.left = `${cartRect.left + cartRect.width / 2 - endSize / 2}px`;
+      flyImage.style.top = `${cartRect.top + cartRect.height / 2 - endSize / 2}px`;
+      flyImage.style.width = `${endSize}px`;
+      flyImage.style.height = `${endSize}px`;
+      flyImage.style.transform = 'scale(0.45) rotate(12deg)';
+    });
+  });
+
+  setTimeout(() => {
+    cartLink.classList.remove('bump');
+    void cartLink.offsetWidth;
+    cartLink.classList.add('bump');
+
+    cartTarget.classList.add('is-visible');
+    addButton.classList.remove('config-add-success');
+    void addButton.offsetWidth;
+    addButton.classList.add('config-add-success');
+  }, 760);
+
+  setTimeout(() => {
+    flyImage.remove();
+  }, 950);
+}
+
+/* =========================
+   RAM HELPERS
+========================= */
+
+function detectRamTypesFromString(value) {
+  const text = String(value || '').toUpperCase();
+  const found = [];
+
+  if (text.includes('DDR3')) found.push('ddr3');
+  if (text.includes('DDR4')) found.push('ddr4');
+  if (text.includes('DDR5')) found.push('ddr5');
+
+  return [...new Set(found)];
+}
+
+function collectRamTypeCandidates(value) {
+  if (!value) return [];
+
+  if (Array.isArray(value)) {
+    return value.flatMap((item) => collectRamTypeCandidates(item));
+  }
+
+  if (typeof value === 'object') {
+    return Object.values(value).flatMap((item) => collectRamTypeCandidates(item));
+  }
+
+  const parsed = parseList(value);
+  const detected = detectRamTypesFromString(value);
+
+  return [...parsed, ...detected];
+}
+
+function getSupportedRamTypes(product) {
+  if (!product) return [];
+
+  const specs = parseSpecs(product.specsJson);
+
+  const rawSources = [
+    specs.ramType,
+    specs.ramTypes,
+    specs.memoryType,
+    specs.memoryTypes,
+    specs.ddrType,
+    specs.ddrTypes,
+    specs.type,
+    specs.memory,
+    specs.ram,
+    specs.supportedRamType,
+    specs.supportedRamTypes,
+    specs.memoryStandard,
+    specs.memorySupport,
+    specs.memoryTechnology,
+    specs.memType,
+    specs.dimmType,
+    specs.description,
+    specs.title,
+
+    product.ramType,
+    product.ramTypes,
+    product.memoryType,
+    product.memoryTypes,
+    product.ddrType,
+    product.ddrTypes,
+    product.type,
+    product.memory,
+    product.ram,
+    product.memType,
+    product.description,
+    product.name
+  ];
+
+  const result = [];
+
+  for (const source of rawSources) {
+    if (!source) continue;
+    result.push(...collectRamTypeCandidates(source));
+  }
+
+  return [
+    ...new Set(
+      result
+        .map((item) => normalizeText(item))
+        .filter((item) => ['ddr3', 'ddr4', 'ddr5'].includes(item))
+    )
+  ];
+}
+
+/* =========================
    COMPATIBILITY
 ========================= */
 
@@ -301,14 +516,36 @@ function isRamCompatibleWithMotherboard(ram, motherboard) {
   if (!ram || !motherboard) return true;
   if (isVirtualEmptyValue(ram.id) || isVirtualEmptyValue(motherboard.id)) return true;
 
-  const ramSpecs = parseSpecs(ram.specsJson);
-  const motherboardSpecs = parseSpecs(motherboard.specsJson);
+  const ramTypes = getSupportedRamTypes(ram);
+  const motherboardRamTypes = getSupportedRamTypes(motherboard);
 
-  const ramType = normalizeText(ramSpecs.ramType || ram.ramType);
-  const motherboardRamType = normalizeText(motherboardSpecs.ramType || motherboard.ramType);
+  if (!motherboardRamTypes.length) {
+    return true;
+  }
 
-  if (!ramType || !motherboardRamType) return true;
-  return ramType === motherboardRamType;
+  if (!ramTypes.length) {
+    return false;
+  }
+
+  return ramTypes.some((type) => motherboardRamTypes.includes(type));
+}
+
+function isRamCompatibleWithCpu(ram, cpu) {
+  if (!ram || !cpu) return true;
+  if (isVirtualEmptyValue(ram.id) || isVirtualEmptyValue(cpu.id)) return true;
+
+  const ramTypes = getSupportedRamTypes(ram);
+  const cpuRamTypes = getSupportedRamTypes(cpu);
+
+  if (!cpuRamTypes.length) {
+    return true;
+  }
+
+  if (!ramTypes.length) {
+    return false;
+  }
+
+  return ramTypes.some((type) => cpuRamTypes.includes(type));
 }
 
 function isCoolerCompatibleWithCpu(cooler, cpu) {
@@ -337,7 +574,9 @@ function isCaseCompatibleWithMotherboard(pcCase, motherboard) {
   );
 
   const supportedFormFactors = parseList(
-    caseSpecs.supportedMotherboardFormFactors || pcCase.formFactor
+    caseSpecs.supportedMotherboardFormFactors ||
+      caseSpecs.formFactor ||
+      pcCase.formFactor
   );
 
   if (!motherboardFormFactor || !supportedFormFactors.length) return true;
@@ -352,9 +591,16 @@ function isPsuCompatible(psu, cpu, gpu) {
   const cpuSpecs = cpu ? parseSpecs(cpu.specsJson) : {};
   const gpuSpecs = gpu ? parseSpecs(gpu.specsJson) : {};
 
-  const psuPower = Number(psuSpecs.maxPower || psu.psuWattage || psu.recommendedPsu || 0);
-  const cpuTdp = Number(cpuSpecs.maxTdp || cpu?.powerDraw || 0);
-  const gpuTdp = Number(gpuSpecs.maxTdp || gpu?.powerDraw || 0);
+  const psuPower = Number(
+    psuSpecs.maxPower ||
+    psuSpecs.psuWattage ||
+    psu.psuWattage ||
+    psu.recommendedPsu ||
+    0
+  );
+
+  const cpuTdp = Number(cpuSpecs.maxTdp || cpuSpecs.powerDraw || cpu?.powerDraw || 0);
+  const gpuTdp = Number(gpuSpecs.maxTdp || gpuSpecs.powerDraw || gpu?.powerDraw || 0);
 
   if (!psuPower) return true;
 
@@ -369,13 +615,53 @@ function isGpuCompatibleWithCase(gpu, pcCase) {
   const gpuSpecs = parseSpecs(gpu.specsJson);
   const caseSpecs = parseSpecs(pcCase.specsJson);
 
-  const gpuLength = getNumber(gpuSpecs.gpuLength);
-  const gpuWidth = getNumber(gpuSpecs.gpuWidth);
-  const gpuHeight = getNumber(gpuSpecs.gpuHeight);
+  const gpuLength = getNumber(
+    gpuSpecs.gpuLength ||
+    gpuSpecs.length ||
+    gpuSpecs.cardLength ||
+    gpu.length ||
+    gpu.cardLength ||
+    0
+  );
 
-  const maxGpuLength = getNumber(caseSpecs.maxGpuLength);
-  const maxGpuWidth = getNumber(caseSpecs.maxGpuWidth);
-  const maxGpuHeight = getNumber(caseSpecs.maxGpuHeight);
+  const gpuWidth = getNumber(
+    gpuSpecs.gpuWidth ||
+    gpuSpecs.width ||
+    gpu.width ||
+    0
+  );
+
+  const gpuHeight = getNumber(
+    gpuSpecs.gpuHeight ||
+    gpuSpecs.height ||
+    gpu.height ||
+    0
+  );
+
+  const maxGpuLength = getNumber(
+    caseSpecs.maxGpuLength ||
+    caseSpecs.gpuMaxLength ||
+    caseSpecs.maximumGpuLength ||
+    caseSpecs.videoCardMaxLength ||
+    pcCase.maxGpuLength ||
+    0
+  );
+
+  const maxGpuWidth = getNumber(
+    caseSpecs.maxGpuWidth ||
+    caseSpecs.gpuMaxWidth ||
+    caseSpecs.maximumGpuWidth ||
+    pcCase.maxGpuWidth ||
+    0
+  );
+
+  const maxGpuHeight = getNumber(
+    caseSpecs.maxGpuHeight ||
+    caseSpecs.gpuMaxHeight ||
+    caseSpecs.maximumGpuHeight ||
+    pcCase.maxGpuHeight ||
+    0
+  );
 
   if (maxGpuLength > 0 && gpuLength > maxGpuLength) return false;
   if (maxGpuWidth > 0 && gpuWidth > maxGpuWidth) return false;
@@ -386,6 +672,50 @@ function isGpuCompatibleWithCase(gpu, pcCase) {
 
 function isCaseCompatibleWithGpu(pcCase, gpu) {
   return isGpuCompatibleWithCase(gpu, pcCase);
+}
+
+function isCoolerCompatibleWithCase(cooler, pcCase) {
+  if (!cooler || !pcCase) return true;
+  if (isVirtualEmptyValue(cooler.id) || isVirtualEmptyValue(pcCase.id)) return true;
+
+  const coolerSpecs = parseSpecs(cooler.specsJson);
+  const caseSpecs = parseSpecs(pcCase.specsJson);
+
+  const coolingType = normalizeText(
+    coolerSpecs.coolingType ||
+    cooler.coolingType
+  );
+
+  if (coolingType !== 'liquid') {
+    return true;
+  }
+
+  const radiatorRaw = getRawValue(
+    coolerSpecs.radiatorSize,
+    coolerSpecs.radiator,
+    coolerSpecs.radiatorMm,
+    cooler.radiatorSize
+  );
+
+  const caseMaxRaw = getRawValue(
+    caseSpecs.maxRadiatorSize,
+    caseSpecs.radiatorMaxSize,
+    caseSpecs.maximumRadiatorSize,
+    pcCase.maxRadiatorSize
+  );
+
+  if (String(caseMaxRaw) === '0') {
+    return false;
+  }
+
+  const radiatorSize = getNumber(radiatorRaw);
+  const maxRadiatorSize = getNumber(caseMaxRaw);
+
+  if (!radiatorSize) return true;
+  if (!caseMaxRaw) return true;
+  if (!maxRadiatorSize) return true;
+
+  return radiatorSize <= maxRadiatorSize;
 }
 
 /* =========================
@@ -444,9 +774,12 @@ function applyCompatibilityFilters() {
 
   const motherboardForChecks = selected.motherboard;
 
-  const ramItems = getProductsByType('ram').filter((item) =>
-    isRamCompatibleWithMotherboard(item, motherboardForChecks)
-  );
+  const ramItems = getProductsByType('ram').filter((item) => {
+    return (
+      isRamCompatibleWithMotherboard(item, motherboardForChecks) &&
+      isRamCompatibleWithCpu(item, selected.cpu)
+    );
+  });
 
   if (
     selected.ram &&
@@ -458,19 +791,6 @@ function applyCompatibilityFilters() {
   }
 
   const storageItems = getProductsByType('storage');
-
-  const coolerItems = getProductsByType('cooler').filter((item) =>
-    isCoolerCompatibleWithCpu(item, selected.cpu)
-  );
-
-  if (
-    selected.cooler &&
-    !isVirtualEmptyValue(selected.cooler.id) &&
-    !coolerItems.some((item) => String(item.id) === String(selected.cooler.id))
-  ) {
-    selected.cooler = null;
-    previousValues.cooler = null;
-  }
 
   const caseItems = getProductsByType('case')
     .filter((item) => isCaseCompatibleWithMotherboard(item, motherboardForChecks))
@@ -487,6 +807,20 @@ function applyCompatibilityFilters() {
 
   const caseForChecks =
     selected.pcCase && !isVirtualEmptyValue(selected.pcCase.id) ? selected.pcCase : null;
+
+  const coolerItems = getProductsByType('cooler').filter((item) =>
+    isCoolerCompatibleWithCpu(item, selected.cpu) &&
+    isCoolerCompatibleWithCase(item, caseForChecks)
+  );
+
+  if (
+    selected.cooler &&
+    !isVirtualEmptyValue(selected.cooler.id) &&
+    !coolerItems.some((item) => String(item.id) === String(selected.cooler.id))
+  ) {
+    selected.cooler = null;
+    previousValues.cooler = COMPONENT_CONFIG.cooler.emptyOption?.id || null;
+  }
 
   const gpuItems = getProductsByType('gpu').filter((item) =>
     isGpuCompatibleWithCase(item, caseForChecks)
@@ -622,6 +956,8 @@ function updateSummary() {
     totalEl.textContent = formatPrice(total);
   }
 
+  updateAllComponentPreviews();
+
   return {
     cpu,
     gpu,
@@ -675,6 +1011,7 @@ function addConfiguredPcToCart() {
   cart.push(item);
   saveCart(cart);
   updateCartIndicator();
+  animateConfiguredPcToCart();
 
   const button = document.getElementById('add-config-to-cart');
   if (button) {
@@ -718,13 +1055,33 @@ async function loadConfiguratorProducts() {
 
     fillSelect(COMPONENT_CONFIG.cpu.selectId, getProductsByType('cpu'), COMPONENT_CONFIG.cpu);
     fillSelect(COMPONENT_CONFIG.gpu.selectId, getProductsByType('gpu'), COMPONENT_CONFIG.gpu);
-    fillSelect(COMPONENT_CONFIG.motherboard.selectId, getProductsByType('motherboard'), COMPONENT_CONFIG.motherboard);
+    fillSelect(
+      COMPONENT_CONFIG.motherboard.selectId,
+      getProductsByType('motherboard'),
+      COMPONENT_CONFIG.motherboard
+    );
     fillSelect(COMPONENT_CONFIG.ram.selectId, getProductsByType('ram'), COMPONENT_CONFIG.ram);
-    fillSelect(COMPONENT_CONFIG.storage.selectId, getProductsByType('storage'), COMPONENT_CONFIG.storage);
-    fillSelect(COMPONENT_CONFIG.extraStorage.selectId, getProductsByType('storage'), COMPONENT_CONFIG.extraStorage);
-    fillSelect(COMPONENT_CONFIG.cooler.selectId, getProductsByType('cooler'), COMPONENT_CONFIG.cooler);
+    fillSelect(
+      COMPONENT_CONFIG.storage.selectId,
+      getProductsByType('storage'),
+      COMPONENT_CONFIG.storage
+    );
+    fillSelect(
+      COMPONENT_CONFIG.extraStorage.selectId,
+      getProductsByType('storage'),
+      COMPONENT_CONFIG.extraStorage
+    );
+    fillSelect(
+      COMPONENT_CONFIG.cooler.selectId,
+      getProductsByType('cooler'),
+      COMPONENT_CONFIG.cooler
+    );
     fillSelect(COMPONENT_CONFIG.psu.selectId, getProductsByType('psu'), COMPONENT_CONFIG.psu);
-    fillSelect(COMPONENT_CONFIG.pcCase.selectId, getProductsByType('case'), COMPONENT_CONFIG.pcCase);
+    fillSelect(
+      COMPONENT_CONFIG.pcCase.selectId,
+      getProductsByType('case'),
+      COMPONENT_CONFIG.pcCase
+    );
     fillSelect(COMPONENT_CONFIG.fans.selectId, getProductsByType('fans'), COMPONENT_CONFIG.fans);
 
     applyCompatibilityFilters();
@@ -743,5 +1100,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   await loadConfiguratorProducts();
+  updateSummary();
   updateCartIndicator();
 });
