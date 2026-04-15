@@ -1292,6 +1292,15 @@ async function loadOrders() {
             <span class="${getStatusClass(order.status)}">${getStatusText(order.status)}</span>
           </p>
 
+          <div class="admin-order-status">
+            <select class="order-status-select">
+              <option value="new" ${order.status === 'new' ? 'selected' : ''}>Новый</option>
+              <option value="processing" ${order.status === 'processing' ? 'selected' : ''}>В обработке</option>
+              <option value="completed" ${order.status === 'completed' ? 'selected' : ''}>Завершён</option>
+              <option value="cancelled" ${order.status === 'cancelled' ? 'selected' : ''}>Отменён</option>
+            </select>
+          </div>
+
           <div class="admin-order-items">
             <strong>Товары:</strong>
             <ul>${itemsHtml}</ul>
@@ -1305,7 +1314,31 @@ async function loadOrders() {
         </div>
       `;
 
+      const statusSelect = item.querySelector('.order-status-select');
       const deleteBtn = item.querySelector('.delete-order-btn');
+
+      statusSelect.addEventListener('change', async () => {
+        try {
+          const updateResponse = await fetch(`${ORDERS_API_URL}/${order.id}/status`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ status: statusSelect.value })
+          });
+
+          const data = await updateResponse.json();
+
+          if (!updateResponse.ok) {
+            throw new Error(data.message || 'Не удалось обновить статус заказа');
+          }
+
+          await loadOrders();
+        } catch (error) {
+          console.error('Ошибка обновления статуса заказа:', error);
+          alert(error.message || 'Не удалось обновить статус заказа');
+        }
+      });
 
       deleteBtn.addEventListener('click', async () => {
         const confirmed = confirm(`Удалить заказ #${order.id}?`);
@@ -1672,7 +1705,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 /* =========================
    ADMIN UX: SEARCH + TOGGLE FORMS
 ========================= */
-
 (function () {
   const productSearchInput = document.getElementById('admin-products-search');
   const componentSearchInput = document.getElementById('admin-components-search');
@@ -1686,8 +1718,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   const showComponentFormBtn = document.getElementById('show-component-form-btn');
   const hideComponentFormBtn = document.getElementById('hide-component-form-btn');
 
-  const cancelEditBtn = document.getElementById('cancel-edit-btn');
-  const componentCancelEditBtn = document.getElementById('component-cancel-edit-btn');
+  const productCancelBtn = document.getElementById('cancel-edit-btn');
+  const componentCancelBtn = document.getElementById('component-cancel-edit-btn');
 
   const adminTabs = Array.from(document.querySelectorAll('.admin-tab'));
   const adminSections = Array.from(document.querySelectorAll('.admin-section'));
@@ -1724,7 +1756,6 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   function collectItemSearchText(itemEl) {
     const textParts = [];
-
     const title = itemEl.querySelector('h3')?.textContent || '';
     textParts.push(title);
 
@@ -1739,11 +1770,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     const list = document.querySelector(listSelector);
     if (!list) return;
 
-    const items = Array.from(list.children).filter((el) => el.classList.contains('admin-item') || el.classList.contains('admin-order'));
+    const items = Array.from(list.children).filter(
+      (el) => el.classList.contains('admin-item') || el.classList.contains('admin-order')
+    );
+
     if (!items.length) return;
 
     const normalizedQuery = normalizeSearchText(query);
-
     let visibleCount = 0;
 
     items.forEach((item) => {
@@ -1812,14 +1845,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
     }
 
-    if (cancelEditBtn) {
-      cancelEditBtn.addEventListener('click', () => {
+    if (productCancelBtn) {
+      productCancelBtn.addEventListener('click', () => {
         setTimeout(() => hideBlock(productFormBlock), 0);
       });
     }
 
-    if (componentCancelEditBtn) {
-      componentCancelEditBtn.addEventListener('click', () => {
+    if (componentCancelBtn) {
+      componentCancelBtn.addEventListener('click', () => {
         setTimeout(() => hideBlock(componentFormBlock), 0);
       });
     }
@@ -1870,9 +1903,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         applyListSearch('#components-list', componentSearchInput.value);
       }
     });
-
-    const productsList = document.getElementById('admin-products-list');
-    const componentsList = document.getElementById('components-list');
 
     if (productsList) {
       observer.observe(productsList, { childList: true, subtree: true });
