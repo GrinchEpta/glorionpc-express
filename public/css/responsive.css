@@ -108,6 +108,7 @@
   :root {
     --hero-slide-width: calc(100vw - 32px);
     --hero-slide-gap: 10px;
+    --featured-mobile-card-width: 300px;
   }
 
   .header__inner,
@@ -172,20 +173,29 @@
     grid-template-columns: 1fr;
   }
 
+  /* ===== ВАЖНО: центрирование карточек на главной ===== */
   .products-grid--slider {
     overflow-x: auto;
+    overflow-y: hidden;
     scroll-snap-type: x mandatory;
     -webkit-overflow-scrolling: touch;
+    scroll-padding-left: calc((100% - var(--featured-mobile-card-width)) / 2);
+    scroll-padding-right: calc((100% - var(--featured-mobile-card-width)) / 2);
+    padding-left: calc((100% - var(--featured-mobile-card-width)) / 2);
+    padding-right: calc((100% - var(--featured-mobile-card-width)) / 2);
+    gap: 16px;
   }
 
   .products-grid--slider .product-card {
-    min-width: 280px;
-    max-width: 280px;
+    min-width: var(--featured-mobile-card-width);
+    max-width: var(--featured-mobile-card-width);
     scroll-snap-align: center;
+    scroll-snap-stop: always;
+    flex: 0 0 auto;
   }
 
   .product-card__image-slider {
-    height: 360px;
+    height: 400px;
   }
 
   .hero {
@@ -295,7 +305,6 @@
     flex-direction: column;
   }
 
-  /* ===== КОРЗИНА НА МОБИЛКЕ ===== */
   .cart-item {
     display: grid;
     grid-template-columns: 110px minmax(0, 1fr);
@@ -659,6 +668,10 @@
 }
 
 @media (max-width: 480px) {
+  :root {
+    --featured-mobile-card-width: 280px;
+  }
+
   .container {
     width: min(100%, calc(100% - 20px));
   }
@@ -713,6 +726,19 @@
 
   .form-group textarea {
     min-height: 110px;
+  }
+
+  /* ===== ВАЖНО: центрирование карточек на очень узких экранах ===== */
+  .products-grid--slider {
+    scroll-padding-left: calc((100% - var(--featured-mobile-card-width)) / 2);
+    scroll-padding-right: calc((100% - var(--featured-mobile-card-width)) / 2);
+    padding-left: calc((100% - var(--featured-mobile-card-width)) / 2);
+    padding-right: calc((100% - var(--featured-mobile-card-width)) / 2);
+  }
+
+  .products-grid--slider .product-card {
+    min-width: var(--featured-mobile-card-width);
+    max-width: var(--featured-mobile-card-width);
   }
 
   .cart-item {
