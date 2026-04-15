@@ -14,10 +14,6 @@ const ordersList = document.getElementById('admin-orders-list');
 const adminCustomPcRequestsList = document.getElementById('admin-custom-pc-requests-list');
 const imagesInput = document.getElementById('images');
 const imagesPreview = document.getElementById('admin-images-preview');
-const productFormBlock = document.getElementById('product-form-block');
-const toggleProductFormBtn = document.getElementById('toggle-product-form-btn');
-const adminProductsSearch = document.getElementById('admin-products-search');
-const adminProductsCounter = document.getElementById('admin-products-counter');
 
 /* =========================
    COMPONENTS TAB NODES
@@ -31,15 +27,9 @@ const componentImagesInput = document.getElementById('component-images');
 const componentImagesPreview = document.getElementById('component-images-preview');
 const componentTypeSelect = document.getElementById('component-type');
 const componentSpecsDynamic = document.getElementById('component-specs-dynamic');
-const componentFormBlock = document.getElementById('component-form-block');
-const toggleComponentFormBtn = document.getElementById('toggle-component-form-btn');
-const adminComponentsSearch = document.getElementById('admin-components-search');
-const adminComponentsCounter = document.getElementById('admin-components-counter');
 
 let imageItems = [];
 let componentImageItems = [];
-let allProducts = [];
-let allComponents = [];
 
 /* =========================
    HELPERS
@@ -221,25 +211,6 @@ function getRadiatorSizeLabel(value) {
   return `${num} мм`;
 }
 
-function normalizeSearchText(value) {
-  return String(value || '').trim().toLowerCase();
-}
-
-function showBlock(block) {
-  if (!block) return;
-  block.classList.remove('is-hidden');
-}
-
-function hideBlock(block) {
-  if (!block) return;
-  block.classList.add('is-hidden');
-}
-
-function toggleBlock(block) {
-  if (!block) return;
-  block.classList.toggle('is-hidden');
-}
-
 /* =========================
    PRODUCT PREVIEWS
 ========================= */
@@ -332,42 +303,14 @@ function resetComponentForm() {
 
   const inStock = document.getElementById('component-in-stock');
   const useInConfigurator = document.getElementById('component-is-configurator-item');
-
   if (inStock) inStock.checked = true;
   if (useInConfigurator) useInConfigurator.checked = true;
 
   renderSpecsFields('');
 }
 
-cancelEditBtn?.addEventListener('click', () => {
-  resetForm();
-  hideBlock(productFormBlock);
-});
-
-componentCancelEditBtn?.addEventListener('click', () => {
-  resetComponentForm();
-  hideBlock(componentFormBlock);
-});
-
-toggleProductFormBtn?.addEventListener('click', () => {
-  if (productFormBlock?.classList.contains('is-hidden')) {
-    resetForm();
-    showBlock(productFormBlock);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  } else {
-    hideBlock(productFormBlock);
-  }
-});
-
-toggleComponentFormBtn?.addEventListener('click', () => {
-  if (componentFormBlock?.classList.contains('is-hidden')) {
-    resetComponentForm();
-    showBlock(componentFormBlock);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  } else {
-    hideBlock(componentFormBlock);
-  }
-});
+cancelEditBtn?.addEventListener('click', resetForm);
+componentCancelEditBtn?.addEventListener('click', resetComponentForm);
 
 /* =========================
    DYNAMIC SPECS FIELDS
@@ -949,8 +892,6 @@ componentTypeSelect?.addEventListener('change', (event) => {
    FILL FORMS
 ========================= */
 function fillForm(product) {
-  showBlock(productFormBlock);
-
   productIdInput.value = product.id || '';
   document.getElementById('name').value = product.name || '';
   document.getElementById('category').value = product.category || '';
@@ -973,13 +914,9 @@ function fillForm(product) {
     : [];
 
   renderAllPreviews();
-
-  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function fillComponentForm(product) {
-  showBlock(componentFormBlock);
-
   componentIdInput.value = product.id || '';
   componentFormTitle.textContent = 'Редактировать комплектующее';
 
@@ -1117,131 +1054,8 @@ function renderComponentSpecsSummary(product) {
 }
 
 /* =========================
-   SEARCH
-========================= */
-function getProductSearchText(product) {
-  return normalizeSearchText([
-    product.name,
-    product.category,
-    product.cpu,
-    product.gpu,
-    product.ram,
-    product.ssd,
-    product.description
-  ].join(' '));
-}
-
-function getComponentSearchText(product) {
-  const specs = parseSpecsJson(product.specsJson);
-
-  return normalizeSearchText([
-    product.name,
-    product.category,
-    product.componentType,
-    product.description,
-    JSON.stringify(specs)
-  ].join(' '));
-}
-
-function getFilteredProducts() {
-  const query = normalizeSearchText(adminProductsSearch?.value || '');
-
-  if (!query) return allProducts;
-
-  return allProducts.filter((product) => getProductSearchText(product).includes(query));
-}
-
-function getFilteredComponents() {
-  const query = normalizeSearchText(adminComponentsSearch?.value || '');
-
-  if (!query) return allComponents;
-
-  return allComponents.filter((product) => getComponentSearchText(product).includes(query));
-}
-
-/* =========================
    LOAD PRODUCTS
 ========================= */
-function renderProductsList(products) {
-  if (!productsList) return;
-
-  productsList.innerHTML = '';
-  if (adminProductsCounter) {
-    adminProductsCounter.textContent = `Найдено товаров: ${products.length}`;
-  }
-
-  if (!products.length) {
-    productsList.innerHTML = '<p>Товары не найдены.</p>';
-    return;
-  }
-
-  products.forEach((product) => {
-    const item = document.createElement('div');
-    item.className = 'admin-item';
-
-    const firstImage =
-      product.images?.[0]?.url ||
-      product.image ||
-      '/images/logo-glorionpc.png';
-
-    item.innerHTML = `
-      <div class="admin-product-row">
-        <div class="admin-product-thumb">
-          <img src="${firstImage}" alt="${product.name}">
-        </div>
-
-        <div class="admin-item__content">
-          <h3>${product.name}</h3>
-          <p><strong>Категория:</strong> ${product.category || '-'}</p>
-          <p><strong>Цена:</strong> ${formatPrice(product.price)}</p>
-          <p><strong>Старая цена:</strong> ${product.oldPrice ? formatPrice(product.oldPrice) : '-'}</p>
-          <p><strong>CPU:</strong> ${product.cpu || '-'}</p>
-          <p><strong>GPU:</strong> ${product.gpu || '-'}</p>
-          <p><strong>RAM:</strong> ${product.ram || '-'}</p>
-          <p><strong>SSD:</strong> ${product.ssd || '-'}</p>
-          <p><strong>Описание:</strong> ${product.description || '-'}</p>
-          <p><strong>В наличии:</strong> ${product.inStock ? 'Да' : 'Нет'}</p>
-        </div>
-      </div>
-
-      <div class="admin-item__actions">
-        <button type="button" class="btn btn-gold btn-small edit-btn">Редактировать</button>
-        <button type="button" class="btn btn-secondary btn-small delete-btn">Удалить</button>
-      </div>
-    `;
-
-    const editBtn = item.querySelector('.edit-btn');
-    const deleteBtn = item.querySelector('.delete-btn');
-
-    editBtn.addEventListener('click', () => {
-      fillForm(product);
-    });
-
-    deleteBtn.addEventListener('click', async () => {
-      const confirmed = confirm(`Удалить товар "${product.name}"?`);
-      if (!confirmed) return;
-
-      try {
-        const deleteResponse = await fetch(`${API_URL}/${product.id}`, {
-          method: 'DELETE'
-        });
-
-        if (!deleteResponse.ok) {
-          throw new Error('Ошибка удаления');
-        }
-
-        await loadProducts();
-        resetForm();
-      } catch (error) {
-        console.error(error);
-        alert('Не удалось удалить товар');
-      }
-    });
-
-    productsList.appendChild(item);
-  });
-}
-
 async function loadProducts() {
   if (!productsList) return;
 
@@ -1249,102 +1063,97 @@ async function loadProducts() {
     const response = await fetch(API_URL);
     const products = await response.json();
 
+    productsList.innerHTML = '';
+
     if (!Array.isArray(products) || !products.length) {
-      allProducts = [];
-      renderProductsList([]);
+      productsList.innerHTML = '<p>Товаров пока нет.</p>';
       return;
     }
 
-    allProducts = products.filter(
+    const regularProducts = products.filter(
       (product) => !product.componentType && !product.isConfiguratorItem
     );
 
-    renderProductsList(getFilteredProducts());
+    if (!regularProducts.length) {
+      productsList.innerHTML = '<p>Обычных товаров пока нет.</p>';
+      return;
+    }
+
+    regularProducts.forEach((product) => {
+      const item = document.createElement('div');
+      item.className = 'admin-item';
+
+      const firstImage =
+        product.images?.[0]?.url ||
+        product.image ||
+        '/images/logo-glorionpc.png';
+
+      item.innerHTML = `
+        <div class="admin-product-row">
+          <div class="admin-product-thumb">
+            <img src="${firstImage}" alt="${product.name}">
+          </div>
+
+          <div class="admin-item__content">
+            <h3>${product.name}</h3>
+            <p><strong>Категория:</strong> ${product.category || '-'}</p>
+            <p><strong>Цена:</strong> ${formatPrice(product.price)}</p>
+            <p><strong>Старая цена:</strong> ${product.oldPrice ? formatPrice(product.oldPrice) : '-'}</p>
+            <p><strong>CPU:</strong> ${product.cpu || '-'}</p>
+            <p><strong>GPU:</strong> ${product.gpu || '-'}</p>
+            <p><strong>RAM:</strong> ${product.ram || '-'}</p>
+            <p><strong>SSD:</strong> ${product.ssd || '-'}</p>
+            <p><strong>Описание:</strong> ${product.description || '-'}</p>
+            <p><strong>В наличии:</strong> ${product.inStock ? 'Да' : 'Нет'}</p>
+          </div>
+        </div>
+
+        <div class="admin-item__actions">
+          <button type="button" class="btn btn-gold btn-small edit-btn">Редактировать</button>
+          <button type="button" class="btn btn-secondary btn-small delete-btn">Удалить</button>
+        </div>
+      `;
+
+      const editBtn = item.querySelector('.edit-btn');
+      const deleteBtn = item.querySelector('.delete-btn');
+
+      editBtn.addEventListener('click', () => {
+        fillForm(product);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      });
+
+      deleteBtn.addEventListener('click', async () => {
+        const confirmed = confirm(`Удалить товар "${product.name}"?`);
+        if (!confirmed) return;
+
+        try {
+          const deleteResponse = await fetch(`${API_URL}/${product.id}`, {
+            method: 'DELETE'
+          });
+
+          if (!deleteResponse.ok) {
+            throw new Error('Ошибка удаления');
+          }
+
+          await loadProducts();
+          resetForm();
+        } catch (error) {
+          console.error(error);
+          alert('Не удалось удалить товар');
+        }
+      });
+
+      productsList.appendChild(item);
+    });
   } catch (error) {
     console.error('Ошибка загрузки списка товаров:', error);
     productsList.innerHTML = '<p>Не удалось загрузить список товаров.</p>';
-    if (adminProductsCounter) {
-      adminProductsCounter.textContent = 'Найдено товаров: 0';
-    }
   }
 }
 
 /* =========================
    LOAD COMPONENTS
 ========================= */
-function renderComponentsList(components) {
-  if (!componentsList) return;
-
-  componentsList.innerHTML = '';
-  if (adminComponentsCounter) {
-    adminComponentsCounter.textContent = `Найдено комплектующих: ${components.length}`;
-  }
-
-  if (!components.length) {
-    componentsList.innerHTML = '<p>Комплектующие не найдены.</p>';
-    return;
-  }
-
-  components.forEach((product) => {
-    const item = document.createElement('div');
-    item.className = 'admin-item';
-
-    const firstImage =
-      product.images?.[0]?.url ||
-      '/images/logo-glorionpc.png';
-
-    item.innerHTML = `
-      <div class="admin-product-row">
-        <div class="admin-product-thumb">
-          <img src="${firstImage}" alt="${product.name}">
-        </div>
-
-        <div class="admin-item__content">
-          <h3>${product.name}</h3>
-          <p><strong>Тип:</strong> ${product.componentType || '-'}</p>
-          <p><strong>Категория:</strong> ${product.category || '-'}</p>
-          <p><strong>Цена:</strong> ${formatPrice(product.price)}</p>
-          <p><strong>В конфигураторе:</strong> ${product.isConfiguratorItem ? 'Да' : 'Нет'}</p>
-          <p><strong>В наличии:</strong> ${product.inStock ? 'Да' : 'Нет'}</p>
-          ${renderComponentSpecsSummary(product)}
-        </div>
-      </div>
-
-      <div class="admin-item__actions">
-        <button type="button" class="btn btn-gold btn-small edit-btn">Редактировать</button>
-        <button type="button" class="btn btn-secondary btn-small delete-btn">Удалить</button>
-      </div>
-    `;
-
-    item.querySelector('.edit-btn').addEventListener('click', () => {
-      fillComponentForm(product);
-    });
-
-    item.querySelector('.delete-btn').addEventListener('click', async () => {
-      const confirmed = confirm(`Удалить комплектующее "${product.name}"?`);
-      if (!confirmed) return;
-
-      try {
-        const deleteResponse = await fetch(`${API_URL}/${product.id}`, {
-          method: 'DELETE'
-        });
-
-        if (!deleteResponse.ok) {
-          throw new Error('Не удалось удалить комплектующее');
-        }
-
-        await loadComponents();
-        resetComponentForm();
-      } catch (error) {
-        console.error(error);
-        alert('Не удалось удалить комплектующее');
-      }
-    });
-
-    componentsList.appendChild(item);
-  });
-}
-
 async function loadComponents() {
   if (!componentsList) return;
 
@@ -1352,17 +1161,78 @@ async function loadComponents() {
     const response = await fetch(API_URL);
     const products = await response.json();
 
-    allComponents = Array.isArray(products)
+    const components = Array.isArray(products)
       ? products.filter((product) => product.componentType || product.isConfiguratorItem)
       : [];
 
-    renderComponentsList(getFilteredComponents());
+    componentsList.innerHTML = '';
+
+    if (!components.length) {
+      componentsList.innerHTML = '<p>Комплектующих пока нет.</p>';
+      return;
+    }
+
+    components.forEach((product) => {
+      const item = document.createElement('div');
+      item.className = 'admin-item';
+
+      const firstImage =
+        product.images?.[0]?.url ||
+        '/images/logo-glorionpc.png';
+
+      item.innerHTML = `
+        <div class="admin-product-row">
+          <div class="admin-product-thumb">
+            <img src="${firstImage}" alt="${product.name}">
+          </div>
+
+          <div class="admin-item__content">
+            <h3>${product.name}</h3>
+            <p><strong>Тип:</strong> ${product.componentType || '-'}</p>
+            <p><strong>Категория:</strong> ${product.category || '-'}</p>
+            <p><strong>Цена:</strong> ${formatPrice(product.price)}</p>
+            <p><strong>В конфигураторе:</strong> ${product.isConfiguratorItem ? 'Да' : 'Нет'}</p>
+            <p><strong>В наличии:</strong> ${product.inStock ? 'Да' : 'Нет'}</p>
+            ${renderComponentSpecsSummary(product)}
+          </div>
+        </div>
+
+        <div class="admin-item__actions">
+          <button type="button" class="btn btn-gold btn-small edit-btn">Редактировать</button>
+          <button type="button" class="btn btn-secondary btn-small delete-btn">Удалить</button>
+        </div>
+      `;
+
+      item.querySelector('.edit-btn').addEventListener('click', () => {
+        fillComponentForm(product);
+      });
+
+      item.querySelector('.delete-btn').addEventListener('click', async () => {
+        const confirmed = confirm(`Удалить комплектующее "${product.name}"?`);
+        if (!confirmed) return;
+
+        try {
+          const deleteResponse = await fetch(`${API_URL}/${product.id}`, {
+            method: 'DELETE'
+          });
+
+          if (!deleteResponse.ok) {
+            throw new Error('Не удалось удалить комплектующее');
+          }
+
+          await loadComponents();
+          resetComponentForm();
+        } catch (error) {
+          console.error(error);
+          alert('Не удалось удалить комплектующее');
+        }
+      });
+
+      componentsList.appendChild(item);
+    });
   } catch (error) {
     console.error('Ошибка загрузки комплектующих:', error);
     componentsList.innerHTML = '<p>Не удалось загрузить комплектующие.</p>';
-    if (adminComponentsCounter) {
-      adminComponentsCounter.textContent = 'Найдено комплектующих: 0';
-    }
   }
 }
 
@@ -1620,17 +1490,6 @@ function setupAdminTabs() {
 }
 
 /* =========================
-   SEARCH EVENTS
-========================= */
-adminProductsSearch?.addEventListener('input', () => {
-  renderProductsList(getFilteredProducts());
-});
-
-adminComponentsSearch?.addEventListener('input', () => {
-  renderComponentsList(getFilteredComponents());
-});
-
-/* =========================
    PRODUCT FORM SUBMIT
 ========================= */
 adminForm?.addEventListener('submit', async (event) => {
@@ -1698,7 +1557,6 @@ adminForm?.addEventListener('submit', async (event) => {
     }
 
     resetForm();
-    hideBlock(productFormBlock);
     await loadProducts();
     alert(productId ? 'Товар обновлён' : 'Товар добавлен');
   } catch (error) {
@@ -1791,7 +1649,6 @@ componentForm?.addEventListener('submit', async (event) => {
     }
 
     resetComponentForm();
-    hideBlock(componentFormBlock);
     await loadComponents();
     alert(componentId ? 'Комплектующее обновлено' : 'Комплектующее добавлено');
   } catch (error) {
@@ -1805,13 +1662,240 @@ componentForm?.addEventListener('submit', async (event) => {
 ========================= */
 document.addEventListener('DOMContentLoaded', async () => {
   setupAdminTabs();
-  resetForm();
   resetComponentForm();
-  hideBlock(productFormBlock);
-  hideBlock(componentFormBlock);
-
   await loadProducts();
   await loadOrders();
   await loadCustomPcRequests();
   await loadComponents();
 });
+
+/* =========================
+   ADMIN UX: SEARCH + TOGGLE FORMS
+========================= */
+
+(function () {
+  const productSearchInput = document.getElementById('admin-products-search');
+  const componentSearchInput = document.getElementById('admin-components-search');
+
+  const productFormBlock = document.getElementById('admin-product-form-block');
+  const componentFormBlock = document.getElementById('admin-component-form-block');
+
+  const showProductFormBtn = document.getElementById('show-product-form-btn');
+  const hideProductFormBtn = document.getElementById('hide-product-form-btn');
+
+  const showComponentFormBtn = document.getElementById('show-component-form-btn');
+  const hideComponentFormBtn = document.getElementById('hide-component-form-btn');
+
+  const cancelEditBtn = document.getElementById('cancel-edit-btn');
+  const componentCancelEditBtn = document.getElementById('component-cancel-edit-btn');
+
+  const adminTabs = Array.from(document.querySelectorAll('.admin-tab'));
+  const adminSections = Array.from(document.querySelectorAll('.admin-section'));
+
+  function showBlock(block) {
+    if (!block) return;
+    block.classList.remove('is-hidden');
+    requestAnimationFrame(() => {
+      block.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  }
+
+  function hideBlock(block) {
+    if (!block) return;
+    block.classList.add('is-hidden');
+  }
+
+  function setActiveTab(tabName) {
+    adminTabs.forEach((tab) => {
+      tab.classList.toggle('active', tab.dataset.tab === tabName);
+    });
+
+    adminSections.forEach((section) => {
+      section.classList.toggle('active', section.id === `tab-${tabName}`);
+    });
+  }
+
+  function normalizeSearchText(value) {
+    return String(value || '')
+      .toLowerCase()
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  function collectItemSearchText(itemEl) {
+    const textParts = [];
+
+    const title = itemEl.querySelector('h3')?.textContent || '';
+    textParts.push(title);
+
+    itemEl.querySelectorAll('p, li, .admin-meta-chip, .admin-order-spec-label, .admin-order-spec-value').forEach((node) => {
+      textParts.push(node.textContent || '');
+    });
+
+    return normalizeSearchText(textParts.join(' '));
+  }
+
+  function applyListSearch(listSelector, query) {
+    const list = document.querySelector(listSelector);
+    if (!list) return;
+
+    const items = Array.from(list.children).filter((el) => el.classList.contains('admin-item') || el.classList.contains('admin-order'));
+    if (!items.length) return;
+
+    const normalizedQuery = normalizeSearchText(query);
+
+    let visibleCount = 0;
+
+    items.forEach((item) => {
+      const haystack = collectItemSearchText(item);
+      const isVisible = !normalizedQuery || haystack.includes(normalizedQuery);
+
+      item.classList.toggle('is-hidden-by-search', !isVisible);
+
+      if (isVisible) {
+        visibleCount += 1;
+      }
+    });
+
+    let emptyState = list.querySelector('.admin-empty');
+
+    if (visibleCount === 0) {
+      if (!emptyState) {
+        emptyState = document.createElement('div');
+        emptyState.className = 'admin-empty';
+        emptyState.textContent = 'Ничего не найдено по этому запросу.';
+        list.appendChild(emptyState);
+      }
+    } else if (emptyState) {
+      emptyState.remove();
+    }
+  }
+
+  function bindSearchInputs() {
+    if (productSearchInput) {
+      productSearchInput.addEventListener('input', () => {
+        applyListSearch('#admin-products-list', productSearchInput.value);
+      });
+    }
+
+    if (componentSearchInput) {
+      componentSearchInput.addEventListener('input', () => {
+        applyListSearch('#components-list', componentSearchInput.value);
+      });
+    }
+  }
+
+  function bindFormToggles() {
+    if (showProductFormBtn) {
+      showProductFormBtn.addEventListener('click', () => {
+        setActiveTab('products');
+        showBlock(productFormBlock);
+      });
+    }
+
+    if (hideProductFormBtn) {
+      hideProductFormBtn.addEventListener('click', () => {
+        hideBlock(productFormBlock);
+      });
+    }
+
+    if (showComponentFormBtn) {
+      showComponentFormBtn.addEventListener('click', () => {
+        setActiveTab('components');
+        showBlock(componentFormBlock);
+      });
+    }
+
+    if (hideComponentFormBtn) {
+      hideComponentFormBtn.addEventListener('click', () => {
+        hideBlock(componentFormBlock);
+      });
+    }
+
+    if (cancelEditBtn) {
+      cancelEditBtn.addEventListener('click', () => {
+        setTimeout(() => hideBlock(productFormBlock), 0);
+      });
+    }
+
+    if (componentCancelEditBtn) {
+      componentCancelEditBtn.addEventListener('click', () => {
+        setTimeout(() => hideBlock(componentFormBlock), 0);
+      });
+    }
+  }
+
+  function bindTabs() {
+    adminTabs.forEach((tab) => {
+      tab.addEventListener('click', () => {
+        const tabName = tab.dataset.tab;
+        setActiveTab(tabName);
+      });
+    });
+  }
+
+  function patchEditButtons() {
+    const observer = new MutationObserver(() => {
+      document.querySelectorAll('#admin-products-list .btn, #admin-products-list button').forEach((btn) => {
+        if (btn.dataset.formPatchBound === 'true') return;
+
+        const text = normalizeSearchText(btn.textContent);
+        if (text.includes('редакт')) {
+          btn.dataset.formPatchBound = 'true';
+          btn.addEventListener('click', () => {
+            setActiveTab('products');
+            showBlock(productFormBlock);
+          });
+        }
+      });
+
+      document.querySelectorAll('#components-list .btn, #components-list button').forEach((btn) => {
+        if (btn.dataset.formPatchBound === 'true') return;
+
+        const text = normalizeSearchText(btn.textContent);
+        if (text.includes('редакт')) {
+          btn.dataset.formPatchBound = 'true';
+          btn.addEventListener('click', () => {
+            setActiveTab('components');
+            showBlock(componentFormBlock);
+          });
+        }
+      });
+
+      if (productSearchInput?.value) {
+        applyListSearch('#admin-products-list', productSearchInput.value);
+      }
+
+      if (componentSearchInput?.value) {
+        applyListSearch('#components-list', componentSearchInput.value);
+      }
+    });
+
+    const productsList = document.getElementById('admin-products-list');
+    const componentsList = document.getElementById('components-list');
+
+    if (productsList) {
+      observer.observe(productsList, { childList: true, subtree: true });
+    }
+
+    if (componentsList) {
+      observer.observe(componentsList, { childList: true, subtree: true });
+    }
+  }
+
+  function initAdminUxEnhancements() {
+    bindTabs();
+    bindSearchInputs();
+    bindFormToggles();
+    patchEditButtons();
+
+    hideBlock(productFormBlock);
+    hideBlock(componentFormBlock);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initAdminUxEnhancements);
+  } else {
+    initAdminUxEnhancements();
+  }
+})();

@@ -53,8 +53,33 @@
       </div>
 
       <div class="admin-section active" id="tab-products">
-        <section class="admin-block">
-          <h2 id="admin-form-title">Добавить товар</h2>
+        <section class="admin-block admin-toolbar-block reveal">
+          <div class="admin-toolbar">
+            <div class="admin-search">
+              <label for="admin-products-search" class="admin-search__label">Поиск по товарам</label>
+              <input
+                type="text"
+                id="admin-products-search"
+                class="admin-search__input"
+                placeholder="Ищи по названию, категории, описанию, CPU, GPU, RAM, SSD..."
+              />
+            </div>
+
+            <div class="admin-toolbar__actions">
+              <button type="button" class="btn btn-gold" id="show-product-form-btn">
+                Добавить товар
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <section class="admin-block admin-form-block is-hidden" id="admin-product-form-block">
+          <div class="admin-block__header">
+            <h2 id="admin-form-title">Добавить товар</h2>
+            <button type="button" class="admin-block__close" id="hide-product-form-btn" aria-label="Скрыть форму">
+              ×
+            </button>
+          </div>
 
           <form id="admin-form" class="admin-form">
             <input type="hidden" id="product-id" />
@@ -146,8 +171,33 @@
       </div>
 
       <div class="admin-section" id="tab-components">
-        <section class="admin-block">
-          <h2 id="component-form-title">Добавить комплектующее</h2>
+        <section class="admin-block admin-toolbar-block reveal">
+          <div class="admin-toolbar">
+            <div class="admin-search">
+              <label for="admin-components-search" class="admin-search__label">Поиск по комплектующим</label>
+              <input
+                type="text"
+                id="admin-components-search"
+                class="admin-search__input"
+                placeholder="Ищи по названию, типу, категории, описанию и характеристикам..."
+              />
+            </div>
+
+            <div class="admin-toolbar__actions">
+              <button type="button" class="btn btn-gold" id="show-component-form-btn">
+                Добавить комплектующее
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <section class="admin-block admin-form-block is-hidden" id="admin-component-form-block">
+          <div class="admin-block__header">
+            <h2 id="component-form-title">Добавить комплектующее</h2>
+            <button type="button" class="admin-block__close" id="hide-component-form-btn" aria-label="Скрыть форму">
+              ×
+            </button>
+          </div>
 
           <form id="component-form" class="admin-form">
             <input type="hidden" id="component-id" />
