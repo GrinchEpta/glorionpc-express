@@ -85,6 +85,7 @@ const COMPONENT_CONFIG = {
 };
 
 let configuratorProducts = [];
+const CONFIG_PREVIEW_FALLBACK = '/images/logo-glorionpc.png';
 
 /* =========================
    HELPERS
@@ -206,14 +207,73 @@ function getSelectedProduct(selectId) {
   return getProductById(select.value);
 }
 
+function normalizeImageArray(rawImages) {
+  if (!rawImages) return [];
+
+  if (Array.isArray(rawImages)) {
+    return rawImages
+      .map((item) => {
+        if (!item) return '';
+        if (typeof item === 'string') return item.trim();
+        if (typeof item === 'object') {
+          return String(item.url || item.src || item.path || item.image || '').trim();
+        }
+        return '';
+      })
+      .filter(Boolean);
+  }
+
+  if (typeof rawImages === 'string') {
+    const trimmed = rawImages.trim();
+
+    if (!trimmed) return [];
+
+    if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
+      try {
+        return normalizeImageArray(JSON.parse(trimmed));
+      } catch (error) {
+        return [trimmed];
+      }
+    }
+
+    return trimmed
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
+  }
+
+  return [];
+}
+
+function getProductImages(product) {
+  const images = normalizeImageArray(product?.images);
+
+  if (images.length) {
+    return images;
+  }
+
+  const fallback = [
+    product?.image,
+    product?.imageUrl,
+    product?.photo,
+    CONFIG_PREVIEW_FALLBACK
+  ].find(Boolean);
+
+  return [fallback || CONFIG_PREVIEW_FALLBACK];
+}
+
+function getProductPrimaryImage(product) {
+  return getProductImages(product)[0] || CONFIG_PREVIEW_FALLBACK;
+}
+
 function createOptionElement(product) {
   const option = document.createElement('option');
   option.value = String(product.id);
   option.textContent = `${product.name} — ${formatPrice(product.price)}`;
   option.dataset.title = product.name;
   option.dataset.price = String(Number(product.price) || 0);
-  option.dataset.image =
-    product.images?.[0]?.url || product.image || '/images/logo-glorionpc.png';
+  option.dataset.image = getProductPrimaryImage(product);
+  option.dataset.images = JSON.stringify(getProductImages(product));
   option.dataset.specs = product.specsJson || '';
   return option;
 }
@@ -230,7 +290,8 @@ function fillSelect(selectId, items, config = {}, previousValue = null) {
     emptyOption.textContent = `${config.emptyOption.name} — ${formatPrice(config.emptyOption.price)}`;
     emptyOption.dataset.title = config.emptyOption.name;
     emptyOption.dataset.price = String(config.emptyOption.price);
-    emptyOption.dataset.image = '/images/logo-glorionpc.png';
+    emptyOption.dataset.image = CONFIG_PREVIEW_FALLBACK;
+    emptyOption.dataset.images = JSON.stringify([CONFIG_PREVIEW_FALLBACK]);
     emptyOption.dataset.specs = '';
     select.appendChild(emptyOption);
   }
@@ -241,7 +302,8 @@ function fillSelect(selectId, items, config = {}, previousValue = null) {
     option.textContent = config.emptyText || 'Нет доступных вариантов';
     option.dataset.title = config.emptyText || 'Нет доступных вариантов';
     option.dataset.price = '0';
-    option.dataset.image = '/images/logo-glorionpc.png';
+    option.dataset.image = CONFIG_PREVIEW_FALLBACK;
+    option.dataset.images = JSON.stringify([CONFIG_PREVIEW_FALLBACK]);
     option.dataset.specs = '';
     select.appendChild(option);
     select.disabled = true;
@@ -274,18 +336,175 @@ function getSelectedItemData(selectId) {
       id: null,
       title: '',
       price: 0,
-      image: '/images/logo-glorionpc.png',
+      image: CONFIG_PREVIEW_FALLBACK,
+      images: [CONFIG_PREVIEW_FALLBACK],
       specs: {}
     };
+  }
+
+  let images = [CONFIG_PREVIEW_FALLBACK];
+
+  try {
+    images = JSON.parse(option.dataset.images || '[]');
+  } catch (error) {
+    images = [];
+  }
+
+  if (!Array.isArray(images) || !images.length) {
+    images = [option.dataset.image || CONFIG_PREVIEW_FALLBACK];
   }
 
   return {
     id: option.value || null,
     title: option.dataset.title || option.textContent || '',
     price: Number(option.dataset.price) || 0,
-    image: option.dataset.image || '/images/logo-glorionpc.png',
+    image: option.dataset.image || CONFIG_PREVIEW_FALLBACK,
+    images,
     specs: parseSpecs(option.dataset.specs || '')
   };
+}
+
+/* =========================
+   IMAGE MODAL
+========================= */
+
+const configImageModal = document.getElementById('config-image-modal');
+const configImageModalBackdrop = document.getElementById('config-image-modal-backdrop');
+const configImageModalClose = document.getElementById('config-image-modal-close');
+const configImageModalPrev = document.getElementById('config-image-modal-prev');
+const configImageModalNext = document.getElementById('config-image-modal-next');
+const configImageModalImg = document.getElementById('config-image-modal-img');
+const configImageModalCaption = document.getElementById('config-image-modal-caption');
+const configImageModalThumbs = document.getElementById('config-image-modal-thumbs');
+
+let currentPreviewGallery = [];
+let currentPreviewIndex = 0;
+let currentPreviewTitle = '';
+
+function ensurePreviewBadge(previewEl) {
+  let badge = previewEl.querySelector('.config-preview__gallery-badge');
+
+  if (!badge) {
+    badge = document.createElement('div');
+    badge.className = 'config-preview__gallery-badge is-hidden';
+    previewEl.appendChild(badge);
+  }
+
+  return badge;
+}
+
+function setPreviewGalleryData(previewId, data, titleText) {
+  const previewEl = document.getElementById(previewId);
+  if (!previewEl) return;
+
+  const images = Array.isArray(data?.images) && data.images.length
+    ? data.images
+    : [CONFIG_PREVIEW_FALLBACK];
+
+  previewEl.dataset.images = JSON.stringify(images);
+  previewEl.dataset.title = titleText || data?.title || 'Комплектующее';
+
+  const badge = ensurePreviewBadge(previewEl);
+
+  if (images.length > 1) {
+    badge.textContent = `${images.length} фото`;
+    badge.classList.remove('is-hidden');
+  } else {
+    badge.textContent = '';
+    badge.classList.add('is-hidden');
+  }
+}
+
+function renderConfigImageModal() {
+  const src = currentPreviewGallery[currentPreviewIndex] || CONFIG_PREVIEW_FALLBACK;
+  configImageModalImg.src = src;
+  configImageModalImg.alt = currentPreviewTitle || 'Изображение комплектующего';
+
+  const total = currentPreviewGallery.length;
+  configImageModalCaption.textContent = total > 1
+    ? `${currentPreviewTitle} — ${currentPreviewIndex + 1} / ${total}`
+    : currentPreviewTitle;
+
+  configImageModalThumbs.innerHTML = '';
+
+  currentPreviewGallery.forEach((imageSrc, index) => {
+    const thumbBtn = document.createElement('button');
+    thumbBtn.type = 'button';
+    thumbBtn.className = `config-image-modal__thumb${index === currentPreviewIndex ? ' is-active' : ''}`;
+    thumbBtn.setAttribute('aria-label', `Изображение ${index + 1}`);
+
+    const thumbImg = document.createElement('img');
+    thumbImg.src = imageSrc;
+    thumbImg.alt = `${currentPreviewTitle} ${index + 1}`;
+
+    thumbBtn.appendChild(thumbImg);
+    thumbBtn.addEventListener('click', () => {
+      currentPreviewIndex = index;
+      renderConfigImageModal();
+    });
+
+    configImageModalThumbs.appendChild(thumbBtn);
+  });
+
+  if (currentPreviewGallery.length <= 1) {
+    configImageModalPrev.classList.add('is-hidden');
+    configImageModalNext.classList.add('is-hidden');
+  } else {
+    configImageModalPrev.classList.remove('is-hidden');
+    configImageModalNext.classList.remove('is-hidden');
+  }
+}
+
+function openConfigImageModal(images, startIndex = 0, title = '') {
+  currentPreviewGallery = Array.isArray(images) && images.length ? images : [CONFIG_PREVIEW_FALLBACK];
+  currentPreviewIndex = Math.max(0, Math.min(startIndex, currentPreviewGallery.length - 1));
+  currentPreviewTitle = title || '';
+
+  renderConfigImageModal();
+  configImageModal.classList.add('is-open');
+  configImageModal.setAttribute('aria-hidden', 'false');
+  document.body.classList.add('modal-open');
+}
+
+function closeConfigImageModal() {
+  configImageModal.classList.remove('is-open');
+  configImageModal.setAttribute('aria-hidden', 'true');
+  document.body.classList.remove('modal-open');
+}
+
+function showPrevConfigImage() {
+  if (currentPreviewGallery.length <= 1) return;
+  currentPreviewIndex =
+    (currentPreviewIndex - 1 + currentPreviewGallery.length) % currentPreviewGallery.length;
+  renderConfigImageModal();
+}
+
+function showNextConfigImage() {
+  if (currentPreviewGallery.length <= 1) return;
+  currentPreviewIndex =
+    (currentPreviewIndex + 1) % currentPreviewGallery.length;
+  renderConfigImageModal();
+}
+
+function bindConfigPreviewGallery() {
+  document.querySelectorAll('.config-preview').forEach((previewEl) => {
+    if (previewEl.dataset.galleryBound === 'true') return;
+
+    previewEl.dataset.galleryBound = 'true';
+
+    previewEl.addEventListener('click', () => {
+      let images = [];
+
+      try {
+        images = JSON.parse(previewEl.dataset.images || '[]');
+      } catch (error) {
+        images = [];
+      }
+
+      const title = previewEl.dataset.title || previewEl.querySelector('strong')?.textContent || 'Комплектующее';
+      openConfigImageModal(images, 0, title);
+    });
+  });
 }
 
 /* =========================
@@ -298,12 +517,15 @@ function updateComponentPreview(selectId) {
   const imageEl = document.getElementById(`preview-${selectId}-image`);
   const titleEl = document.getElementById(`preview-${selectId}-title`);
   const priceEl = document.getElementById(`preview-${selectId}-price`);
+  const previewEl = document.getElementById(`preview-${selectId}`);
 
-  if (!imageEl || !titleEl || !priceEl) return;
+  if (!imageEl || !titleEl || !priceEl || !previewEl) return;
 
-  imageEl.src = data.image || '/images/logo-glorionpc.png';
+  imageEl.src = data.image || CONFIG_PREVIEW_FALLBACK;
   titleEl.textContent = data.title || 'Не выбрано';
   priceEl.textContent = formatPrice(data.price || 0);
+
+  setPreviewGalleryData(`preview-${selectId}`, data, data.title || 'Комплектующее');
 }
 
 function updateAllComponentPreviews() {
@@ -317,6 +539,7 @@ function updateAllComponentPreviews() {
   updateComponentPreview('psu');
   updateComponentPreview('pc-case');
   updateComponentPreview('fans');
+  bindConfigPreviewGallery();
 }
 
 /* =========================
@@ -341,7 +564,7 @@ function getConfiguratorPreviewImage() {
     if (
       data &&
       data.image &&
-      data.image !== '/images/logo-glorionpc.png' &&
+      data.image !== CONFIG_PREVIEW_FALLBACK &&
       data.title &&
       !data.title.toLowerCase().includes('нет ')
     ) {
@@ -349,7 +572,7 @@ function getConfiguratorPreviewImage() {
     }
   }
 
-  return '/images/logo-glorionpc.png';
+  return CONFIG_PREVIEW_FALLBACK;
 }
 
 function animateConfiguredPcToCart() {
@@ -382,7 +605,6 @@ function animateConfiguredPcToCart() {
 
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
-      flyImage.classList.add('is-flying');
       flyImage.style.left = `${cartRect.left + cartRect.width / 2 - endSize / 2}px`;
       flyImage.style.top = `${cartRect.top + cartRect.height / 2 - endSize / 2}px`;
       flyImage.style.width = `${endSize}px`;
@@ -991,7 +1213,7 @@ function addConfiguredPcToCart() {
       config.case.image ||
       config.cpu.image ||
       config.gpu.image ||
-      '/images/logo-glorionpc.png',
+      CONFIG_PREVIEW_FALLBACK,
     quantity: 1,
     specs: {
       cpu: config.cpu.title,
@@ -1094,6 +1316,38 @@ async function loadConfiguratorProducts() {
 document.addEventListener('DOMContentLoaded', async () => {
   attachSelectListeners();
 
+  if (configImageModalBackdrop) {
+    configImageModalBackdrop.addEventListener('click', closeConfigImageModal);
+  }
+
+  if (configImageModalClose) {
+    configImageModalClose.addEventListener('click', closeConfigImageModal);
+  }
+
+  if (configImageModalPrev) {
+    configImageModalPrev.addEventListener('click', showPrevConfigImage);
+  }
+
+  if (configImageModalNext) {
+    configImageModalNext.addEventListener('click', showNextConfigImage);
+  }
+
+  document.addEventListener('keydown', (event) => {
+    if (!configImageModal?.classList.contains('is-open')) return;
+
+    if (event.key === 'Escape') {
+      closeConfigImageModal();
+    }
+
+    if (event.key === 'ArrowLeft') {
+      showPrevConfigImage();
+    }
+
+    if (event.key === 'ArrowRight') {
+      showNextConfigImage();
+    }
+  });
+
   const addButton = document.getElementById('add-config-to-cart');
   if (addButton) {
     addButton.addEventListener('click', addConfiguredPcToCart);
@@ -1102,4 +1356,5 @@ document.addEventListener('DOMContentLoaded', async () => {
   await loadConfiguratorProducts();
   updateSummary();
   updateCartIndicator();
+  bindConfigPreviewGallery();
 });

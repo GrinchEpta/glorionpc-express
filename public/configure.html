@@ -66,13 +66,14 @@
         <div class="section-heading reveal">
           <p class="section-heading__eyebrow">Конфигуратор</p>
           <h2 class="section-heading__title">Соберите свою конфигурацию</h2>
-          <h2 class="section-heading__title"></h2>Выберите комплектующие, а конфигуратор поможет вам с совместимостью.
+          <p class="section-heading__text">
+            Выберите комплектующие, а конфигуратор поможет вам с совместимостью.
+          </p>
         </div>
 
         <div class="configure-layout">
           <div class="configure-box reveal-left">
             <div class="configure-box__grid">
-
               <div class="configure-field">
                 <label for="cpu">Процессор</label>
                 <select id="cpu" class="configure-select"></select>
@@ -192,7 +193,6 @@
                   </div>
                 </div>
               </div>
-
             </div>
           </div>
 
@@ -349,6 +349,52 @@
         <path d="M4 20c0-3.314 3.582-6 8-6s8 2.686 8 6" stroke="currentColor" stroke-width="2" stroke-linecap="round"></path>
       </svg>
     </button>
+  </div>
+
+  <div class="config-image-modal" id="config-image-modal" aria-hidden="true">
+    <div class="config-image-modal__backdrop" id="config-image-modal-backdrop"></div>
+
+    <div class="config-image-modal__dialog" role="dialog" aria-modal="true" aria-label="Просмотр изображения комплектующего">
+      <button
+        type="button"
+        class="config-image-modal__close"
+        id="config-image-modal-close"
+        aria-label="Закрыть"
+      >
+        ×
+      </button>
+
+      <button
+        type="button"
+        class="config-image-modal__nav config-image-modal__nav--prev"
+        id="config-image-modal-prev"
+        aria-label="Предыдущее изображение"
+      >
+        ‹
+      </button>
+
+      <div class="config-image-modal__content">
+        <img
+          src=""
+          alt="Увеличенное изображение комплектующего"
+          class="config-image-modal__img"
+          id="config-image-modal-img"
+        />
+
+        <div class="config-image-modal__caption" id="config-image-modal-caption"></div>
+
+        <div class="config-image-modal__thumbs" id="config-image-modal-thumbs"></div>
+      </div>
+
+      <button
+        type="button"
+        class="config-image-modal__nav config-image-modal__nav--next"
+        id="config-image-modal-next"
+        aria-label="Следующее изображение"
+      >
+        ›
+      </button>
+    </div>
   </div>
 
   <script src="/js/configure.js"></script>

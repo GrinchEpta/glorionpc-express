@@ -22,18 +22,26 @@ html {
   scroll-behavior: smooth;
 }
 
+/* 🔥 ОСНОВНОЙ ФОН САЙТА */
+
 body {
   font-family: Arial, sans-serif;
-  background:
-    radial-gradient(circle at top right, rgba(212, 166, 74, 0.08), transparent 22%),
-    radial-gradient(circle at top left, rgba(212, 166, 74, 0.05), transparent 18%),
-    var(--bg);
+  background: #000000; /* ЧИСТО ЧЕРНЫЙ */
   color: var(--text);
   line-height: 1.5;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
 }
+
+/* 🔥 АДМИНКА — ЧИСТО ЧЕРНЫЙ (И ПК И МОБИЛКА) */
+
+body.admin-page-mobile {
+  background: #000000 !important;
+  background-image: none !important;
+}
+
+/* модалки */
 
 body.modal-open {
   overflow: hidden;
@@ -64,6 +72,8 @@ video {
   width: min(1320px, calc(100% - 32px));
   margin: 0 auto;
 }
+
+/* кнопки */
 
 .btn {
   display: inline-flex;
@@ -122,6 +132,8 @@ video {
   line-height: 1.4;
 }
 
+/* статусы */
+
 .order-status {
   display: inline-flex;
   align-items: center;
@@ -159,6 +171,8 @@ video {
   color: #ff9d9d;
   border-color: rgba(217, 101, 101, 0.24);
 }
+
+/* reveal анимации */
 
 .reveal,
 .reveal-left,
@@ -213,10 +227,7 @@ video {
   filter: blur(0);
 }
 
-.reveal-delay-1 { transition-delay: 0.08s; }
-.reveal-delay-2 { transition-delay: 0.16s; }
-.reveal-delay-3 { transition-delay: 0.24s; }
-.reveal-delay-4 { transition-delay: 0.32s; }
+/* отключаем анимации в админке (чтобы не ломалось на мобиле) */
 
 body.admin-page-mobile .reveal,
 body.admin-page-mobile .reveal-left,
