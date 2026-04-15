@@ -24,7 +24,10 @@ html {
 
 body {
   font-family: Arial, sans-serif;
-  background: var(--bg);
+  background:
+    radial-gradient(circle at top right, rgba(212, 166, 74, 0.08), transparent 22%),
+    radial-gradient(circle at top left, rgba(212, 166, 74, 0.05), transparent 18%),
+    var(--bg);
   color: var(--text);
   line-height: 1.5;
   min-height: 100vh;

@@ -5,9 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Админка — GlorionPC</title>
   <link rel="stylesheet" href="/css/style.css" />
-  <link rel="stylesheet" href="/css/admin.css" />
 </head>
-<body class="admin-page admin-page-mobile">
+<body class="admin-page-mobile">
   <header class="header">
     <div class="container header__inner">
       <a href="/" class="brand">
@@ -31,7 +30,7 @@
     </div>
   </header>
 
-  <main class="admin-main">
+  <main class="admin-page">
     <div class="container">
       <div class="section-heading">
         <p class="section-heading__eyebrow">GlorionPC</p>
@@ -53,37 +52,8 @@
         </button>
       </div>
 
-      <!-- ТОВАРЫ -->
       <div class="admin-section active" id="tab-products">
         <section class="admin-block">
-          <div class="admin-toolbar">
-            <div class="admin-toolbar__left">
-              <h2 class="admin-toolbar__title">Управление товарами</h2>
-              <p class="admin-toolbar__subtitle">Добавляйте, редактируйте и ищите готовые ПК</p>
-            </div>
-
-            <div class="admin-toolbar__right">
-              <button type="button" class="btn btn-gold" id="toggle-product-form-btn">
-                Добавить товар
-              </button>
-            </div>
-          </div>
-
-          <div class="admin-search-row">
-            <div class="form-group admin-search-group">
-              <label for="admin-products-search">Поиск по товарам</label>
-              <input
-                type="text"
-                id="admin-products-search"
-                placeholder="Название, категория, CPU, GPU, RAM, SSD, описание..."
-              />
-            </div>
-          </div>
-
-          <div class="admin-counter" id="admin-products-counter">Найдено товаров: 0</div>
-        </section>
-
-        <section class="admin-block admin-form-block is-hidden" id="product-form-block">
           <h2 id="admin-form-title">Добавить товар</h2>
 
           <form id="admin-form" class="admin-form">
@@ -161,7 +131,6 @@
         </section>
       </div>
 
-      <!-- ЗАКАЗЫ -->
       <div class="admin-section" id="tab-orders">
         <section class="admin-block reveal">
           <h2>История заказов</h2>
@@ -169,7 +138,6 @@
         </section>
       </div>
 
-      <!-- ЗАЯВКИ -->
       <div class="admin-section" id="tab-custom">
         <section class="admin-block reveal">
           <h2>Заявки на индивидуальную сборку ПК</h2>
@@ -177,37 +145,8 @@
         </section>
       </div>
 
-      <!-- КОМПЛЕКТУЮЩИЕ -->
       <div class="admin-section" id="tab-components">
         <section class="admin-block">
-          <div class="admin-toolbar">
-            <div class="admin-toolbar__left">
-              <h2 class="admin-toolbar__title">Управление комплектующими</h2>
-              <p class="admin-toolbar__subtitle">Поиск по названию, типу и характеристикам</p>
-            </div>
-
-            <div class="admin-toolbar__right">
-              <button type="button" class="btn btn-gold" id="toggle-component-form-btn">
-                Добавить комплектующее
-              </button>
-            </div>
-          </div>
-
-          <div class="admin-search-row">
-            <div class="form-group admin-search-group">
-              <label for="admin-components-search">Поиск по комплектующим</label>
-              <input
-                type="text"
-                id="admin-components-search"
-                placeholder="Название, тип, категория, сокет, память, размеры, описание..."
-              />
-            </div>
-          </div>
-
-          <div class="admin-counter" id="admin-components-counter">Найдено комплектующих: 0</div>
-        </section>
-
-        <section class="admin-block admin-form-block is-hidden" id="component-form-block">
           <h2 id="component-form-title">Добавить комплектующее</h2>
 
           <form id="component-form" class="admin-form">
