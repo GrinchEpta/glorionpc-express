@@ -56,7 +56,7 @@ app.get('/api/auth/avito/start', (req, res) => {
   req.session.avitoOAuthState = state;
 
   const authUrl =
-    `https://api.avito.ru/oauth/authorize?response_type=code` +
+    `https://avito.ru/oauth?response_type=code` +
     `&client_id=${encodeURIComponent(clientId)}` +
     `&redirect_uri=${encodeURIComponent(redirectUri)}` +
     `&state=${encodeURIComponent(state)}`;
