@@ -148,6 +148,34 @@ app.get('/api/auth/avito/token', async (req, res) => {
   }
 });
 
+app.get('/api/auth/avito/items', async (req, res) => {
+  const accessToken = req.session.avitoAccessToken;
+
+  if (!accessToken) {
+    return res.status(401).json({
+      message: 'Нет access_token. Сначала получи токен через /api/auth/avito/start'
+    });
+  }
+
+  try {
+    const response = await axios.get('https://api.avito.ru/core/v1/items', {
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      }
+    });
+
+    return res.json({
+      message: 'Объявления получены успешно',
+      data: response.data
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: 'Ошибка получения объявлений',
+      error: error.response?.data || error.message
+    });
+  }
+});
+
 /* =========================
    ADMIN ACCESS
 ========================= */
