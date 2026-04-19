@@ -1,6 +1,7 @@
 const express = require('express');
 const path = require('path');
 const session = require('express-session');
+const axios = require('axios');
 require('dotenv').config();
 
 const productsRoutes = require('./routes/products');
@@ -96,9 +97,55 @@ app.get('/api/auth/avito/callback', async (req, res) => {
   return res.send(`
     <h1>Авторизация Авито прошла успешно</h1>
     <p>Код получен и сохранён в сессии.</p>
-    <p>Следующий шаг — обменять code на access_token.</p>
-    <a href="/admin">Вернуться в админку</a>
+    <p>Теперь можно получить access_token.</p>
+    <p><a href="/api/auth/avito/token">Получить access_token</a></p>
+    <p><a href="/admin">Вернуться в админку</a></p>
   `);
+});
+
+app.get('/api/auth/avito/token', async (req, res) => {
+  const code = req.session.avitoAuthCode;
+
+  if (!code) {
+    return res.status(400).json({
+      message: 'Нет кода авторизации. Сначала открой /api/auth/avito/start'
+    });
+  }
+
+  try {
+    const params = new URLSearchParams();
+    params.append('grant_type', 'authorization_code');
+    params.append('code', code);
+    params.append('client_id', process.env.AVITO_CLIENT_ID);
+    params.append('client_secret', process.env.AVITO_CLIENT_SECRET);
+    params.append('redirect_uri', process.env.AVITO_REDIRECT_URI);
+
+    const response = await axios.post('https://api.avito.ru/token', params, {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      }
+    });
+
+    const data = response.data;
+
+    req.session.avitoAccessToken = data.access_token;
+    req.session.avitoRefreshToken = data.refresh_token || null;
+    req.session.avitoTokenType = data.token_type || 'Bearer';
+    req.session.avitoExpiresIn = data.expires_in || null;
+
+    return res.json({
+      message: 'Токен получен успешно',
+      access_token: data.access_token,
+      refresh_token: data.refresh_token || null,
+      token_type: data.token_type || 'Bearer',
+      expires_in: data.expires_in || null
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: 'Ошибка получения access_token',
+      error: error.response?.data || error.message
+    });
+  }
 });
 
 /* =========================
