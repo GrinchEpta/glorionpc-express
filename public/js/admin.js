@@ -1870,45 +1870,47 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-  function bindFormToggles() {
-    if (showProductFormBtn) {
-      showProductFormBtn.addEventListener('click', () => {
-        setActiveTab('products');
-        showBlock(productFormBlock);
-      });
-    }
-
-    if (hideProductFormBtn) {
-      hideProductFormBtn.addEventListener('click', () => {
-        hideBlock(productFormBlock);
-      });
-    }
-
-    if (showComponentFormBtn) {
-      showComponentFormBtn.addEventListener('click', () => {
-        setActiveTab('components');
-        showBlock(componentFormBlock);
-      });
-    }
-
-    if (hideComponentFormBtn) {
-      hideComponentFormBtn.addEventListener('click', () => {
-        hideBlock(componentFormBlock);
-      });
-    }
-
-    if (productCancelBtn) {
-      productCancelBtn.addEventListener('click', () => {
-        setTimeout(() => hideBlock(productFormBlock), 0);
-      });
-    }
-
-    if (componentCancelBtn) {
-      componentCancelBtn.addEventListener('click', () => {
-        setTimeout(() => hideBlock(componentFormBlock), 0);
-      });
-    }
+function bindFormToggles() {
+  if (showProductFormBtn) {
+    showProductFormBtn.addEventListener('click', () => {
+      resetForm();
+      setActiveTab('products');
+      showBlock(productFormBlock);
+    });
   }
+
+  if (hideProductFormBtn) {
+    hideProductFormBtn.addEventListener('click', () => {
+      hideBlock(productFormBlock);
+    });
+  }
+
+  if (showComponentFormBtn) {
+    showComponentFormBtn.addEventListener('click', () => {
+      resetComponentForm();
+      setActiveTab('components');
+      showBlock(componentFormBlock);
+    });
+  }
+
+  if (hideComponentFormBtn) {
+    hideComponentFormBtn.addEventListener('click', () => {
+      hideBlock(componentFormBlock);
+    });
+  }
+
+  if (productCancelBtn) {
+    productCancelBtn.addEventListener('click', () => {
+      setTimeout(() => hideBlock(productFormBlock), 0);
+    });
+  }
+
+  if (componentCancelBtn) {
+    componentCancelBtn.addEventListener('click', () => {
+      setTimeout(() => hideBlock(componentFormBlock), 0);
+    });
+  }
+}
 
   function bindTabs() {
     adminTabs.forEach((tab) => {
