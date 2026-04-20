@@ -2,7 +2,6 @@ const express = require('express');
 const path = require('path');
 const session = require('express-session');
 const axios = require('axios');
-const cheerio = require('cheerio');
 require('dotenv').config();
 
 const prisma = require(path.join(__dirname, 'prisma.js'));
@@ -75,211 +74,6 @@ function getAvitoItemPrice(item) {
   }
 
   return null;
-}
-
-function normalizeAvitoImageUrl(url) {
-  if (!url) return null;
-
-  let normalized = String(url).trim();
-
-  if (!normalized) return null;
-
-  if (normalized.startsWith('//')) {
-    normalized = `https:${normalized}`;
-  }
-
-  if (normalized.startsWith('/')) {
-    return null;
-  }
-
-  if (!normalized.startsWith('http://') && !normalized.startsWith('https://')) {
-    return null;
-  }
-
-  if (
-    normalized.includes('avito.st') ||
-    normalized.includes('img.avito.st') ||
-    normalized.includes('00.img.avito.st') ||
-    normalized.includes('10.img.avito.st') ||
-    normalized.includes('20.img.avito.st') ||
-    normalized.includes('30.img.avito.st') ||
-    normalized.includes('40.img.avito.st') ||
-    normalized.includes('50.img.avito.st') ||
-    normalized.includes('60.img.avito.st') ||
-    normalized.includes('70.img.avito.st') ||
-    normalized.includes('80.img.avito.st') ||
-    normalized.includes('90.img.avito.st')
-  ) {
-    return normalized;
-  }
-
-  return null;
-}
-
-function extractImagesFromJsonLd($) {
-  const result = [];
-
-  $('script[type="application/ld+json"]').each((_, el) => {
-    const raw = $(el).html();
-    if (!raw) return;
-
-    try {
-      const parsed = JSON.parse(raw);
-
-      const collect = (value) => {
-        if (!value) return;
-
-        if (Array.isArray(value)) {
-          value.forEach(collect);
-          return;
-        }
-
-        if (typeof value === 'string') {
-          const normalized = normalizeAvitoImageUrl(value);
-          if (normalized) result.push(normalized);
-          return;
-        }
-
-        if (typeof value === 'object') {
-          if (value.image) collect(value.image);
-          if (value.contentUrl) collect(value.contentUrl);
-          if (value.url) collect(value.url);
-        }
-      };
-
-      collect(parsed.image);
-      collect(parsed);
-    } catch (error) {
-      // ignore invalid JSON-LD
-    }
-  });
-
-  return result;
-}
-
-function extractImagesFromHtml(html) {
-  const images = [];
-
-  const addImage = (candidate) => {
-    const normalized = normalizeAvitoImageUrl(candidate);
-    if (normalized) {
-      images.push(normalized);
-    }
-  };
-
-  const collectFromObject = (value) => {
-    if (!value) return;
-
-    if (typeof value === 'string') {
-      addImage(value);
-      return;
-    }
-
-    if (Array.isArray(value)) {
-      value.forEach(collectFromObject);
-      return;
-    }
-
-    if (typeof value === 'object') {
-      Object.values(value).forEach(collectFromObject);
-    }
-  };
-
-  try {
-    const $ = cheerio.load(html);
-
-    $('img').each((_, el) => {
-      const src = $(el).attr('src');
-      const dataSrc = $(el).attr('data-src');
-      const srcset = $(el).attr('srcset');
-
-      [src, dataSrc].forEach(addImage);
-
-      if (srcset) {
-        srcset.split(',').forEach((part) => {
-          const first = part.trim().split(' ')[0];
-          addImage(first);
-        });
-      }
-    });
-
-    const jsonLdImages = extractImagesFromJsonLd($);
-    jsonLdImages.forEach(addImage);
-  } catch (error) {
-    console.log('Ошибка cheerio-парсинга:', error.message);
-  }
-
-  const htmlMatches = html.match(/https?:\/\/[^"'\\\s]+avito\.st[^"'\\\s]+/g) || [];
-  htmlMatches.forEach(addImage);
-
-  const scriptContents = [];
-  const scriptRegex = /<script\b[^>]*>([\s\S]*?)<\/script>/gi;
-  let scriptMatch;
-
-  while ((scriptMatch = scriptRegex.exec(html)) !== null) {
-    if (scriptMatch[1]) {
-      scriptContents.push(scriptMatch[1]);
-    }
-  }
-
-  for (const content of scriptContents) {
-    const directMatches = content.match(/https?:\/\/[^"'\\\s]+avito\.st[^"'\\\s]+/g) || [];
-    directMatches.forEach(addImage);
-
-    const jsonCandidates = [];
-
-    const patterns = [
-      /window\.__initialData__\s*=\s*(\{[\s\S]*?\});/g,
-      /window\.__REDUX_STATE__\s*=\s*(\{[\s\S]*?\});/g,
-      /window\.__NUXT__\s*=\s*(\{[\s\S]*?\});/g,
-      /window\.__NEXT_DATA__\s*=\s*(\{[\s\S]*?\});/g
-    ];
-
-    for (const pattern of patterns) {
-      let match;
-      while ((match = pattern.exec(content)) !== null) {
-        if (match[1]) {
-          jsonCandidates.push(match[1]);
-        }
-      }
-    }
-
-    for (const candidate of jsonCandidates) {
-      try {
-        const cleaned = candidate.replace(/;$/, '');
-        const parsed = JSON.parse(cleaned);
-        collectFromObject(parsed);
-      } catch (error) {
-        // ignore invalid fragments
-      }
-    }
-  }
-
-  return [...new Set(images)];
-}
-
-async function getImagesFromAvitoPage(url) {
-  if (!url) return [];
-
-  try {
-    const response = await axios.get(url, {
-      headers: {
-        'User-Agent':
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-        Accept:
-          'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-        'Accept-Language': 'ru-RU,ru;q=0.9,en;q=0.8',
-        Referer: 'https://www.avito.ru/'
-      },
-      timeout: 20000
-    });
-
-    const html = response.data || '';
-    return extractImagesFromHtml(html);
-  } catch (error) {
-    console.log('Ошибка парсинга фото со страницы Авито:', error.message);
-    return [];
-  }
 }
 
 async function saveAvitoTokens(data) {
@@ -509,9 +303,6 @@ app.get('/api/auth/avito/items', async (req, res) => {
   }
 });
 
-/* =========================
-   DEBUG: ONE AVITO ITEM DETAIL
-========================= */
 app.get('/api/auth/avito/item/:itemId', async (req, res) => {
   try {
     const accessToken = await getValidAvitoAccessToken();
@@ -537,109 +328,6 @@ app.get('/api/auth/avito/item/:itemId', async (req, res) => {
 });
 
 /* =========================
-   DEBUG: PARSE AVITO PAGE IMAGES
-========================= */
-app.get('/api/auth/avito/item-page-images/:itemId', async (req, res) => {
-  try {
-    const accessToken = await getValidAvitoAccessToken();
-    const itemId = req.params.itemId;
-
-    const detail = await fetchAvitoItemDetail(accessToken, itemId);
-    const avitoUrl = detail?.url || null;
-
-    if (!avitoUrl) {
-      return res.status(404).json({
-        message: 'У объявления нет URL для парсинга страницы'
-      });
-    }
-
-    const images = await getImagesFromAvitoPage(avitoUrl);
-
-    return res.json({
-      message: 'Картинки со страницы объявления получены успешно',
-      url: avitoUrl,
-      images
-    });
-  } catch (error) {
-    console.error(
-      'Ошибка получения картинок со страницы Авито:',
-      error.response?.data || error.message
-    );
-
-    return res.status(500).json({
-      message: 'Ошибка получения картинок со страницы Авито',
-      error: error.response?.data || error.message
-    });
-  }
-});
-
-/* =========================
-   DEBUG: AVITO PAGE HTML
-========================= */
-app.get('/api/auth/avito/item-page-debug/:itemId', async (req, res) => {
-  try {
-    const accessToken = await getValidAvitoAccessToken();
-    const itemId = req.params.itemId;
-
-    const detail = await fetchAvitoItemDetail(accessToken, itemId);
-    const avitoUrl = detail?.url || null;
-
-    if (!avitoUrl) {
-      return res.status(404).json({
-        message: 'У объявления нет URL для парсинга страницы'
-      });
-    }
-
-    const response = await axios.get(avitoUrl, {
-      headers: {
-        'User-Agent':
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-        Accept:
-          'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
-        'Accept-Language': 'ru-RU,ru;q=0.9,en;q=0.8',
-        Referer: 'https://www.avito.ru/'
-      },
-      timeout: 20000
-    });
-
-    const html = response.data || '';
-
-    const avitoStMatches = html.match(/https?:\/\/[^"'\\\s]+avito\.st[^"'\\\s]+/g) || [];
-    const hasInitialData = html.includes('__initialData__');
-    const hasReduxState = html.includes('__REDUX_STATE__');
-    const hasNuxt = html.includes('__NUXT__');
-    const hasNextData = html.includes('__NEXT_DATA__');
-
-    return res.json({
-      message: 'HTML страницы объявления получен',
-      url: avitoUrl,
-      htmlLength: html.length,
-      hasInitialData,
-      hasReduxState,
-      hasNuxt,
-      hasNextData,
-      avitoStMatchesCount: avitoStMatches.length,
-      avitoStMatchesPreview: avitoStMatches.slice(0, 20),
-      htmlPreviewStart: html.slice(0, 3000),
-      htmlPreviewMiddle: html.slice(
-        Math.max(0, Math.floor(html.length / 2) - 1500),
-        Math.floor(html.length / 2) + 1500
-      )
-    });
-  } catch (error) {
-    console.error(
-      'Ошибка debug HTML страницы Авито:',
-      error.response?.data || error.message
-    );
-
-    return res.status(500).json({
-      message: 'Ошибка debug HTML страницы Авито',
-      error: error.response?.data || error.message
-    });
-  }
-});
-
-/* =========================
    AVITO SYNC PRODUCTS
 ========================= */
 app.post('/api/auth/avito/sync-products', async (req, res) => {
@@ -659,7 +347,6 @@ app.post('/api/auth/avito/sync-products', async (req, res) => {
         message: 'Объявления Авито не найдены',
         updated: 0,
         notMatched: [],
-        imageSyncErrors: [],
         totalAvitoItems: 0
       });
     }
@@ -669,17 +356,11 @@ app.post('/api/auth/avito/sync-products', async (req, res) => {
         avitoItemId: {
           not: null
         }
-      },
-      include: {
-        images: {
-          orderBy: { order: 'asc' }
-        }
       }
     });
 
     let updated = 0;
     const notMatched = [];
-    const imageSyncErrors = [];
 
     for (const product of products) {
       const matched = avitoItems.find(
@@ -699,21 +380,6 @@ app.post('/api/auth/avito/sync-products', async (req, res) => {
       const avitoUrl = getAvitoItemUrl(matched);
       const avitoStatus = getAvitoItemStatus(matched);
 
-      let imageUrls = [];
-
-      try {
-        if (avitoUrl) {
-          imageUrls = await getImagesFromAvitoPage(avitoUrl);
-        }
-      } catch (error) {
-        imageSyncErrors.push({
-          productId: product.id,
-          name: product.name,
-          avitoItemId: matched.id,
-          error: error.response?.data || error.message
-        });
-      }
-
       await prisma.product.update({
         where: { id: product.id },
         data: {
@@ -726,20 +392,6 @@ app.post('/api/auth/avito/sync-products', async (req, res) => {
         }
       });
 
-      if (imageUrls.length > 0) {
-        await prisma.productImage.deleteMany({
-          where: { productId: product.id }
-        });
-
-        await prisma.productImage.createMany({
-          data: imageUrls.map((url, index) => ({
-            url,
-            order: index,
-            productId: product.id
-          }))
-        });
-      }
-
       updated += 1;
     }
 
@@ -747,7 +399,6 @@ app.post('/api/auth/avito/sync-products', async (req, res) => {
       message: 'Синхронизация завершена',
       updated,
       notMatched,
-      imageSyncErrors,
       totalAvitoItems: avitoItems.length
     });
   } catch (error) {
