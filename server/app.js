@@ -105,12 +105,22 @@ function extractImageUrlsFromAvitoDetail(detail) {
     detail.imageUrls,
     detail.pictures,
     detail.media,
+
     detail.data?.images,
     detail.data?.photos,
     detail.data?.gallery,
+    detail.data?.image_urls,
+    detail.data?.imageUrls,
+    detail.data?.pictures,
+    detail.data?.media,
+
     detail.item?.images,
     detail.item?.photos,
-    detail.item?.gallery
+    detail.item?.gallery,
+    detail.item?.image_urls,
+    detail.item?.imageUrls,
+    detail.item?.pictures,
+    detail.item?.media
   ];
 
   for (const candidate of candidates) {
@@ -200,29 +210,23 @@ async function getValidAvitoAccessToken() {
 }
 
 async function fetchAvitoItemDetail(accessToken, itemId) {
-  const urlsToTry = [
-    `https://api.avito.ru/core/v1/items/${itemId}`,
-    `https://api.avito.ru/core/v1/items/${itemId}/`,
-    `https://api.avito.ru/core/v1/accounts/self/items/${itemId}`
-  ];
+  const userId = process.env.AVITO_USER_ID;
 
-  let lastError = null;
-
-  for (const url of urlsToTry) {
-    try {
-      const response = await axios.get(url, {
-        headers: {
-          Authorization: `Bearer ${accessToken}`
-        }
-      });
-
-      return response.data;
-    } catch (error) {
-      lastError = error;
-    }
+  if (!userId) {
+    throw new Error('Не заполнен AVITO_USER_ID в .env');
   }
 
-  throw lastError || new Error('Не удалось получить детали объявления Авито');
+  const url = `https://api.avito.ru/core/v1/accounts/${encodeURIComponent(
+    userId
+  )}/items/${encodeURIComponent(itemId)}/`;
+
+  const response = await axios.get(url, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`
+    }
+  });
+
+  return response.data;
 }
 
 /* =========================
