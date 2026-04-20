@@ -76,6 +76,58 @@ function getAvitoItemPrice(item) {
   return null;
 }
 
+function normalizeImageUrl(value) {
+  if (!value) return null;
+  if (typeof value === 'string') return value;
+
+  return (
+    value.url ||
+    value.large ||
+    value.big ||
+    value.orig ||
+    value.original ||
+    value['1280x960'] ||
+    value['1024x768'] ||
+    value['640x480'] ||
+    value.image ||
+    null
+  );
+}
+
+function extractImageUrlsFromAvitoDetail(detail) {
+  if (!detail || typeof detail !== 'object') return [];
+
+  const candidates = [
+    detail.images,
+    detail.photos,
+    detail.gallery,
+    detail.image_urls,
+    detail.imageUrls,
+    detail.pictures,
+    detail.media,
+    detail.data?.images,
+    detail.data?.photos,
+    detail.data?.gallery,
+    detail.item?.images,
+    detail.item?.photos,
+    detail.item?.gallery
+  ];
+
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate) && candidate.length > 0) {
+      const urls = candidate
+        .map((item) => normalizeImageUrl(item))
+        .filter(Boolean);
+
+      if (urls.length > 0) {
+        return [...new Set(urls)];
+      }
+    }
+  }
+
+  return [];
+}
+
 async function saveAvitoTokens(data) {
   const expiresAt = data.expires_in
     ? new Date(Date.now() + Number(data.expires_in) * 1000)
@@ -145,6 +197,32 @@ async function getValidAvitoAccessToken() {
   }
 
   return refreshAvitoAccessToken(tokenRow.refreshToken);
+}
+
+async function fetchAvitoItemDetail(accessToken, itemId) {
+  const urlsToTry = [
+    `https://api.avito.ru/core/v1/items/${itemId}`,
+    `https://api.avito.ru/core/v1/items/${itemId}/`,
+    `https://api.avito.ru/core/v1/accounts/self/items/${itemId}`
+  ];
+
+  let lastError = null;
+
+  for (const url of urlsToTry) {
+    try {
+      const response = await axios.get(url, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`
+        }
+      });
+
+      return response.data;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError || new Error('Не удалось получить детали объявления Авито');
 }
 
 /* =========================
@@ -244,7 +322,6 @@ app.get('/api/auth/avito/token', async (req, res) => {
     const data = response.data;
 
     await saveAvitoTokens(data);
-
     req.session.avitoAuthCode = null;
 
     return res.json({
@@ -313,11 +390,17 @@ app.post('/api/auth/avito/sync-products', async (req, res) => {
         avitoItemId: {
           not: null
         }
+      },
+      include: {
+        images: {
+          orderBy: { order: 'asc' }
+        }
       }
     });
 
     let updated = 0;
     const notMatched = [];
+    const imageSyncErrors = [];
 
     for (const product of products) {
       const matched = avitoItems.find(
@@ -337,6 +420,20 @@ app.post('/api/auth/avito/sync-products', async (req, res) => {
       const avitoUrl = getAvitoItemUrl(matched);
       const avitoStatus = getAvitoItemStatus(matched);
 
+      let imageUrls = [];
+
+      try {
+        const detail = await fetchAvitoItemDetail(accessToken, matched.id);
+        imageUrls = extractImageUrlsFromAvitoDetail(detail);
+      } catch (error) {
+        imageSyncErrors.push({
+          productId: product.id,
+          name: product.name,
+          avitoItemId: matched.id,
+          error: error.response?.data || error.message
+        });
+      }
+
       await prisma.product.update({
         where: { id: product.id },
         data: {
@@ -349,6 +446,20 @@ app.post('/api/auth/avito/sync-products', async (req, res) => {
         }
       });
 
+      if (imageUrls.length > 0) {
+        await prisma.productImage.deleteMany({
+          where: { productId: product.id }
+        });
+
+        await prisma.productImage.createMany({
+          data: imageUrls.map((url, index) => ({
+            url,
+            order: index,
+            productId: product.id
+          }))
+        });
+      }
+
       updated += 1;
     }
 
@@ -356,10 +467,14 @@ app.post('/api/auth/avito/sync-products', async (req, res) => {
       message: 'Синхронизация завершена',
       updated,
       notMatched,
+      imageSyncErrors,
       totalAvitoItems: avitoItems.length
     });
   } catch (error) {
-    console.error('Ошибка синхронизации товаров из Авито:', error.response?.data || error.message);
+    console.error(
+      'Ошибка синхронизации товаров из Авито:',
+      error.response?.data || error.message
+    );
 
     return res.status(500).json({
       message: 'Ошибка синхронизации товаров из Авито',
