@@ -4,6 +4,8 @@ const session = require('express-session');
 const axios = require('axios');
 require('dotenv').config();
 
+const prisma = require('./prisma');
+
 const productsRoutes = require('./routes/products');
 const ordersRoutes = require('./routes/orders');
 const authRoutes = require('./routes/auth');
@@ -31,6 +33,47 @@ app.use(
     }
   })
 );
+
+/* =========================
+   HELPERS
+========================= */
+function extractAvitoItems(payload) {
+  if (!payload || typeof payload !== 'object') return [];
+
+  if (Array.isArray(payload.items)) return payload.items;
+  if (Array.isArray(payload.resources)) return payload.resources;
+  if (Array.isArray(payload.result)) return payload.result;
+  if (payload.data && Array.isArray(payload.data.items)) return payload.data.items;
+
+  return [];
+}
+
+function getAvitoItemStatus(item) {
+  return item.status || item.state || item.avitoStatus || null;
+}
+
+function getAvitoItemUrl(item) {
+  return item.url || item.avitoUrl || null;
+}
+
+function getAvitoItemPrice(item) {
+  if (item.price !== undefined && item.price !== null && item.price !== '') {
+    const numeric = Number(String(item.price).replace(/[^\d.]/g, ''));
+    if (!Number.isNaN(numeric)) return numeric;
+  }
+
+  if (item.priceDetailed?.value !== undefined && item.priceDetailed?.value !== null) {
+    const numeric = Number(item.priceDetailed.value);
+    if (!Number.isNaN(numeric)) return numeric;
+  }
+
+  if (item.price_string) {
+    const numeric = Number(String(item.price_string).replace(/[^\d.]/g, ''));
+    if (!Number.isNaN(numeric)) return numeric;
+  }
+
+  return null;
+}
 
 /* =========================
    API ROUTES
@@ -171,6 +214,96 @@ app.get('/api/auth/avito/items', async (req, res) => {
   } catch (error) {
     return res.status(500).json({
       message: 'Ошибка получения объявлений',
+      error: error.response?.data || error.message
+    });
+  }
+});
+
+/* =========================
+   AVITO SYNC PRODUCTS
+========================= */
+app.post('/api/auth/avito/sync-products', async (req, res) => {
+  const accessToken = req.session.avitoAccessToken;
+
+  if (!accessToken) {
+    return res.status(401).json({
+      message: 'Нет access_token. Сначала получи токен через /api/auth/avito/start'
+    });
+  }
+
+  try {
+    const avitoResponse = await axios.get('https://api.avito.ru/core/v1/items', {
+      headers: {
+        Authorization: `Bearer ${accessToken}`
+      }
+    });
+
+    const avitoItems = extractAvitoItems(avitoResponse.data);
+
+    if (!avitoItems.length) {
+      return res.json({
+        message: 'Объявления Авито не найдены',
+        updated: 0,
+        notMatched: [],
+        totalAvitoItems: 0
+      });
+    }
+
+    const products = await prisma.product.findMany({
+      where: {
+        avitoItemId: {
+          not: null
+        }
+      }
+    });
+
+    let updated = 0;
+    const notMatched = [];
+
+    for (const product of products) {
+      const matched = avitoItems.find(
+        (item) => String(item.id) === String(product.avitoItemId)
+      );
+
+      if (!matched) {
+        notMatched.push({
+          productId: product.id,
+          name: product.name,
+          avitoItemId: product.avitoItemId
+        });
+        continue;
+      }
+
+      const avitoPrice = getAvitoItemPrice(matched);
+      const avitoUrl = getAvitoItemUrl(matched);
+      const avitoStatus = getAvitoItemStatus(matched);
+
+      await prisma.product.update({
+        where: { id: product.id },
+        data: {
+          price: avitoPrice ?? product.price,
+          avitoPrice: avitoPrice ?? product.avitoPrice,
+          avitoUrl: avitoUrl || product.avitoUrl,
+          avitoStatus: avitoStatus || product.avitoStatus,
+          avitoLastSyncedAt: new Date(),
+          syncSource: 'avito'
+        }
+      });
+
+      updated += 1;
+    }
+
+    return res.json({
+      message: 'Синхронизация завершена',
+      updated,
+      notMatched,
+      totalAvitoItems: avitoItems.length
+    });
+  } catch (error) {
+    console.error('Ошибка синхронизации товаров из Авито:', error.response?.data || error.message);
+
+    return res.status(500).json({
+      message: 'Ошибка синхронизации товаров из Авито',
       error: error.response?.data || error.message
     });
   }

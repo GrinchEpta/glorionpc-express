@@ -33,7 +33,7 @@ const upload = multer({ storage });
 ========================= */
 
 function parseBool(value) {
-  return value === true || value === 'true';
+  return value === true || value === 'true' || value === 'on';
 }
 
 function parseNum(value) {
@@ -160,6 +160,9 @@ router.post('/', upload.array('images', 10), async (req, res) => {
 
         specsJson: body.specsJson || null,
 
+        avitoItemId: body.avitoItemId || null,
+        avitoUrl: body.avitoUrl || null,
+
         images: {
           create: allImages.map((url, index) => ({
             url,
@@ -249,6 +252,9 @@ router.put('/:id', upload.array('images', 10), async (req, res) => {
         gpuHeight: parseNum(body.gpuHeight),
 
         specsJson: body.specsJson || null,
+
+        avitoItemId: body.avitoItemId || null,
+        avitoUrl: body.avitoUrl || null,
 
         images: {
           create: allImages.map((url, index) => ({

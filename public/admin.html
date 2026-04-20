@@ -69,6 +69,9 @@
               <button type="button" class="btn btn-gold" id="show-product-form-btn">
                 Добавить товар
               </button>
+              <button type="button" class="btn btn-secondary" id="sync-avito-products-btn">
+                Синхронизировать цены из Авито
+              </button>
             </div>
           </div>
         </section>
@@ -122,6 +125,16 @@
             <div class="form-group">
               <label for="ssd">SSD</label>
               <input type="text" id="ssd" name="ssd" />
+            </div>
+
+            <div class="form-group">
+              <label for="avitoItemId">Avito Item ID</label>
+              <input type="text" id="avitoItemId" name="avitoItemId" placeholder="Например: 8035797917" />
+            </div>
+
+            <div class="form-group">
+              <label for="avitoUrl">Ссылка на объявление Авито</label>
+              <input type="text" id="avitoUrl" name="avitoUrl" placeholder="https://www.avito.ru/..." />
             </div>
 
             <div class="form-group" style="grid-column: 1 / -1;">

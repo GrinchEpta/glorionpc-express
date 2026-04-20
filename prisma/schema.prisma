@@ -48,6 +48,13 @@ model Product {
 
   specsJson          String?
 
+  avitoItemId        String?
+  avitoUrl           String?
+  avitoPrice         Float?
+  avitoStatus        String?
+  avitoLastSyncedAt  DateTime?
+  syncSource         String?
+
   orderItems         OrderItem[]
   images             ProductImage[]
 }

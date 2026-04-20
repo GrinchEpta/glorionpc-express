@@ -901,6 +901,8 @@ function fillForm(product) {
   document.getElementById('gpu').value = product.gpu || '';
   document.getElementById('ram').value = product.ram || '';
   document.getElementById('ssd').value = product.ssd || '';
+  document.getElementById('avitoItemId').value = product.avitoItemId || '';
+  document.getElementById('avitoUrl').value = product.avitoUrl || '';
   document.getElementById('description').value = product.description || '';
   document.getElementById('inStock').checked = Boolean(product.inStock);
 
@@ -1054,6 +1056,40 @@ function renderComponentSpecsSummary(product) {
 }
 
 /* =========================
+   AVITO SYNC
+========================= */
+async function syncProductsFromAvito() {
+  const button = document.getElementById('sync-avito-products-btn');
+  if (!button) return;
+
+  const originalText = button.textContent;
+
+  try {
+    button.disabled = true;
+    button.textContent = 'Синхронизация...';
+
+    const response = await fetch('/api/auth/avito/sync-products', {
+      method: 'POST'
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Не удалось синхронизировать товары из Авито');
+    }
+
+    await loadProducts();
+    alert(`Синхронизация завершена. Обновлено товаров: ${data.updated || 0}`);
+  } catch (error) {
+    console.error('Ошибка синхронизации с Авито:', error);
+    alert(error.message || 'Не удалось синхронизировать товары из Авито');
+  } finally {
+    button.disabled = false;
+    button.textContent = originalText;
+  }
+}
+
+/* =========================
    LOAD PRODUCTS
 ========================= */
 async function loadProducts() {
@@ -1103,6 +1139,14 @@ async function loadProducts() {
             <p><strong>GPU:</strong> ${product.gpu || '-'}</p>
             <p><strong>RAM:</strong> ${product.ram || '-'}</p>
             <p><strong>SSD:</strong> ${product.ssd || '-'}</p>
+            <p><strong>Avito Item ID:</strong> ${product.avitoItemId || '-'}</p>
+            <p><strong>Ссылка Авито:</strong> ${
+              product.avitoUrl
+                ? `<a href="${product.avitoUrl}" target="_blank" rel="noopener noreferrer">Открыть</a>`
+                : '-'
+            }</p>
+            <p><strong>Цена из Авито:</strong> ${product.avitoPrice ? formatPrice(product.avitoPrice) : '-'}</p>
+            <p><strong>Статус Авито:</strong> ${product.avitoStatus || '-'}</p>
             <p><strong>Описание:</strong> ${product.description || '-'}</p>
             <p><strong>В наличии:</strong> ${product.inStock ? 'Да' : 'Нет'}</p>
           </div>
@@ -1538,6 +1582,8 @@ adminForm?.addEventListener('submit', async (event) => {
   formData.append('gpu', document.getElementById('gpu').value);
   formData.append('ram', document.getElementById('ram').value);
   formData.append('ssd', document.getElementById('ssd').value);
+  formData.append('avitoItemId', document.getElementById('avitoItemId').value);
+  formData.append('avitoUrl', document.getElementById('avitoUrl').value);
   formData.append('description', document.getElementById('description').value);
   formData.append(
     'inStock',
@@ -1696,6 +1742,12 @@ componentForm?.addEventListener('submit', async (event) => {
 document.addEventListener('DOMContentLoaded', async () => {
   setupAdminTabs();
   resetComponentForm();
+
+  const syncAvitoBtn = document.getElementById('sync-avito-products-btn');
+  if (syncAvitoBtn) {
+    syncAvitoBtn.addEventListener('click', syncProductsFromAvito);
+  }
+
   await loadProducts();
   await loadOrders();
   await loadCustomPcRequests();
