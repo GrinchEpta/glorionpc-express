@@ -201,6 +201,39 @@ function extractImagesFromHtml(html) {
   const jsonLdImages = extractImagesFromJsonLd($);
   images.push(...jsonLdImages);
 
+  try {
+    const initialDataMatch = html.match(/window\.__initialData__\s*=\s*(\{.*?\});/s);
+
+    if (initialDataMatch && initialDataMatch[1]) {
+      const initialData = JSON.parse(initialDataMatch[1]);
+
+      const walk = (value) => {
+        if (!value) return;
+
+        if (typeof value === 'string') {
+          const normalized = normalizeAvitoImageUrl(value);
+          if (normalized) {
+            images.push(normalized);
+          }
+          return;
+        }
+
+        if (Array.isArray(value)) {
+          value.forEach(walk);
+          return;
+        }
+
+        if (typeof value === 'object') {
+          Object.values(value).forEach(walk);
+        }
+      };
+
+      walk(initialData);
+    }
+  } catch (error) {
+    console.log('Ошибка парсинга window.__initialData__:', error.message);
+  }
+
   return [...new Set(images)];
 }
 
