@@ -362,6 +362,33 @@ app.get('/api/auth/avito/items', async (req, res) => {
 });
 
 /* =========================
+   DEBUG: ONE AVITO ITEM DETAIL
+========================= */
+app.get('/api/auth/avito/item/:itemId', async (req, res) => {
+  try {
+    const accessToken = await getValidAvitoAccessToken();
+    const itemId = req.params.itemId;
+
+    const detail = await fetchAvitoItemDetail(accessToken, itemId);
+
+    return res.json({
+      message: 'Детали объявления получены успешно',
+      data: detail
+    });
+  } catch (error) {
+    console.error(
+      'Ошибка получения деталей объявления Авито:',
+      error.response?.data || error.message
+    );
+
+    return res.status(500).json({
+      message: 'Ошибка получения деталей объявления Авито',
+      error: error.response?.data || error.message
+    });
+  }
+});
+
+/* =========================
    AVITO SYNC PRODUCTS
 ========================= */
 app.post('/api/auth/avito/sync-products', async (req, res) => {
