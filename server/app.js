@@ -44,6 +44,7 @@ function extractAvitoItems(payload) {
   if (Array.isArray(payload.resources)) return payload.resources;
   if (Array.isArray(payload.result)) return payload.result;
   if (payload.data && Array.isArray(payload.data.items)) return payload.data.items;
+  if (payload.data && Array.isArray(payload.data.resources)) return payload.data.resources;
 
   return [];
 }
@@ -73,6 +74,77 @@ function getAvitoItemPrice(item) {
   }
 
   return null;
+}
+
+async function saveAvitoTokens(data) {
+  const expiresAt = data.expires_in
+    ? new Date(Date.now() + Number(data.expires_in) * 1000)
+    : null;
+
+  await prisma.integrationToken.upsert({
+    where: { provider: 'avito' },
+    update: {
+      accessToken: data.access_token,
+      refreshToken: data.refresh_token || undefined,
+      tokenType: data.token_type || 'Bearer',
+      expiresAt
+    },
+    create: {
+      provider: 'avito',
+      accessToken: data.access_token,
+      refreshToken: data.refresh_token || null,
+      tokenType: data.token_type || 'Bearer',
+      expiresAt
+    }
+  });
+}
+
+async function getStoredAvitoTokenRow() {
+  return prisma.integrationToken.findUnique({
+    where: { provider: 'avito' }
+  });
+}
+
+async function refreshAvitoAccessToken(refreshToken) {
+  const params = new URLSearchParams();
+  params.append('grant_type', 'refresh_token');
+  params.append('refresh_token', refreshToken);
+  params.append('client_id', process.env.AVITO_CLIENT_ID);
+  params.append('client_secret', process.env.AVITO_CLIENT_SECRET);
+
+  const response = await axios.post('https://api.avito.ru/token', params, {
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded'
+    }
+  });
+
+  await saveAvitoTokens(response.data);
+  return response.data.access_token;
+}
+
+async function getValidAvitoAccessToken() {
+  const tokenRow = await getStoredAvitoTokenRow();
+
+  if (!tokenRow) {
+    throw new Error('Токен Авито не найден. Сначала открой /api/auth/avito/start');
+  }
+
+  const now = Date.now();
+  const safeBufferMs = 60 * 1000;
+
+  if (
+    tokenRow.accessToken &&
+    tokenRow.expiresAt &&
+    tokenRow.expiresAt.getTime() > now + safeBufferMs
+  ) {
+    return tokenRow.accessToken;
+  }
+
+  if (!tokenRow.refreshToken) {
+    throw new Error('Нет refresh_token Авито. Снова пройди авторизацию.');
+  }
+
+  return refreshAvitoAccessToken(tokenRow.refreshToken);
 }
 
 /* =========================
@@ -171,10 +243,9 @@ app.get('/api/auth/avito/token', async (req, res) => {
 
     const data = response.data;
 
-    req.session.avitoAccessToken = data.access_token;
-    req.session.avitoRefreshToken = data.refresh_token || null;
-    req.session.avitoTokenType = data.token_type || 'Bearer';
-    req.session.avitoExpiresIn = data.expires_in || null;
+    await saveAvitoTokens(data);
+
+    req.session.avitoAuthCode = null;
 
     return res.json({
       message: 'Токен получен успешно',
@@ -192,15 +263,9 @@ app.get('/api/auth/avito/token', async (req, res) => {
 });
 
 app.get('/api/auth/avito/items', async (req, res) => {
-  const accessToken = req.session.avitoAccessToken;
-
-  if (!accessToken) {
-    return res.status(401).json({
-      message: 'Нет access_token. Сначала получи токен через /api/auth/avito/start'
-    });
-  }
-
   try {
+    const accessToken = await getValidAvitoAccessToken();
+
     const response = await axios.get('https://api.avito.ru/core/v1/items', {
       headers: {
         Authorization: `Bearer ${accessToken}`
@@ -223,15 +288,9 @@ app.get('/api/auth/avito/items', async (req, res) => {
    AVITO SYNC PRODUCTS
 ========================= */
 app.post('/api/auth/avito/sync-products', async (req, res) => {
-  const accessToken = req.session.avitoAccessToken;
-
-  if (!accessToken) {
-    return res.status(401).json({
-      message: 'Нет access_token. Сначала получи токен через /api/auth/avito/start'
-    });
-  }
-
   try {
+    const accessToken = await getValidAvitoAccessToken();
+
     const avitoResponse = await axios.get('https://api.avito.ru/core/v1/items', {
       headers: {
         Authorization: `Bearer ${accessToken}`

@@ -108,6 +108,17 @@ model CustomPcRequest {
   createdAt     DateTime    @default(now())
 }
 
+model IntegrationToken {
+  id           Int      @id @default(autoincrement())
+  provider     String   @unique
+  accessToken  String
+  refreshToken String?
+  tokenType    String?
+  expiresAt    DateTime?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
 enum OrderStatus {
   new
   processing
