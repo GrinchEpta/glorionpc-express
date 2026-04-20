@@ -2,9 +2,10 @@ const express = require('express');
 const path = require('path');
 const session = require('express-session');
 const axios = require('axios');
+const cheerio = require('cheerio');
 require('dotenv').config();
 
-const prisma = require('./prisma');
+const prisma = require(path.join(__dirname, 'prisma.js'));
 
 const productsRoutes = require('./routes/products');
 const ordersRoutes = require('./routes/orders');
@@ -76,66 +77,155 @@ function getAvitoItemPrice(item) {
   return null;
 }
 
-function normalizeImageUrl(value) {
-  if (!value) return null;
-  if (typeof value === 'string') return value;
+function normalizeAvitoImageUrl(url) {
+  if (!url) return null;
 
-  return (
-    value.url ||
-    value.large ||
-    value.big ||
-    value.orig ||
-    value.original ||
-    value['1280x960'] ||
-    value['1024x768'] ||
-    value['640x480'] ||
-    value.image ||
-    null
-  );
-}
+  let normalized = String(url).trim();
 
-function extractImageUrlsFromAvitoDetail(detail) {
-  if (!detail || typeof detail !== 'object') return [];
+  if (!normalized) return null;
 
-  const candidates = [
-    detail.images,
-    detail.photos,
-    detail.gallery,
-    detail.image_urls,
-    detail.imageUrls,
-    detail.pictures,
-    detail.media,
-
-    detail.data?.images,
-    detail.data?.photos,
-    detail.data?.gallery,
-    detail.data?.image_urls,
-    detail.data?.imageUrls,
-    detail.data?.pictures,
-    detail.data?.media,
-
-    detail.item?.images,
-    detail.item?.photos,
-    detail.item?.gallery,
-    detail.item?.image_urls,
-    detail.item?.imageUrls,
-    detail.item?.pictures,
-    detail.item?.media
-  ];
-
-  for (const candidate of candidates) {
-    if (Array.isArray(candidate) && candidate.length > 0) {
-      const urls = candidate
-        .map((item) => normalizeImageUrl(item))
-        .filter(Boolean);
-
-      if (urls.length > 0) {
-        return [...new Set(urls)];
-      }
-    }
+  if (normalized.startsWith('//')) {
+    normalized = `https:${normalized}`;
   }
 
-  return [];
+  if (normalized.startsWith('/')) {
+    return null;
+  }
+
+  if (!normalized.startsWith('http://') && !normalized.startsWith('https://')) {
+    return null;
+  }
+
+  if (
+    normalized.includes('avito.st') ||
+    normalized.includes('img.avito.st') ||
+    normalized.includes('00.img.avito.st') ||
+    normalized.includes('10.img.avito.st') ||
+    normalized.includes('20.img.avito.st') ||
+    normalized.includes('30.img.avito.st') ||
+    normalized.includes('40.img.avito.st') ||
+    normalized.includes('50.img.avito.st') ||
+    normalized.includes('60.img.avito.st') ||
+    normalized.includes('70.img.avito.st') ||
+    normalized.includes('80.img.avito.st') ||
+    normalized.includes('90.img.avito.st')
+  ) {
+    return normalized;
+  }
+
+  return null;
+}
+
+function extractImagesFromJsonLd($) {
+  const result = [];
+
+  $('script[type="application/ld+json"]').each((_, el) => {
+    const raw = $(el).html();
+    if (!raw) return;
+
+    try {
+      const parsed = JSON.parse(raw);
+
+      const collect = (value) => {
+        if (!value) return;
+
+        if (Array.isArray(value)) {
+          value.forEach(collect);
+          return;
+        }
+
+        if (typeof value === 'string') {
+          const normalized = normalizeAvitoImageUrl(value);
+          if (normalized) result.push(normalized);
+          return;
+        }
+
+        if (typeof value === 'object') {
+          if (value.image) collect(value.image);
+          if (value.contentUrl) collect(value.contentUrl);
+          if (value.url) collect(value.url);
+        }
+      };
+
+      collect(parsed.image);
+      collect(parsed);
+    } catch (error) {
+      // ignore invalid JSON-LD
+    }
+  });
+
+  return result;
+}
+
+function extractImagesFromHtml(html) {
+  const $ = cheerio.load(html);
+  const images = [];
+
+  $('img').each((_, el) => {
+    const src = $(el).attr('src');
+    const dataSrc = $(el).attr('data-src');
+    const srcset = $(el).attr('srcset');
+    const dataMarker = $(el).attr('data-marker') || '';
+    const className = $(el).attr('class') || '';
+
+    [src, dataSrc].forEach((candidate) => {
+      const normalized = normalizeAvitoImageUrl(candidate);
+      if (normalized) images.push(normalized);
+    });
+
+    if (srcset) {
+      srcset.split(',').forEach((part) => {
+        const first = part.trim().split(' ')[0];
+        const normalized = normalizeAvitoImageUrl(first);
+        if (normalized) images.push(normalized);
+      });
+    }
+
+    if (
+      dataMarker.includes('image-frame/image') ||
+      className.includes('photo-slider-image')
+    ) {
+      [src, dataSrc].forEach((candidate) => {
+        const normalized = normalizeAvitoImageUrl(candidate);
+        if (normalized) images.push(normalized);
+      });
+    }
+  });
+
+  const htmlMatches = html.match(/https?:\/\/[^"'\\\s]+avito\.st[^"'\\\s]+/g) || [];
+  htmlMatches.forEach((candidate) => {
+    const normalized = normalizeAvitoImageUrl(candidate);
+    if (normalized) images.push(normalized);
+  });
+
+  const jsonLdImages = extractImagesFromJsonLd($);
+  images.push(...jsonLdImages);
+
+  return [...new Set(images)];
+}
+
+async function getImagesFromAvitoPage(url) {
+  if (!url) return [];
+
+  try {
+    const response = await axios.get(url, {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        Accept:
+          'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
+        'Accept-Language': 'ru-RU,ru;q=0.9,en;q=0.8',
+        Referer: 'https://www.avito.ru/'
+      },
+      timeout: 20000
+    });
+
+    const html = response.data;
+    return extractImagesFromHtml(html);
+  } catch (error) {
+    console.log('Ошибка парсинга фото со страницы Авито:', error.message);
+    return [];
+  }
 }
 
 async function saveAvitoTokens(data) {
@@ -393,6 +483,43 @@ app.get('/api/auth/avito/item/:itemId', async (req, res) => {
 });
 
 /* =========================
+   DEBUG: PARSE AVITO PAGE IMAGES
+========================= */
+app.get('/api/auth/avito/item-page-images/:itemId', async (req, res) => {
+  try {
+    const accessToken = await getValidAvitoAccessToken();
+    const itemId = req.params.itemId;
+
+    const detail = await fetchAvitoItemDetail(accessToken, itemId);
+    const avitoUrl = detail?.url || null;
+
+    if (!avitoUrl) {
+      return res.status(404).json({
+        message: 'У объявления нет URL для парсинга страницы'
+      });
+    }
+
+    const images = await getImagesFromAvitoPage(avitoUrl);
+
+    return res.json({
+      message: 'Картинки со страницы объявления получены успешно',
+      url: avitoUrl,
+      images
+    });
+  } catch (error) {
+    console.error(
+      'Ошибка получения картинок со страницы Авито:',
+      error.response?.data || error.message
+    );
+
+    return res.status(500).json({
+      message: 'Ошибка получения картинок со страницы Авито',
+      error: error.response?.data || error.message
+    });
+  }
+});
+
+/* =========================
    AVITO SYNC PRODUCTS
 ========================= */
 app.post('/api/auth/avito/sync-products', async (req, res) => {
@@ -412,6 +539,7 @@ app.post('/api/auth/avito/sync-products', async (req, res) => {
         message: 'Объявления Авито не найдены',
         updated: 0,
         notMatched: [],
+        imageSyncErrors: [],
         totalAvitoItems: 0
       });
     }
@@ -454,8 +582,9 @@ app.post('/api/auth/avito/sync-products', async (req, res) => {
       let imageUrls = [];
 
       try {
-        const detail = await fetchAvitoItemDetail(accessToken, matched.id);
-        imageUrls = extractImageUrlsFromAvitoDetail(detail);
+        if (avitoUrl) {
+          imageUrls = await getImagesFromAvitoPage(avitoUrl);
+        }
       } catch (error) {
         imageSyncErrors.push({
           productId: product.id,
