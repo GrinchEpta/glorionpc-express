@@ -211,6 +211,49 @@ function getRadiatorSizeLabel(value) {
   return `${num} мм`;
 }
 
+async function readApiResponse(response) {
+  const contentType = response.headers.get('content-type') || '';
+
+  if (contentType.includes('application/json')) {
+    try {
+      return await response.json();
+    } catch {
+      return {};
+    }
+  }
+
+  try {
+    const text = await response.text();
+    return text ? { message: text } : {};
+  } catch {
+    return {};
+  }
+}
+
+function extractApiError(data, fallbackMessage) {
+  let errorText = fallbackMessage;
+
+  if (typeof data?.error === 'string' && data.error.trim()) {
+    errorText = data.error;
+  } else if (data?.error && typeof data.error.message === 'string') {
+    errorText = data.error.message;
+  } else if (Array.isArray(data?.error)) {
+    errorText = data.error
+      .map((item) => item?.message || JSON.stringify(item))
+      .join(', ');
+  } else if (typeof data?.message === 'string' && data.message.trim()) {
+    errorText = data.message;
+  } else if (data?.error) {
+    try {
+      errorText = JSON.stringify(data.error, null, 2);
+    } catch {
+      errorText = fallbackMessage;
+    }
+  }
+
+  return errorText;
+}
+
 /* =========================
    PRODUCT PREVIEWS
 ========================= */
@@ -286,8 +329,15 @@ function resetForm() {
   if (!adminForm) return;
 
   adminForm.reset();
-  productIdInput.value = '';
-  formTitle.textContent = 'Добавить товар';
+  if (productIdInput) productIdInput.value = '';
+  if (formTitle) formTitle.textContent = 'Добавить товар';
+
+  imageItems.forEach((item) => {
+    if (item?.type === 'new' && item.previewUrl) {
+      URL.revokeObjectURL(item.previewUrl);
+    }
+  });
+
   imageItems = [];
   renderAllPreviews();
 }
@@ -296,8 +346,15 @@ function resetComponentForm() {
   if (!componentForm) return;
 
   componentForm.reset();
-  componentIdInput.value = '';
-  componentFormTitle.textContent = 'Добавить комплектующее';
+  if (componentIdInput) componentIdInput.value = '';
+  if (componentFormTitle) componentFormTitle.textContent = 'Добавить комплектующее';
+
+  componentImageItems.forEach((item) => {
+    if (item?.type === 'new' && item.previewUrl) {
+      URL.revokeObjectURL(item.previewUrl);
+    }
+  });
+
   componentImageItems = [];
   renderComponentPreviews();
 
@@ -908,6 +965,12 @@ function fillForm(product) {
 
   formTitle.textContent = 'Редактировать товар';
 
+  imageItems.forEach((item) => {
+    if (item?.type === 'new' && item.previewUrl) {
+      URL.revokeObjectURL(item.previewUrl);
+    }
+  });
+
   imageItems = Array.isArray(product.images)
     ? product.images.map((image) => ({
         type: 'existing',
@@ -933,6 +996,12 @@ function fillComponentForm(product) {
 
   const specs = parseSpecsJson(product.specsJson);
   renderSpecsFields(product.componentType || '', specs);
+
+  componentImageItems.forEach((item) => {
+    if (item?.type === 'new' && item.previewUrl) {
+      URL.revokeObjectURL(item.previewUrl);
+    }
+  });
 
   componentImageItems = Array.isArray(product.images)
     ? product.images.map((image) => ({
@@ -988,10 +1057,10 @@ async function fillProductFromAvito() {
       body: JSON.stringify({ itemId })
     });
 
-    const data = await response.json();
+    const data = await readApiResponse(response);
 
     if (!response.ok) {
-      throw new Error(data.message || 'Не удалось получить данные из Авито');
+      throw new Error(extractApiError(data, 'Не удалось получить данные из Авито'));
     }
 
     const product = data.product || {};
@@ -1040,13 +1109,14 @@ async function syncProductsFromAvito() {
       method: 'POST'
     });
 
-    const data = await response.json();
+    const data = await readApiResponse(response);
 
     if (!response.ok) {
-      throw new Error(data.message || 'Не удалось синхронизировать товары из Авито');
+      throw new Error(extractApiError(data, 'Не удалось синхронизировать товары из Авито'));
     }
 
     await loadProducts();
+    await loadComponents();
     alert(`Синхронизация завершена. Обновлено товаров: ${data.updated || 0}`);
   } catch (error) {
     console.error('Ошибка синхронизации с Авито:', error);
@@ -1174,7 +1244,11 @@ async function loadProducts() {
 
   try {
     const response = await fetch(API_URL);
-    const products = await response.json();
+    const products = await readApiResponse(response);
+
+    if (!response.ok) {
+      throw new Error(extractApiError(products, 'Не удалось загрузить список товаров'));
+    }
 
     productsList.innerHTML = '';
 
@@ -1240,6 +1314,12 @@ async function loadProducts() {
 
       editBtn.addEventListener('click', () => {
         fillForm(product);
+
+        const productFormBlock = document.getElementById('admin-product-form-block');
+        if (productFormBlock) {
+          productFormBlock.classList.remove('is-hidden');
+        }
+
         window.scrollTo({ top: 0, behavior: 'smooth' });
       });
 
@@ -1252,16 +1332,16 @@ async function loadProducts() {
             method: 'DELETE'
           });
 
-          const data = await deleteResponse.json().catch(() => ({}));
+          const data = await readApiResponse(deleteResponse);
 
           if (!deleteResponse.ok) {
-            throw new Error(data.error || data.message || 'Ошибка удаления');
+            throw new Error(extractApiError(data, 'Ошибка удаления'));
           }
 
           await loadProducts();
           resetForm();
         } catch (error) {
-          console.error(error);
+          console.error('Ошибка удаления товара:', error);
           alert(error.message || 'Не удалось удалить товар');
         }
       });
@@ -1282,7 +1362,11 @@ async function loadComponents() {
 
   try {
     const response = await fetch(API_URL);
-    const products = await response.json();
+    const products = await readApiResponse(response);
+
+    if (!response.ok) {
+      throw new Error(extractApiError(products, 'Не удалось загрузить комплектующие'));
+    }
 
     const components = Array.isArray(products)
       ? products.filter((product) => product.componentType || product.isConfiguratorItem)
@@ -1328,6 +1412,13 @@ async function loadComponents() {
 
       item.querySelector('.edit-btn').addEventListener('click', () => {
         fillComponentForm(product);
+
+        const componentFormBlock = document.getElementById('admin-component-form-block');
+        if (componentFormBlock) {
+          componentFormBlock.classList.remove('is-hidden');
+        }
+
+        window.scrollTo({ top: 0, behavior: 'smooth' });
       });
 
       item.querySelector('.delete-btn').addEventListener('click', async () => {
@@ -1339,16 +1430,16 @@ async function loadComponents() {
             method: 'DELETE'
           });
 
-          const data = await deleteResponse.json().catch(() => ({}));
+          const data = await readApiResponse(deleteResponse);
 
           if (!deleteResponse.ok) {
-            throw new Error(data.error || data.message || 'Не удалось удалить комплектующее');
+            throw new Error(extractApiError(data, 'Не удалось удалить комплектующее'));
           }
 
           await loadComponents();
           resetComponentForm();
         } catch (error) {
-          console.error(error);
+          console.error('Ошибка удаления комплектующего:', error);
           alert(error.message || 'Не удалось удалить комплектующее');
         }
       });
@@ -1369,7 +1460,11 @@ async function loadOrders() {
 
   try {
     const response = await fetch(ORDERS_API_URL);
-    const orders = await response.json();
+    const orders = await readApiResponse(response);
+
+    if (!response.ok) {
+      throw new Error(extractApiError(orders, 'Не удалось загрузить заказы'));
+    }
 
     ordersList.innerHTML = '';
 
@@ -1447,10 +1542,10 @@ async function loadOrders() {
             body: JSON.stringify({ status: statusSelect.value })
           });
 
-          const data = await updateResponse.json();
+          const data = await readApiResponse(updateResponse);
 
           if (!updateResponse.ok) {
-            throw new Error(data.message || 'Не удалось обновить статус');
+            throw new Error(extractApiError(data, 'Не удалось обновить статус'));
           }
 
           await loadOrders();
@@ -1469,16 +1564,16 @@ async function loadOrders() {
             method: 'DELETE'
           });
 
-          const data = await deleteResponse.json();
+          const data = await readApiResponse(deleteResponse);
 
           if (!deleteResponse.ok) {
-            throw new Error(data.message || 'Не удалось удалить заказ');
+            throw new Error(extractApiError(data, 'Не удалось удалить заказ'));
           }
 
           await loadOrders();
         } catch (error) {
           console.error('Ошибка удаления заказа:', error);
-          alert('Не удалось удалить заказ');
+          alert(error.message || 'Не удалось удалить заказ');
         }
       });
 
@@ -1498,7 +1593,11 @@ async function loadCustomPcRequests() {
 
   try {
     const response = await fetch(CUSTOM_PC_REQUESTS_API_URL);
-    const requests = await response.json();
+    const requests = await readApiResponse(response);
+
+    if (!response.ok) {
+      throw new Error(extractApiError(requests, 'Не удалось загрузить заявки на ПК'));
+    }
 
     adminCustomPcRequestsList.innerHTML = '';
 
@@ -1556,10 +1655,10 @@ async function loadCustomPcRequests() {
             }
           );
 
-          const data = await updateResponse.json();
+          const data = await readApiResponse(updateResponse);
 
           if (!updateResponse.ok) {
-            throw new Error(data.message || 'Не удалось обновить статус');
+            throw new Error(extractApiError(data, 'Не удалось обновить статус'));
           }
 
           await loadCustomPcRequests();
@@ -1581,16 +1680,16 @@ async function loadCustomPcRequests() {
             }
           );
 
-          const data = await deleteResponse.json();
+          const data = await readApiResponse(deleteResponse);
 
           if (!deleteResponse.ok) {
-            throw new Error(data.message || 'Не удалось удалить заявку');
+            throw new Error(extractApiError(data, 'Не удалось удалить заявку'));
           }
 
           await loadCustomPcRequests();
         } catch (error) {
           console.error('Ошибка удаления заявки:', error);
-          alert('Не удалось удалить заявку');
+          alert(error.message || 'Не удалось удалить заявку');
         }
       });
 
@@ -1694,37 +1793,17 @@ adminForm?.addEventListener('submit', async (event) => {
       body: formData
     });
 
-    const data = await response.json().catch(() => ({}));
+    const data = await readApiResponse(response);
 
     if (!response.ok) {
-      let errorText = 'Ошибка сохранения товара';
-
-      if (typeof data.error === 'string' && data.error.trim()) {
-        errorText = data.error;
-      } else if (data.error && typeof data.error.message === 'string') {
-        errorText = data.error.message;
-      } else if (Array.isArray(data.error)) {
-        errorText = data.error
-          .map((item) => item.message || JSON.stringify(item))
-          .join(', ');
-      } else if (typeof data.message === 'string' && data.message.trim()) {
-        errorText = data.message;
-      } else if (data.error) {
-        try {
-          errorText = JSON.stringify(data.error, null, 2);
-        } catch {
-          errorText = 'Ошибка сохранения товара';
-        }
-      }
-
-      throw new Error(errorText);
+      throw new Error(extractApiError(data, 'Ошибка сохранения товара'));
     }
 
     resetForm();
     await loadProducts();
     alert(productId ? 'Товар обновлён' : 'Товар добавлен');
   } catch (error) {
-    console.error(error);
+    console.error('Ошибка сохранения товара:', error);
     alert(error.message || 'Не удалось сохранить товар');
   }
 });
@@ -1808,37 +1887,17 @@ componentForm?.addEventListener('submit', async (event) => {
       body: formData
     });
 
-    const data = await response.json().catch(() => ({}));
+    const data = await readApiResponse(response);
 
     if (!response.ok) {
-      let errorText = 'Не удалось сохранить комплектующее';
-
-      if (typeof data.error === 'string' && data.error.trim()) {
-        errorText = data.error;
-      } else if (data.error && typeof data.error.message === 'string') {
-        errorText = data.error.message;
-      } else if (Array.isArray(data.error)) {
-        errorText = data.error
-          .map((item) => item.message || JSON.stringify(item))
-          .join(', ');
-      } else if (typeof data.message === 'string' && data.message.trim()) {
-        errorText = data.message;
-      } else if (data.error) {
-        try {
-          errorText = JSON.stringify(data.error, null, 2);
-        } catch {
-          errorText = 'Не удалось сохранить комплектующее';
-        }
-      }
-
-      throw new Error(errorText);
+      throw new Error(extractApiError(data, 'Не удалось сохранить комплектующее'));
     }
 
     resetComponentForm();
     await loadComponents();
     alert(componentId ? 'Комплектующее обновлено' : 'Комплектующее добавлено');
   } catch (error) {
-    console.error(error);
+    console.error('Ошибка сохранения комплектующего:', error);
     alert(error.message || 'Не удалось сохранить комплектующее');
   }
 });

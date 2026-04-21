@@ -122,117 +122,139 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-router.post('/', upload.array('images', 10), async (req, res) => {
-  try {
-    const {
-      name,
-      description,
-      price,
-      oldPrice,
-      category,
-      cpu,
-      gpu,
-      ram,
-      ssd,
-      inStock,
-      componentType,
-      isConfiguratorItem,
-      socket,
-      ramType,
-      chipset,
-      formFactor,
-      memoryCapacity,
-      storageType,
-      storageCapacity,
-      powerDraw,
-      recommendedPsu,
-      psuWattage,
-      coolingLevel,
-      supportedSockets,
-      gpuLength,
-      gpuWidth,
-      gpuHeight,
-      specsJson,
-      avitoItemId,
-      avitoUrl,
-      avitoPrice,
-      avitoStatus,
-      avitoLastSyncedAt,
-      syncSource
-    } = req.body;
+router.post(
+  '/',
+  (req, res, next) => {
+    upload.array('images', 10)(req, res, (error) => {
+      if (error) {
+        console.error(
+          '🔥 UPLOAD ERROR CREATE PRODUCT:',
+          error?.message,
+          error?.stack,
+          JSON.stringify(error, Object.getOwnPropertyNames(error), 2)
+        );
 
-    const uploadedImages = (req.files || []).map((file, index) => ({
-      url: file.path,
-      order: index
-    }));
-
-    const product = await prisma.product.create({
-      data: {
-        name: name || '',
-        description: description || '',
-        price: parseNullableFloat(price) || 0,
-        oldPrice: parseNullableFloat(oldPrice),
-        category: category || 'ПК',
-
-        cpu: cpu || null,
-        gpu: gpu || null,
-        ram: ram || null,
-        ssd: ssd || null,
-
-        inStock: parseBoolean(inStock),
-
-        componentType: componentType || null,
-        isConfiguratorItem: parseBoolean(isConfiguratorItem),
-
-        socket: socket || null,
-        ramType: ramType || null,
-        chipset: chipset || null,
-        formFactor: formFactor || null,
-
-        memoryCapacity: memoryCapacity || null,
-        storageType: storageType || null,
-        storageCapacity: storageCapacity || null,
-
-        powerDraw: parseNullableInt(powerDraw),
-        recommendedPsu: parseNullableInt(recommendedPsu),
-        psuWattage: parseNullableInt(psuWattage),
-
-        coolingLevel: coolingLevel || null,
-        supportedSockets: supportedSockets || null,
-
-        gpuLength: parseNullableInt(gpuLength),
-        gpuWidth: parseNullableInt(gpuWidth),
-        gpuHeight: parseNullableInt(gpuHeight),
-
-        specsJson: specsJson || null,
-
-        avitoItemId: avitoItemId || null,
-        avitoUrl: avitoUrl || null,
-        avitoPrice: parseNullableFloat(avitoPrice),
-        avitoStatus: avitoStatus || null,
-        avitoLastSyncedAt: avitoLastSyncedAt ? new Date(avitoLastSyncedAt) : null,
-        syncSource: syncSource || null,
-
-        images: {
-          create: uploadedImages
-        }
-      },
-      include: {
-        images: {
-          orderBy: { order: 'asc' }
-        }
+        return res.status(500).json({
+          message: 'Ошибка загрузки изображений',
+          error: error?.message || 'Не удалось загрузить изображения'
+        });
       }
-    });
 
-    res.status(201).json(product);
-  } catch (error) {
-    console.error('Ошибка создания товара:', error);
-    res.status(500).json({
-      message: 'Ошибка создания товара',
-      error: normalizeErrorMessage(error)
+      next();
     });
+  },
+  async (req, res) => {
+    try {
+      const {
+        name,
+        description,
+        price,
+        oldPrice,
+        category,
+        cpu,
+        gpu,
+        ram,
+        ssd,
+        inStock,
+        componentType,
+        isConfiguratorItem,
+        socket,
+        ramType,
+        chipset,
+        formFactor,
+        memoryCapacity,
+        storageType,
+        storageCapacity,
+        powerDraw,
+        recommendedPsu,
+        psuWattage,
+        coolingLevel,
+        supportedSockets,
+        gpuLength,
+        gpuWidth,
+        gpuHeight,
+        specsJson,
+        avitoItemId,
+        avitoUrl,
+        avitoPrice,
+        avitoStatus,
+        avitoLastSyncedAt,
+        syncSource
+      } = req.body;
+
+      const uploadedImages = (req.files || []).map((file, index) => ({
+        url: file.path,
+        order: index
+      }));
+
+      const product = await prisma.product.create({
+        data: {
+          name: name || '',
+          description: description || '',
+          price: parseNullableFloat(price) || 0,
+          oldPrice: parseNullableFloat(oldPrice),
+          category: category || 'ПК',
+
+          cpu: cpu || null,
+          gpu: gpu || null,
+          ram: ram || null,
+          ssd: ssd || null,
+
+          inStock: parseBoolean(inStock),
+
+          componentType: componentType || null,
+          isConfiguratorItem: parseBoolean(isConfiguratorItem),
+
+          socket: socket || null,
+          ramType: ramType || null,
+          chipset: chipset || null,
+          formFactor: formFactor || null,
+
+          memoryCapacity: memoryCapacity || null,
+          storageType: storageType || null,
+          storageCapacity: storageCapacity || null,
+
+          powerDraw: parseNullableInt(powerDraw),
+          recommendedPsu: parseNullableInt(recommendedPsu),
+          psuWattage: parseNullableInt(psuWattage),
+
+          coolingLevel: coolingLevel || null,
+          supportedSockets: supportedSockets || null,
+
+          gpuLength: parseNullableInt(gpuLength),
+          gpuWidth: parseNullableInt(gpuWidth),
+          gpuHeight: parseNullableInt(gpuHeight),
+
+          specsJson: specsJson || null,
+
+          avitoItemId: avitoItemId || null,
+          avitoUrl: avitoUrl || null,
+          avitoPrice: parseNullableFloat(avitoPrice),
+          avitoStatus: avitoStatus || null,
+          avitoLastSyncedAt: avitoLastSyncedAt ? new Date(avitoLastSyncedAt) : null,
+          syncSource: syncSource || null,
+
+          images: {
+            create: uploadedImages
+          }
+        },
+        include: {
+          images: {
+            orderBy: { order: 'asc' }
+          }
+        }
+      });
+
+      res.status(201).json(product);
+    } catch (error) {
+      console.error('🔥 FULL ERROR CREATE PRODUCT:', error?.message, error?.stack, error);
+      res.status(500).json({
+        message: 'Ошибка создания товара',
+        error: error?.message || 'Неизвестная ошибка'
+      });
+    }
   }
-});
+);
 
 router.put(
   '/:id',
@@ -433,14 +455,14 @@ router.delete('/:id', async (req, res) => {
     });
 
     res.json({ message: 'Товар удалён' });
-    } catch (error) {
-      console.error('🔥 FULL ERROR UPDATE PRODUCT:', error?.message, error?.stack, error);
+  } catch (error) {
+    console.error('🔥 FULL ERROR DELETE PRODUCT:', error?.message, error?.stack, error);
 
-      res.status(500).json({
-        message: 'Ошибка обновления товара',
-        error: error?.message || 'Неизвестная ошибка'
-      });
-    }
+    res.status(500).json({
+      message: 'Ошибка удаления товара',
+      error: error?.message || 'Неизвестная ошибка'
+    });
+  }
 });
 
 module.exports = router;
