@@ -18,11 +18,13 @@
     "@prisma/client": "^7.5.0",
     "axios": "^1.15.0",
     "cheerio": "^1.2.0",
+    "cloudinary": "^1.41.3",
     "cors": "^2.8.5",
     "dotenv": "^17.3.1",
     "express": "^4.21.2",
     "express-session": "^1.19.0",
     "multer": "^2.1.1",
+    "multer-storage-cloudinary": "^4.0.0",
     "pg": "^8.20.0"
   },
   "devDependencies": {

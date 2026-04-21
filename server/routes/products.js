@@ -1,80 +1,36 @@
 const express = require('express');
-const path = require('path');
-const fs = require('fs');
-const multer = require('multer');
+const prisma = require('../prisma');
+const { upload, cloudinary } = require('../middleware/upload');
 
 const router = express.Router();
-const prisma = require(path.join(__dirname, '../prisma.js'));
 
-/* =========================
-   MULTER CONFIG
-========================= */
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadPath = path.join(__dirname, '../../public/images');
-
-    if (!fs.existsSync(uploadPath)) {
-      fs.mkdirSync(uploadPath, { recursive: true });
-    }
-
-    cb(null, uploadPath);
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    const fileName = `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
-    cb(null, fileName);
-  }
-});
-
-const upload = multer({ storage });
-
-/* =========================
-   HELPERS
-========================= */
-
-function parseBool(value) {
-  return value === true || value === 'true' || value === 'on' || value === '1';
+function parseBoolean(value) {
+  if (value === true || value === 'true' || value === '1' || value === 1) return true;
+  if (value === false || value === 'false' || value === '0' || value === 0) return false;
+  return false;
 }
 
-function parseNum(value) {
+function parseNullableInt(value) {
   if (value === undefined || value === null || value === '') return null;
   const num = Number(value);
   return Number.isNaN(num) ? null : num;
 }
 
-function parseExistingImages(raw) {
-  if (!raw) return [];
-
-  try {
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed : [];
-  } catch (error) {
-    return [];
-  }
+function parseNullableFloat(value) {
+  if (value === undefined || value === null || value === '') return null;
+  const num = Number(value);
+  return Number.isNaN(num) ? null : num;
 }
-
-function normalizeString(value) {
-  if (value === undefined || value === null) return null;
-  const trimmed = String(value).trim();
-  return trimmed ? trimmed : null;
-}
-
-/* =========================
-   GET ALL PRODUCTS
-========================= */
 
 router.get('/', async (req, res) => {
   try {
     const products = await prisma.product.findMany({
       include: {
         images: {
-          orderBy: { order: 'asc' }
-        }
+          orderBy: { order: 'asc' },
+        },
       },
-      orderBy: {
-        createdAt: 'desc'
-      }
+      orderBy: { createdAt: 'desc' },
     });
 
     res.json(products);
@@ -84,25 +40,15 @@ router.get('/', async (req, res) => {
   }
 });
 
-/* =========================
-   GET PRODUCT BY ID
-========================= */
-
 router.get('/:id', async (req, res) => {
   try {
-    const productId = Number(req.params.id);
-
-    if (Number.isNaN(productId)) {
-      return res.status(400).json({ message: 'Некорректный ID товара' });
-    }
-
     const product = await prisma.product.findUnique({
-      where: { id: productId },
+      where: { id: Number(req.params.id) },
       include: {
         images: {
-          orderBy: { order: 'asc' }
-        }
-      }
+          orderBy: { order: 'asc' },
+        },
+      },
     });
 
     if (!product) {
@@ -116,181 +62,266 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-/* =========================
-   CREATE PRODUCT
-========================= */
-
 router.post('/', upload.array('images', 10), async (req, res) => {
   try {
-    const body = req.body;
-    const files = req.files || [];
+    const {
+      name,
+      description,
+      price,
+      oldPrice,
+      category,
+      cpu,
+      gpu,
+      ram,
+      ssd,
+      inStock,
+      componentType,
+      isConfiguratorItem,
+      socket,
+      ramType,
+      chipset,
+      formFactor,
+      memoryCapacity,
+      storageType,
+      storageCapacity,
+      powerDraw,
+      recommendedPsu,
+      psuWattage,
+      coolingLevel,
+      supportedSockets,
+      gpuLength,
+      gpuWidth,
+      gpuHeight,
+      specsJson,
+      avitoItemId,
+      avitoUrl,
+      avitoPrice,
+      avitoStatus,
+      avitoLastSyncedAt,
+      syncSource,
+    } = req.body;
 
-    if (!body.name || body.price === undefined || !body.category) {
-      return res.status(400).json({ message: 'Заполните обязательные поля' });
-    }
+    const uploadedImages = (req.files || []).map((file, index) => ({
+      url: file.path,
+      order: index,
+    }));
 
-    const existingImages = parseExistingImages(body.existingImages);
-    const uploadedImages = files.map((file) => `/images/${file.filename}`);
-    const allImages = [...existingImages, ...uploadedImages];
-
-    const createdProduct = await prisma.product.create({
+    const product = await prisma.product.create({
       data: {
-        name: body.name,
-        description: body.description || '',
-        price: Number(body.price),
-        oldPrice: parseNum(body.oldPrice),
-        category: body.category,
+        name: name || '',
+        description: description || '',
+        price: parseNullableFloat(price) || 0,
+        oldPrice: parseNullableFloat(oldPrice),
+        category: category || 'ПК',
 
-        cpu: body.cpu || null,
-        gpu: body.gpu || null,
-        ram: body.ram || null,
-        ssd: body.ssd || null,
+        cpu: cpu || null,
+        gpu: gpu || null,
+        ram: ram || null,
+        ssd: ssd || null,
 
-        inStock: parseBool(body.inStock),
+        inStock: parseBoolean(inStock),
 
-        componentType: body.componentType || null,
-        isConfiguratorItem: parseBool(body.isConfiguratorItem),
+        componentType: componentType || null,
+        isConfiguratorItem: parseBoolean(isConfiguratorItem),
 
-        socket: body.socket || null,
-        ramType: body.ramType || null,
-        chipset: body.chipset || null,
-        formFactor: body.formFactor || null,
+        socket: socket || null,
+        ramType: ramType || null,
+        chipset: chipset || null,
+        formFactor: formFactor || null,
 
-        memoryCapacity: body.memoryCapacity || null,
-        storageType: body.storageType || null,
-        storageCapacity: body.storageCapacity || null,
+        memoryCapacity: memoryCapacity || null,
+        storageType: storageType || null,
+        storageCapacity: storageCapacity || null,
 
-        powerDraw: parseNum(body.powerDraw),
-        recommendedPsu: parseNum(body.recommendedPsu),
-        psuWattage: parseNum(body.psuWattage),
+        powerDraw: parseNullableInt(powerDraw),
+        recommendedPsu: parseNullableInt(recommendedPsu),
+        psuWattage: parseNullableInt(psuWattage),
 
-        coolingLevel: body.coolingLevel || null,
-        supportedSockets: body.supportedSockets || null,
+        coolingLevel: coolingLevel || null,
+        supportedSockets: supportedSockets || null,
 
-        gpuLength: parseNum(body.gpuLength),
-        gpuWidth: parseNum(body.gpuWidth),
-        gpuHeight: parseNum(body.gpuHeight),
+        gpuLength: parseNullableInt(gpuLength),
+        gpuWidth: parseNullableInt(gpuWidth),
+        gpuHeight: parseNullableInt(gpuHeight),
 
-        specsJson: body.specsJson || null,
+        specsJson: specsJson || null,
 
-        avitoItemId: normalizeString(body.avitoItemId),
-        avitoUrl: normalizeString(body.avitoUrl),
-        avitoPrice: parseNum(body.avitoPrice),
-        avitoStatus: normalizeString(body.avitoStatus),
-        syncSource: normalizeString(body.syncSource),
+        avitoItemId: avitoItemId || null,
+        avitoUrl: avitoUrl || null,
+        avitoPrice: parseNullableFloat(avitoPrice),
+        avitoStatus: avitoStatus || null,
+        avitoLastSyncedAt: avitoLastSyncedAt ? new Date(avitoLastSyncedAt) : null,
+        syncSource: syncSource || null,
 
         images: {
-          create: allImages.map((url, index) => ({
-            url,
-            order: index
-          }))
-        }
+          create: uploadedImages,
+        },
       },
       include: {
         images: {
-          orderBy: { order: 'asc' }
-        }
-      }
+          orderBy: { order: 'asc' },
+        },
+      },
     });
 
-    res.status(201).json(createdProduct);
+    res.status(201).json(product);
   } catch (error) {
     console.error('Ошибка создания товара:', error);
     res.status(500).json({ message: 'Ошибка создания товара' });
   }
 });
 
-/* =========================
-   UPDATE PRODUCT
-========================= */
-
 router.put('/:id', upload.array('images', 10), async (req, res) => {
   try {
     const productId = Number(req.params.id);
 
-    if (Number.isNaN(productId)) {
-      return res.status(400).json({ message: 'Некорректный ID товара' });
-    }
-
-    const body = req.body;
-    const files = req.files || [];
-
     const existingProduct = await prisma.product.findUnique({
       where: { id: productId },
-      include: { images: true }
+      include: { images: true },
     });
 
     if (!existingProduct) {
       return res.status(404).json({ message: 'Товар не найден' });
     }
 
-    const existingImages = parseExistingImages(body.existingImages);
-    const uploadedImages = files.map((file) => `/images/${file.filename}`);
-    const allImages = [...existingImages, ...uploadedImages];
+    const {
+      name,
+      description,
+      price,
+      oldPrice,
+      category,
+      cpu,
+      gpu,
+      ram,
+      ssd,
+      inStock,
+      componentType,
+      isConfiguratorItem,
+      socket,
+      ramType,
+      chipset,
+      formFactor,
+      memoryCapacity,
+      storageType,
+      storageCapacity,
+      powerDraw,
+      recommendedPsu,
+      psuWattage,
+      coolingLevel,
+      supportedSockets,
+      gpuLength,
+      gpuWidth,
+      gpuHeight,
+      specsJson,
+      avitoItemId,
+      avitoUrl,
+      avitoPrice,
+      avitoStatus,
+      avitoLastSyncedAt,
+      syncSource,
+      existingImages,
+    } = req.body;
+
+    let existingImageUrls = [];
+    if (existingImages) {
+      try {
+        existingImageUrls = JSON.parse(existingImages);
+      } catch {
+        existingImageUrls = [];
+      }
+    }
+
+    const imagesToDelete = existingProduct.images.filter(
+      (img) => !existingImageUrls.includes(img.url)
+    );
+
+    for (const image of imagesToDelete) {
+      try {
+        const parts = image.url.split('/');
+        const uploadIndex = parts.findIndex((part) => part === 'upload');
+        if (uploadIndex !== -1) {
+          const publicIdWithExt = parts.slice(uploadIndex + 2).join('/');
+          const publicId = publicIdWithExt.replace(/\.[^/.]+$/, '');
+          await cloudinary.uploader.destroy(publicId);
+        }
+      } catch (err) {
+        console.error('Не удалось удалить фото из Cloudinary:', err.message);
+      }
+    }
 
     await prisma.productImage.deleteMany({
-      where: { productId }
+      where: { productId },
     });
+
+    const oldImages = existingImageUrls.map((url, index) => ({
+      url,
+      order: index,
+    }));
+
+    const newImages = (req.files || []).map((file, index) => ({
+      url: file.path,
+      order: oldImages.length + index,
+    }));
+
+    const allImages = [...oldImages, ...newImages];
 
     const updatedProduct = await prisma.product.update({
       where: { id: productId },
       data: {
-        name: body.name,
-        description: body.description || '',
-        price: Number(body.price),
-        oldPrice: parseNum(body.oldPrice),
-        category: body.category,
+        name: name || '',
+        description: description || '',
+        price: parseNullableFloat(price) || 0,
+        oldPrice: parseNullableFloat(oldPrice),
+        category: category || 'ПК',
 
-        cpu: body.cpu || null,
-        gpu: body.gpu || null,
-        ram: body.ram || null,
-        ssd: body.ssd || null,
+        cpu: cpu || null,
+        gpu: gpu || null,
+        ram: ram || null,
+        ssd: ssd || null,
 
-        inStock: parseBool(body.inStock),
+        inStock: parseBoolean(inStock),
 
-        componentType: body.componentType || null,
-        isConfiguratorItem: parseBool(body.isConfiguratorItem),
+        componentType: componentType || null,
+        isConfiguratorItem: parseBoolean(isConfiguratorItem),
 
-        socket: body.socket || null,
-        ramType: body.ramType || null,
-        chipset: body.chipset || null,
-        formFactor: body.formFactor || null,
+        socket: socket || null,
+        ramType: ramType || null,
+        chipset: chipset || null,
+        formFactor: formFactor || null,
 
-        memoryCapacity: body.memoryCapacity || null,
-        storageType: body.storageType || null,
-        storageCapacity: body.storageCapacity || null,
+        memoryCapacity: memoryCapacity || null,
+        storageType: storageType || null,
+        storageCapacity: storageCapacity || null,
 
-        powerDraw: parseNum(body.powerDraw),
-        recommendedPsu: parseNum(body.recommendedPsu),
-        psuWattage: parseNum(body.psuWattage),
+        powerDraw: parseNullableInt(powerDraw),
+        recommendedPsu: parseNullableInt(recommendedPsu),
+        psuWattage: parseNullableInt(psuWattage),
 
-        coolingLevel: body.coolingLevel || null,
-        supportedSockets: body.supportedSockets || null,
+        coolingLevel: coolingLevel || null,
+        supportedSockets: supportedSockets || null,
 
-        gpuLength: parseNum(body.gpuLength),
-        gpuWidth: parseNum(body.gpuWidth),
-        gpuHeight: parseNum(body.gpuHeight),
+        gpuLength: parseNullableInt(gpuLength),
+        gpuWidth: parseNullableInt(gpuWidth),
+        gpuHeight: parseNullableInt(gpuHeight),
 
-        specsJson: body.specsJson || null,
+        specsJson: specsJson || null,
 
-        avitoItemId: normalizeString(body.avitoItemId),
-        avitoUrl: normalizeString(body.avitoUrl),
-        avitoPrice: parseNum(body.avitoPrice),
-        avitoStatus: normalizeString(body.avitoStatus),
-        syncSource: normalizeString(body.syncSource),
+        avitoItemId: avitoItemId || null,
+        avitoUrl: avitoUrl || null,
+        avitoPrice: parseNullableFloat(avitoPrice),
+        avitoStatus: avitoStatus || null,
+        avitoLastSyncedAt: avitoLastSyncedAt ? new Date(avitoLastSyncedAt) : null,
+        syncSource: syncSource || null,
 
         images: {
-          create: allImages.map((url, index) => ({
-            url,
-            order: index
-          }))
-        }
+          create: allImages,
+        },
       },
       include: {
         images: {
-          orderBy: { order: 'asc' }
-        }
-      }
+          orderBy: { order: 'asc' },
+        },
+      },
     });
 
     res.json(updatedProduct);
@@ -300,32 +331,35 @@ router.put('/:id', upload.array('images', 10), async (req, res) => {
   }
 });
 
-/* =========================
-   DELETE PRODUCT
-========================= */
-
 router.delete('/:id', async (req, res) => {
   try {
     const productId = Number(req.params.id);
 
-    if (Number.isNaN(productId)) {
-      return res.status(400).json({ message: 'Некорректный ID товара' });
-    }
-
-    const existingProduct = await prisma.product.findUnique({
-      where: { id: productId }
+    const product = await prisma.product.findUnique({
+      where: { id: productId },
+      include: { images: true },
     });
 
-    if (!existingProduct) {
+    if (!product) {
       return res.status(404).json({ message: 'Товар не найден' });
     }
 
-    await prisma.productImage.deleteMany({
-      where: { productId }
-    });
+    for (const image of product.images) {
+      try {
+        const parts = image.url.split('/');
+        const uploadIndex = parts.findIndex((part) => part === 'upload');
+        if (uploadIndex !== -1) {
+          const publicIdWithExt = parts.slice(uploadIndex + 2).join('/');
+          const publicId = publicIdWithExt.replace(/\.[^/.]+$/, '');
+          await cloudinary.uploader.destroy(publicId);
+        }
+      } catch (err) {
+        console.error('Не удалось удалить фото из Cloudinary:', err.message);
+      }
+    }
 
     await prisma.product.delete({
-      where: { id: productId }
+      where: { id: productId },
     });
 
     res.json({ message: 'Товар удалён' });

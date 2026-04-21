@@ -1,39 +1,31 @@
-const multer = require('multer')
-const path = require('path')
-const fs = require('fs')
+const multer = require('multer');
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+const { v2: cloudinary } = require('cloudinary');
 
-const uploadDir = path.join(__dirname, '../../public/images')
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true })
-}
-
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, uploadDir)
+const storage = new CloudinaryStorage({
+  cloudinary,
+  params: async (req, file) => {
+    return {
+      folder: 'glorionpc/products',
+      resource_type: 'image',
+      allowed_formats: ['jpg', 'jpeg', 'png', 'webp'],
+      public_id: `${Date.now()}-${file.originalname
+        .replace(/\.[^/.]+$/, '')
+        .replace(/\s+/g, '-')
+        .toLowerCase()}`,
+    };
   },
-  filename: (req, file, cb) => {
-    const uniqueName = `${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(file.originalname)}`
-    cb(null, uniqueName)
-  },
-})
+});
 
-const fileFilter = (req, file, cb) => {
-  const allowedMimeTypes = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg']
+const upload = multer({ storage });
 
-  if (allowedMimeTypes.includes(file.mimetype)) {
-    cb(null, true)
-  } else {
-    cb(new Error('Можно загружать только изображения JPG, PNG или WEBP'))
-  }
-}
-
-const upload = multer({
-  storage,
-  fileFilter,
-  limits: {
-    fileSize: 15 * 1024 * 1024,
-  },
-})
-
-module.exports = upload
+module.exports = {
+  upload,
+  cloudinary,
+};
