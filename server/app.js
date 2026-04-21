@@ -159,18 +159,6 @@ function getAvitoItemUrl(item) {
   );
 }
 
-function getAvitoItemTitle(item) {
-  return extractAvitoValue(item, [
-    'title',
-    'name',
-    'subject',
-    'item.title',
-    'item.name',
-    'data.title',
-    'result.title'
-  ]) || '';
-}
-
 function getAvitoItemDescription(item) {
   return extractAvitoValue(item, [
     'description',
@@ -499,30 +487,25 @@ app.post('/api/avito/fill-product-by-item-id', async (req, res) => {
 
     const avitoItems = extractAvitoItems(itemsData);
 
-    let matchedItem = avitoItems.find(
+    const matchedItem = avitoItems.find(
       (item) =>
         String(item.id || item.item_id || item.ad_id || '') === normalizedItemId
     );
 
-    let detailData = null;
+    const detailData = await fetchAvitoItemDetail(accessToken, normalizedItemId);
+    console.log('AVITO ITEM DATA:', JSON.stringify(detailData, null, 2));
 
-    if (!matchedItem || !hasUsefulAutofillData(matchedItem)) {
-      detailData = await fetchAvitoItemDetail(accessToken, normalizedItemId);
-      console.log('AVITO ITEM DATA:', JSON.stringify(detailData, null, 2));
-    }
+    const description = getAvitoItemDescription(detailData);
+    const price = matchedItem ? extractAvitoPrice(matchedItem) : extractAvitoPrice(detailData);
+    const status = matchedItem ? getAvitoItemStatus(matchedItem) : getAvitoItemStatus(detailData);
+    const category =
+      (matchedItem ? getAvitoItemCategory(matchedItem) : '') ||
+      getAvitoItemCategory(detailData);
 
-    const source = hasUsefulAutofillData(matchedItem)
-      ? matchedItem
-      : (detailData || matchedItem || {});
-
-    const description = getAvitoItemDescription(source);
-    const price = extractAvitoPrice(source);
-    const status = getAvitoItemStatus(source);
-    const category = getAvitoItemCategory(source);
-
-    const urlFromSource = getAvitoItemUrl(source);
-    const urlFromDetail = detailData ? getAvitoItemUrl(detailData) : '';
-    const normalizedUrl = urlFromSource || urlFromDetail || '';
+    const normalizedUrl =
+      (matchedItem ? getAvitoItemUrl(matchedItem) : '') ||
+      getAvitoItemUrl(detailData) ||
+      '';
 
     const parsedSpecs = extractSpecsFromText(description);
 
