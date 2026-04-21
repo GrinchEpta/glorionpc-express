@@ -1697,7 +1697,14 @@ adminForm?.addEventListener('submit', async (event) => {
     const data = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-      throw new Error(data.error || data.message || 'Ошибка сохранения товара');
+            const errorText =
+        typeof data.error === 'string'
+          ? data.error
+          : typeof data.message === 'string'
+            ? data.message
+            : JSON.stringify(data.error || data.message || 'Ошибка сохранения товара');
+
+      throw new Error(errorText);
     }
 
     resetForm();
@@ -1791,7 +1798,14 @@ componentForm?.addEventListener('submit', async (event) => {
     const data = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-      throw new Error(data.error || data.message || 'Не удалось сохранить комплектующее');
+            const errorText =
+        typeof data.error === 'string'
+          ? data.error
+          : typeof data.message === 'string'
+            ? data.message
+            : JSON.stringify(data.error || data.message || 'Не удалось сохранить комплектующее');
+
+      throw new Error(errorText);
     }
 
     resetComponentForm();

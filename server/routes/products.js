@@ -22,18 +22,40 @@ function parseNullableFloat(value) {
   return Number.isNaN(num) ? null : num;
 }
 
+function normalizeErrorMessage(error) {
+  if (!error) return 'Неизвестная ошибка';
+
+  if (typeof error === 'string') return error;
+
+  if (typeof error.message === 'string' && error.message.trim()) {
+    return error.message;
+  }
+
+  if (error.error && typeof error.error === 'string') {
+    return error.error;
+  }
+
+  try {
+    return JSON.stringify(error);
+  } catch {
+    return 'Ошибка без текста';
+  }
+}
+
 function extractCloudinaryPublicId(url) {
   try {
     if (!url || typeof url !== 'string') return null;
 
     const parts = url.split('/');
     const uploadIndex = parts.findIndex((part) => part === 'upload');
-
     if (uploadIndex === -1) return null;
 
     let publicIdWithExt = parts.slice(uploadIndex + 1).join('/');
 
-    if (publicIdWithExt.startsWith('v') && /^\d+$/.test(publicIdWithExt.split('/')[0].slice(1))) {
+    if (
+      publicIdWithExt.startsWith('v') &&
+      /^\d+$/.test(publicIdWithExt.split('/')[0].slice(1))
+    ) {
       publicIdWithExt = publicIdWithExt.split('/').slice(1).join('/');
     }
 
@@ -48,10 +70,9 @@ async function deleteCloudinaryImageByUrl(url) {
   try {
     const publicId = extractCloudinaryPublicId(url);
     if (!publicId) return;
-
     await cloudinary.uploader.destroy(publicId);
   } catch (error) {
-    console.error('Не удалось удалить фото из Cloudinary:', error.message);
+    console.error('Не удалось удалить фото из Cloudinary:', error);
   }
 }
 
@@ -71,7 +92,7 @@ router.get('/', async (req, res) => {
     console.error('Ошибка получения товаров:', error);
     res.status(500).json({
       message: 'Ошибка получения товаров',
-      error: error.message
+      error: normalizeErrorMessage(error)
     });
   }
 });
@@ -96,7 +117,7 @@ router.get('/:id', async (req, res) => {
     console.error('Ошибка получения товара:', error);
     res.status(500).json({
       message: 'Ошибка получения товара',
-      error: error.message
+      error: normalizeErrorMessage(error)
     });
   }
 });
@@ -208,7 +229,7 @@ router.post('/', upload.array('images', 10), async (req, res) => {
     console.error('Ошибка создания товара:', error);
     res.status(500).json({
       message: 'Ошибка создания товара',
-      error: error.message
+      error: normalizeErrorMessage(error)
     });
   }
 });
@@ -362,7 +383,7 @@ router.put('/:id', upload.array('images', 10), async (req, res) => {
     console.error('Ошибка обновления товара:', error);
     res.status(500).json({
       message: 'Ошибка обновления товара',
-      error: error.message
+      error: normalizeErrorMessage(error)
     });
   }
 });
@@ -393,7 +414,7 @@ router.delete('/:id', async (req, res) => {
     console.error('Ошибка удаления товара:', error);
     res.status(500).json({
       message: 'Ошибка удаления товара',
-      error: error.message
+      error: normalizeErrorMessage(error)
     });
   }
 });
