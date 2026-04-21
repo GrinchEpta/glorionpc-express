@@ -181,14 +181,21 @@ function getAvitoItemDescription(item) {
 }
 
 function getAvitoItemCategory(item) {
-  return extractAvitoValue(item, [
-    'category.name',
-    'category',
-    'item.category.name',
-    'item.category',
-    'data.category.name',
-    'result.category.name'
-  ]) || '';
+  return (
+    extractAvitoValue(item, [
+      'category.name',
+      'item.category.name',
+      'data.category.name',
+      'result.category.name'
+    ]) ||
+    extractAvitoValue(item, [
+      'category',
+      'item.category',
+      'data.category',
+      'result.category'
+    ]) ||
+    ''
+  );
 }
 
 function hasUsefulAutofillData(item) {
@@ -213,7 +220,7 @@ async function saveAvitoTokens(data) {
     where: { provider: 'avito' },
     update: {
       accessToken: data.access_token,
-      refreshToken: data.refresh_token || undefined,
+      refreshToken: data.refresh_token || null,
       tokenType: data.token_type || 'Bearer',
       expiresAt
     },
@@ -254,7 +261,7 @@ async function getValidAvitoAccessToken() {
   const tokenRow = await getStoredAvitoTokenRow();
 
   if (!tokenRow) {
-    throw new Error('Токен Авито не найден. Сначала открой /api/auth/avito/start');
+    throw new Error('Токен Авито не найден. Сначала открой /api/auth/avito/start и /api/auth/avito/token');
   }
 
   const now = Date.now();
@@ -309,7 +316,7 @@ async function fetchAvitoItemDetail(accessToken, itemId) {
 }
 
 /* =========================
-   API ROUTES
+   BASE API ROUTES
 ========================= */
 app.use('/api/products', productsRoutes);
 app.use('/api/orders', ordersRoutes);
@@ -376,8 +383,8 @@ app.get('/api/auth/avito/callback', async (req, res) => {
   return res.send(`
     <h1>Авторизация Авито прошла успешно</h1>
     <p>Код получен и сохранён в сессии.</p>
-    <p>Теперь можно получить access_token.</p>
-    <p><a href="/api/auth/avito/token">Получить access_token</a></p>
+    <p>Теперь нажми ссылку ниже один раз, чтобы сохранить токен в базу:</p>
+    <p><a href="/api/auth/avito/token">Получить и сохранить access_token</a></p>
     <p><a href="/admin">Вернуться в админку</a></p>
   `);
 });
@@ -411,7 +418,7 @@ app.get('/api/auth/avito/token', async (req, res) => {
     req.session.avitoAuthCode = null;
 
     return res.json({
-      message: 'Токен получен успешно',
+      message: 'Токен получен и сохранён успешно',
       access_token: data.access_token,
       refresh_token: data.refresh_token || null,
       token_type: data.token_type || 'Bearer',
@@ -463,10 +470,7 @@ app.get('/api/auth/avito/item/:itemId', async (req, res) => {
       data: detail
     });
   } catch (error) {
-    console.error(
-      'Ошибка получения деталей объявления Авито:',
-      error.response?.data || error.message
-    );
+    console.error('Ошибка получения деталей объявления Авито:', error.response?.data || error.message);
 
     return res.status(500).json({
       message: 'Ошибка получения деталей объявления Авито',
@@ -508,7 +512,9 @@ app.post('/api/avito/fill-product-by-item-id', async (req, res) => {
       console.log('AVITO ITEM DATA:', JSON.stringify(detailData, null, 2));
     }
 
-    const source = hasUsefulAutofillData(matchedItem) ? matchedItem : (detailData || matchedItem || {});
+    const source = hasUsefulAutofillData(matchedItem)
+      ? matchedItem
+      : (detailData || matchedItem || {});
 
     const title = getAvitoItemTitle(source);
     const description = getAvitoItemDescription(source);
@@ -520,37 +526,36 @@ app.post('/api/avito/fill-product-by-item-id', async (req, res) => {
     const urlFromDetail = detailData ? getAvitoItemUrl(detailData) : '';
     const normalizedUrl = urlFromSource || urlFromDetail || '';
 
-    const parsedSpecs = extractSpecsFromText(description);
+    const parsedSpecs = extractSpecsFromText(description || title);
+
+    const product = {
+      name: title || '',
+      description: description || title || '',
+      price: price ?? '',
+      avitoUrl: normalizedUrl,
+      category: category || 'ПК',
+      cpu: parsedSpecs.cpu || '',
+      gpu: parsedSpecs.gpu || '',
+      ram: parsedSpecs.ram || '',
+      ssd: parsedSpecs.ssd || '',
+      inStock: status === 'active'
+    };
 
     const usefulFieldsCount = [
-      title,
-      description,
-      price,
-      normalizedUrl
+      product.name,
+      product.description,
+      product.price,
+      product.avitoUrl
     ].filter((value) => value !== null && value !== undefined && value !== '').length;
 
     return res.json({
       ok: true,
       usefulFieldsCount,
       rawStatus: status || '',
-      product: {
-        name: title || '',
-        description: description || '',
-        price: price ?? '',
-        avitoUrl: normalizedUrl,
-        category: category || 'ПК',
-        cpu: parsedSpecs.cpu || '',
-        gpu: parsedSpecs.gpu || '',
-        ram: parsedSpecs.ram || '',
-        ssd: parsedSpecs.ssd || '',
-        inStock: status === 'active'
-      }
+      product
     });
   } catch (error) {
-    console.error(
-      'Ошибка авто-заполнения по Avito ID:',
-      error.response?.data || error.message
-    );
+    console.error('Ошибка авто-заполнения по Avito ID:', error.response?.data || error.message);
 
     return res.status(500).json({
       message:
@@ -635,10 +640,7 @@ app.post('/api/auth/avito/sync-products', async (req, res) => {
       totalAvitoItems: avitoItems.length
     });
   } catch (error) {
-    console.error(
-      'Ошибка синхронизации товаров из Авито:',
-      error.response?.data || error.message
-    );
+    console.error('Ошибка синхронизации товаров из Авито:', error.response?.data || error.message);
 
     return res.status(500).json({
       message: 'Ошибка синхронизации товаров из Авито',
