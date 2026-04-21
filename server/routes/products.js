@@ -380,7 +380,7 @@ router.put('/:id', upload.array('images', 10), async (req, res) => {
 
     res.json(updatedProduct);
   } catch (error) {
-    console.error('Ошибка обновления товара:', error);
+    console.error('Ошибка обновления товара:', error?.message || error);
     res.status(500).json({
       message: 'Ошибка обновления товара',
       error: normalizeErrorMessage(error)
@@ -410,13 +410,14 @@ router.delete('/:id', async (req, res) => {
     });
 
     res.json({ message: 'Товар удалён' });
-  } catch (error) {
-    console.error('Ошибка удаления товара:', error);
-    res.status(500).json({
-      message: 'Ошибка удаления товара',
-      error: normalizeErrorMessage(error)
-    });
-  }
+    } catch (error) {
+      console.error('🔥 FULL ERROR UPDATE PRODUCT:', error?.message, error?.stack, error);
+
+      res.status(500).json({
+        message: 'Ошибка обновления товара',
+        error: error?.message || 'Неизвестная ошибка'
+      });
+    }
 });
 
 module.exports = router;
