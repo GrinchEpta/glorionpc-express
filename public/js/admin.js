@@ -1697,12 +1697,25 @@ adminForm?.addEventListener('submit', async (event) => {
     const data = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-            const errorText =
-        typeof data.error === 'string'
-          ? data.error
-          : typeof data.message === 'string'
-            ? data.message
-            : JSON.stringify(data.error || data.message || 'Ошибка сохранения товара');
+      let errorText = 'Ошибка сохранения товара';
+
+      if (typeof data.error === 'string' && data.error.trim()) {
+        errorText = data.error;
+      } else if (data.error && typeof data.error.message === 'string') {
+        errorText = data.error.message;
+      } else if (Array.isArray(data.error)) {
+        errorText = data.error
+          .map((item) => item.message || JSON.stringify(item))
+          .join(', ');
+      } else if (typeof data.message === 'string' && data.message.trim()) {
+        errorText = data.message;
+      } else if (data.error) {
+        try {
+          errorText = JSON.stringify(data.error, null, 2);
+        } catch {
+          errorText = 'Ошибка сохранения товара';
+        }
+      }
 
       throw new Error(errorText);
     }
@@ -1798,12 +1811,25 @@ componentForm?.addEventListener('submit', async (event) => {
     const data = await response.json().catch(() => ({}));
 
     if (!response.ok) {
-            const errorText =
-        typeof data.error === 'string'
-          ? data.error
-          : typeof data.message === 'string'
-            ? data.message
-            : JSON.stringify(data.error || data.message || 'Не удалось сохранить комплектующее');
+      let errorText = 'Не удалось сохранить комплектующее';
+
+      if (typeof data.error === 'string' && data.error.trim()) {
+        errorText = data.error;
+      } else if (data.error && typeof data.error.message === 'string') {
+        errorText = data.error.message;
+      } else if (Array.isArray(data.error)) {
+        errorText = data.error
+          .map((item) => item.message || JSON.stringify(item))
+          .join(', ');
+      } else if (typeof data.message === 'string' && data.message.trim()) {
+        errorText = data.message;
+      } else if (data.error) {
+        try {
+          errorText = JSON.stringify(data.error, null, 2);
+        } catch {
+          errorText = 'Не удалось сохранить комплектующее';
+        }
+      }
 
       throw new Error(errorText);
     }
