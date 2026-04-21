@@ -43,37 +43,13 @@ function extractAvitoItems(payload) {
   if (Array.isArray(payload.items)) return payload.items;
   if (Array.isArray(payload.resources)) return payload.resources;
   if (Array.isArray(payload.result)) return payload.result;
+  if (Array.isArray(payload.data)) return payload.data;
   if (payload.data && Array.isArray(payload.data.items)) return payload.data.items;
   if (payload.data && Array.isArray(payload.data.resources)) return payload.data.resources;
+  if (payload.result && Array.isArray(payload.result.items)) return payload.result.items;
+  if (payload.result && Array.isArray(payload.result.resources)) return payload.result.resources;
 
   return [];
-}
-
-function getAvitoItemStatus(item) {
-  return item.status || item.state || item.avitoStatus || null;
-}
-
-function getAvitoItemUrl(item) {
-  return item.url || item.avitoUrl || null;
-}
-
-function getAvitoItemPrice(item) {
-  if (item.price !== undefined && item.price !== null && item.price !== '') {
-    const numeric = Number(String(item.price).replace(/[^\d.]/g, ''));
-    if (!Number.isNaN(numeric)) return numeric;
-  }
-
-  if (item.priceDetailed?.value !== undefined && item.priceDetailed?.value !== null) {
-    const numeric = Number(item.priceDetailed.value);
-    if (!Number.isNaN(numeric)) return numeric;
-  }
-
-  if (item.price_string) {
-    const numeric = Number(String(item.price_string).replace(/[^\d.]/g, ''));
-    if (!Number.isNaN(numeric)) return numeric;
-  }
-
-  return null;
 }
 
 function extractAvitoValue(obj, paths = []) {
@@ -99,19 +75,52 @@ function extractAvitoValue(obj, paths = []) {
 }
 
 function extractAvitoPrice(payload) {
-  const price = extractAvitoValue(payload, [
-    'price',
-    'item.price',
-    'data.price',
-    'result.price',
-    'item.priceInfo.price',
-    'priceInfo.price',
-    'item.price_info.price',
-    'price_info.price'
-  ]);
+  const candidates = [
+    extractAvitoValue(payload, ['price']),
+    extractAvitoValue(payload, ['item.price']),
+    extractAvitoValue(payload, ['data.price']),
+    extractAvitoValue(payload, ['result.price']),
+    extractAvitoValue(payload, ['price_string']),
+    extractAvitoValue(payload, ['item.price_string']),
+    extractAvitoValue(payload, ['data.price_string']),
+    extractAvitoValue(payload, ['result.price_string']),
+    extractAvitoValue(payload, ['priceDetailed.value']),
+    extractAvitoValue(payload, ['item.priceDetailed.value']),
+    extractAvitoValue(payload, ['data.priceDetailed.value']),
+    extractAvitoValue(payload, ['result.priceDetailed.value']),
+    extractAvitoValue(payload, ['priceInfo.price']),
+    extractAvitoValue(payload, ['item.priceInfo.price']),
+    extractAvitoValue(payload, ['price_info.price']),
+    extractAvitoValue(payload, ['item.price_info.price'])
+  ];
 
-  const num = Number(price);
-  return Number.isFinite(num) ? num : null;
+  for (const candidate of candidates) {
+    if (candidate === undefined || candidate === null || candidate === '') continue;
+
+    const numeric = Number(String(candidate).replace(/[^\d.]/g, ''));
+    if (!Number.isNaN(numeric) && numeric > 0) {
+      return numeric;
+    }
+  }
+
+  return null;
+}
+
+function normalizeAvitoUrl(value) {
+  if (!value) return '';
+
+  const url = String(value).trim();
+  if (!url) return '';
+
+  if (url.startsWith('http://') || url.startsWith('https://')) {
+    return url;
+  }
+
+  if (url.startsWith('/')) {
+    return `https://www.avito.ru${url}`;
+  }
+
+  return `https://www.avito.ru/${url.replace(/^\/+/, '')}`;
 }
 
 function extractSpecsFromText(text) {
@@ -130,6 +139,71 @@ function extractSpecsFromText(text) {
   };
 }
 
+function getAvitoItemStatus(item) {
+  return (
+    extractAvitoValue(item, ['status']) ||
+    extractAvitoValue(item, ['state']) ||
+    extractAvitoValue(item, ['item.status']) ||
+    null
+  );
+}
+
+function getAvitoItemUrl(item) {
+  return normalizeAvitoUrl(
+    extractAvitoValue(item, [
+      'url',
+      'item.url',
+      'data.url',
+      'result.url'
+    ])
+  );
+}
+
+function getAvitoItemTitle(item) {
+  return extractAvitoValue(item, [
+    'title',
+    'name',
+    'subject',
+    'item.title',
+    'item.name',
+    'data.title',
+    'result.title'
+  ]) || '';
+}
+
+function getAvitoItemDescription(item) {
+  return extractAvitoValue(item, [
+    'description',
+    'item.description',
+    'data.description',
+    'result.description'
+  ]) || '';
+}
+
+function getAvitoItemCategory(item) {
+  return extractAvitoValue(item, [
+    'category.name',
+    'category',
+    'item.category.name',
+    'item.category',
+    'data.category.name',
+    'result.category.name'
+  ]) || '';
+}
+
+function hasUsefulAutofillData(item) {
+  if (!item || typeof item !== 'object') return false;
+
+  const title = getAvitoItemTitle(item);
+  const description = getAvitoItemDescription(item);
+  const price = extractAvitoPrice(item);
+
+  return Boolean(title || description || price);
+}
+
+/* =========================
+   TOKEN HELPERS
+========================= */
 async function saveAvitoTokens(data) {
   const expiresAt = data.expires_in
     ? new Date(Date.now() + Number(data.expires_in) * 1000)
@@ -199,6 +273,19 @@ async function getValidAvitoAccessToken() {
   }
 
   return refreshAvitoAccessToken(tokenRow.refreshToken);
+}
+
+/* =========================
+   AVITO API HELPERS
+========================= */
+async function fetchAvitoItems(accessToken) {
+  const response = await axios.get('https://api.avito.ru/core/v1/items', {
+    headers: {
+      Authorization: `Bearer ${accessToken}`
+    }
+  });
+
+  return response.data;
 }
 
 async function fetchAvitoItemDetail(accessToken, itemId) {
@@ -338,21 +425,23 @@ app.get('/api/auth/avito/token', async (req, res) => {
   }
 });
 
+/* =========================
+   AVITO ITEMS
+========================= */
 app.get('/api/auth/avito/items', async (req, res) => {
   try {
     const accessToken = await getValidAvitoAccessToken();
+    const data = await fetchAvitoItems(accessToken);
 
-    const response = await axios.get('https://api.avito.ru/core/v1/items', {
-      headers: {
-        Authorization: `Bearer ${accessToken}`
-      }
-    });
+    console.log('AVITO ITEMS DATA:', JSON.stringify(data, null, 2));
 
     return res.json({
       message: 'Объявления получены успешно',
-      data: response.data
+      data
     });
   } catch (error) {
+    console.error('Ошибка получения объявлений Авито:', error.response?.data || error.message);
+
     return res.status(500).json({
       message: 'Ошибка получения объявлений',
       error: error.response?.data || error.message
@@ -366,6 +455,8 @@ app.get('/api/auth/avito/item/:itemId', async (req, res) => {
     const itemId = req.params.itemId;
 
     const detail = await fetchAvitoItemDetail(accessToken, itemId);
+
+    console.log('AVITO ITEM DATA:', JSON.stringify(detail, null, 2));
 
     return res.json({
       message: 'Детали объявления получены успешно',
@@ -398,64 +489,61 @@ app.post('/api/avito/fill-product-by-item-id', async (req, res) => {
     }
 
     const accessToken = await getValidAvitoAccessToken();
-    const itemData = await fetchAvitoItemDetail(accessToken, String(itemId).trim());
-    console.log('AVITO ITEM DATA:', JSON.stringify(itemData, null, 2));
+    const normalizedItemId = String(itemId).trim();
 
-    const title = extractAvitoValue(itemData, [
-      'title',
-      'name',
-      'item.title',
-      'item.name',
-      'data.title',
-      'result.title'
-    ]);
+    const itemsData = await fetchAvitoItems(accessToken);
+    console.log('AVITO ITEMS DATA:', JSON.stringify(itemsData, null, 2));
 
-    const description = extractAvitoValue(itemData, [
-      'description',
-      'item.description',
-      'data.description',
-      'result.description'
-    ]);
+    const avitoItems = extractAvitoItems(itemsData);
 
-    const avitoUrl = extractAvitoValue(itemData, [
-      'url',
-      'item.url',
-      'data.url',
-      'result.url'
-    ]);
+    let matchedItem = avitoItems.find(
+      (item) =>
+        String(item.id || item.item_id || item.ad_id || '') === normalizedItemId
+    );
 
-    const category = extractAvitoValue(itemData, [
-      'category.name',
-      'category',
-      'item.category.name',
-      'item.category',
-      'data.category.name',
-      'result.category.name'
-    ]);
+    let detailData = null;
 
-    const status = extractAvitoValue(itemData, [
-      'status',
-      'item.status',
-      'data.status',
-      'result.status'
-    ]);
+    if (!matchedItem || !hasUsefulAutofillData(matchedItem)) {
+      detailData = await fetchAvitoItemDetail(accessToken, normalizedItemId);
+      console.log('AVITO ITEM DATA:', JSON.stringify(detailData, null, 2));
+    }
 
-    const price = extractAvitoPrice(itemData);
+    const source = hasUsefulAutofillData(matchedItem) ? matchedItem : (detailData || matchedItem || {});
+
+    const title = getAvitoItemTitle(source);
+    const description = getAvitoItemDescription(source);
+    const price = extractAvitoPrice(source);
+    const status = getAvitoItemStatus(source);
+    const category = getAvitoItemCategory(source);
+
+    const urlFromSource = getAvitoItemUrl(source);
+    const urlFromDetail = detailData ? getAvitoItemUrl(detailData) : '';
+    const normalizedUrl = urlFromSource || urlFromDetail || '';
+
     const parsedSpecs = extractSpecsFromText(description);
+
+    const usefulFieldsCount = [
+      title,
+      description,
+      price,
+      normalizedUrl
+    ].filter((value) => value !== null && value !== undefined && value !== '').length;
 
     return res.json({
       ok: true,
-      rawStatus: status,
+      usefulFieldsCount,
+      rawStatus: status || '',
       product: {
         name: title || '',
         description: description || '',
         price: price ?? '',
-        avitoUrl: avitoUrl || '',
+        avitoUrl: normalizedUrl,
         category: category || 'ПК',
         cpu: parsedSpecs.cpu || '',
         gpu: parsedSpecs.gpu || '',
         ram: parsedSpecs.ram || '',
-        ssd: parsedSpecs.ssd || ''
+        ssd: parsedSpecs.ssd || '',
+        inStock: status === 'active'
       }
     });
   } catch (error) {
@@ -479,14 +567,11 @@ app.post('/api/avito/fill-product-by-item-id', async (req, res) => {
 app.post('/api/auth/avito/sync-products', async (req, res) => {
   try {
     const accessToken = await getValidAvitoAccessToken();
+    const avitoResponseData = await fetchAvitoItems(accessToken);
 
-    const avitoResponse = await axios.get('https://api.avito.ru/core/v1/items', {
-      headers: {
-        Authorization: `Bearer ${accessToken}`
-      }
-    });
+    console.log('AVITO ITEMS DATA:', JSON.stringify(avitoResponseData, null, 2));
 
-    const avitoItems = extractAvitoItems(avitoResponse.data);
+    const avitoItems = extractAvitoItems(avitoResponseData);
 
     if (!avitoItems.length) {
       return res.json({
@@ -510,7 +595,8 @@ app.post('/api/auth/avito/sync-products', async (req, res) => {
 
     for (const product of products) {
       const matched = avitoItems.find(
-        (item) => String(item.id) === String(product.avitoItemId)
+        (item) =>
+          String(item.id || item.item_id || item.ad_id || '') === String(product.avitoItemId)
       );
 
       if (!matched) {
@@ -522,7 +608,7 @@ app.post('/api/auth/avito/sync-products', async (req, res) => {
         continue;
       }
 
-      const avitoPrice = getAvitoItemPrice(matched);
+      const avitoPrice = extractAvitoPrice(matched);
       const avitoUrl = getAvitoItemUrl(matched);
       const avitoStatus = getAvitoItemStatus(matched);
 
@@ -534,7 +620,8 @@ app.post('/api/auth/avito/sync-products', async (req, res) => {
           avitoUrl: avitoUrl || product.avitoUrl,
           avitoStatus: avitoStatus || product.avitoStatus,
           avitoLastSyncedAt: new Date(),
-          syncSource: 'avito'
+          syncSource: 'avito',
+          inStock: avitoStatus === 'active' ? true : product.inStock
         }
       });
 
@@ -573,10 +660,6 @@ function requireAdmin(req, res, next) {
 
 app.get('/admin', requireAdmin, (req, res) => {
   res.sendFile(path.join(__dirname, '../public/admin.html'));
-});
-
-app.get('/configure-admin', requireAdmin, (req, res) => {
-  res.sendFile(path.join(__dirname, '../public/configure_admin.html'));
 });
 
 app.get('/admin-login', (req, res) => {
