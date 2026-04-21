@@ -36,7 +36,10 @@ router.get('/', async (req, res) => {
     res.json(products);
   } catch (error) {
     console.error('Ошибка получения товаров:', error);
-    res.status(500).json({ message: 'Ошибка получения товаров' });
+    res.status(500).json({
+      message: 'Ошибка получения товаров',
+      error: error.message,
+    });
   }
 });
 
@@ -58,7 +61,10 @@ router.get('/:id', async (req, res) => {
     res.json(product);
   } catch (error) {
     console.error('Ошибка получения товара:', error);
-    res.status(500).json({ message: 'Ошибка получения товара' });
+    res.status(500).json({
+      message: 'Ошибка получения товара',
+      error: error.message,
+    });
   }
 });
 
@@ -167,7 +173,10 @@ router.post('/', upload.array('images', 10), async (req, res) => {
     res.status(201).json(product);
   } catch (error) {
     console.error('Ошибка создания товара:', error);
-    res.status(500).json({ message: 'Ошибка создания товара' });
+    res.status(500).json({
+      message: 'Ошибка создания товара',
+      error: error.message,
+    });
   }
 });
 
@@ -239,6 +248,7 @@ router.put('/:id', upload.array('images', 10), async (req, res) => {
       try {
         const parts = image.url.split('/');
         const uploadIndex = parts.findIndex((part) => part === 'upload');
+
         if (uploadIndex !== -1) {
           const publicIdWithExt = parts.slice(uploadIndex + 2).join('/');
           const publicId = publicIdWithExt.replace(/\.[^/.]+$/, '');
@@ -327,7 +337,10 @@ router.put('/:id', upload.array('images', 10), async (req, res) => {
     res.json(updatedProduct);
   } catch (error) {
     console.error('Ошибка обновления товара:', error);
-    res.status(500).json({ message: 'Ошибка обновления товара' });
+    res.status(500).json({
+      message: 'Ошибка обновления товара',
+      error: error.message,
+    });
   }
 });
 
@@ -348,6 +361,7 @@ router.delete('/:id', async (req, res) => {
       try {
         const parts = image.url.split('/');
         const uploadIndex = parts.findIndex((part) => part === 'upload');
+
         if (uploadIndex !== -1) {
           const publicIdWithExt = parts.slice(uploadIndex + 2).join('/');
           const publicId = publicIdWithExt.replace(/\.[^/.]+$/, '');
@@ -365,7 +379,10 @@ router.delete('/:id', async (req, res) => {
     res.json({ message: 'Товар удалён' });
   } catch (error) {
     console.error('Ошибка удаления товара:', error);
-    res.status(500).json({ message: 'Ошибка удаления товара' });
+    res.status(500).json({
+      message: 'Ошибка удаления товара',
+      error: error.message,
+    });
   }
 });
 
