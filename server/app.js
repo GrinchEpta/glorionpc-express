@@ -399,6 +399,7 @@ app.post('/api/avito/fill-product-by-item-id', async (req, res) => {
 
     const accessToken = await getValidAvitoAccessToken();
     const itemData = await fetchAvitoItemDetail(accessToken, String(itemId).trim());
+    console.log('AVITO ITEM DATA:', JSON.stringify(itemData, null, 2));
 
     const title = extractAvitoValue(itemData, [
       'title',
