@@ -947,6 +947,133 @@ function fillComponentForm(product) {
 }
 
 /* =========================
+   AVITO HELPERS
+========================= */
+function initAvitoConnectButton() {
+  const connectAvitoBtn = document.getElementById('connect-avito-btn');
+
+  if (!connectAvitoBtn) return;
+
+  connectAvitoBtn.addEventListener('click', (event) => {
+    event.preventDefault();
+    window.open('/api/auth/avito/start', '_blank', 'noopener,noreferrer');
+  });
+}
+
+async function fillProductFromAvito() {
+  const avitoItemIdInput = document.getElementById('avitoItemId');
+  const fillButton = document.getElementById('fill-from-avito-btn');
+
+  if (!avitoItemIdInput || !fillButton) return;
+
+  const itemId = avitoItemIdInput.value.trim();
+
+  if (!itemId) {
+    alert('Сначала укажи Avito Item ID');
+    avitoItemIdInput.focus();
+    return;
+  }
+
+  const originalText = fillButton.textContent;
+
+  try {
+    fillButton.disabled = true;
+    fillButton.textContent = 'Загрузка...';
+
+    const response = await fetch('/api/avito/fill-product-by-item-id', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ itemId })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Не удалось получить данные из Авито');
+    }
+
+    const product = data.product || {};
+
+    if (product.name) {
+      document.getElementById('name').value = product.name;
+    }
+
+    if (product.description) {
+      document.getElementById('description').value = product.description;
+    }
+
+    if (product.price !== null && product.price !== undefined && product.price !== '') {
+      document.getElementById('price').value = product.price;
+    }
+
+    if (product.avitoUrl) {
+      document.getElementById('avitoUrl').value = product.avitoUrl;
+    }
+
+    if (product.category) {
+      document.getElementById('category').value = product.category;
+    }
+
+    if (product.cpu) {
+      document.getElementById('cpu').value = product.cpu;
+    }
+
+    if (product.gpu) {
+      document.getElementById('gpu').value = product.gpu;
+    }
+
+    if (product.ram) {
+      document.getElementById('ram').value = product.ram;
+    }
+
+    if (product.ssd) {
+      document.getElementById('ssd').value = product.ssd;
+    }
+
+    alert('Данные из Авито успешно подставлены в форму');
+  } catch (error) {
+    console.error('Ошибка авто-заполнения по Avito ID:', error);
+    alert(error.message || 'Не удалось заполнить товар по Avito ID');
+  } finally {
+    fillButton.disabled = false;
+    fillButton.textContent = originalText;
+  }
+}
+
+async function syncProductsFromAvito() {
+  const button = document.getElementById('sync-avito-products-btn');
+  if (!button) return;
+
+  const originalText = button.textContent;
+
+  try {
+    button.disabled = true;
+    button.textContent = 'Синхронизация...';
+
+    const response = await fetch('/api/auth/avito/sync-products', {
+      method: 'POST'
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Не удалось синхронизировать товары из Авито');
+    }
+
+    await loadProducts();
+    alert(`Синхронизация завершена. Обновлено товаров: ${data.updated || 0}`);
+  } catch (error) {
+    console.error('Ошибка синхронизации с Авито:', error);
+    alert(error.message || 'Не удалось синхронизировать товары из Авито');
+  } finally {
+    button.disabled = false;
+    button.textContent = originalText;
+  }
+}
+
+/* =========================
    ORDERS SPECS
 ========================= */
 function renderOrderSpecs(specs = {}) {
@@ -1053,55 +1180,6 @@ function renderComponentSpecsSummary(product) {
     });
 
   return rows.join('');
-}
-
-/* =========================
-   AVITO AUTH BUTTON
-========================= */
-function initAvitoConnectButton() {
-  const connectAvitoBtn = document.getElementById('connect-avito-btn');
-
-  if (!connectAvitoBtn) return;
-
-  connectAvitoBtn.addEventListener('click', (event) => {
-    // для <a> это не обязательно, но пусть переход будет явно через JS
-    event.preventDefault();
-    window.location.href = '/api/auth/avito/start';
-  });
-}
-
-/* =========================
-   AVITO SYNC
-========================= */
-async function syncProductsFromAvito() {
-  const button = document.getElementById('sync-avito-products-btn');
-  if (!button) return;
-
-  const originalText = button.textContent;
-
-  try {
-    button.disabled = true;
-    button.textContent = 'Синхронизация...';
-
-    const response = await fetch('/api/auth/avito/sync-products', {
-      method: 'POST'
-    });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new Error(data.message || 'Не удалось синхронизировать товары из Авито');
-    }
-
-    await loadProducts();
-    alert(`Синхронизация завершена. Обновлено товаров: ${data.updated || 0}`);
-  } catch (error) {
-    console.error('Ошибка синхронизации с Авито:', error);
-    alert(error.message || 'Не удалось синхронизировать товары из Авито');
-  } finally {
-    button.disabled = false;
-    button.textContent = originalText;
-  }
 }
 
 /* =========================
@@ -1524,7 +1602,7 @@ async function loadCustomPcRequests() {
           await loadCustomPcRequests();
         } catch (error) {
           console.error('Ошибка удаления заявки:', error);
-          alert(error.message || 'Не удалось удалить заявку');
+          alert('Не удалось удалить заявку');
         }
       });
 
@@ -1744,6 +1822,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   const syncAvitoBtn = document.getElementById('sync-avito-products-btn');
   if (syncAvitoBtn) {
     syncAvitoBtn.addEventListener('click', syncProductsFromAvito);
+  }
+
+  const fillFromAvitoBtn = document.getElementById('fill-from-avito-btn');
+  if (fillFromAvitoBtn) {
+    fillFromAvitoBtn.addEventListener('click', fillProductFromAvito);
   }
 
   await loadProducts();

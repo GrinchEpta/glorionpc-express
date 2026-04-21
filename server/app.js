@@ -76,6 +76,60 @@ function getAvitoItemPrice(item) {
   return null;
 }
 
+function extractAvitoValue(obj, paths = []) {
+  for (const pathKey of paths) {
+    const parts = pathKey.split('.');
+    let current = obj;
+
+    for (const part of parts) {
+      if (current && Object.prototype.hasOwnProperty.call(current, part)) {
+        current = current[part];
+      } else {
+        current = undefined;
+        break;
+      }
+    }
+
+    if (current !== undefined && current !== null && current !== '') {
+      return current;
+    }
+  }
+
+  return null;
+}
+
+function extractAvitoPrice(payload) {
+  const price = extractAvitoValue(payload, [
+    'price',
+    'item.price',
+    'data.price',
+    'result.price',
+    'item.priceInfo.price',
+    'priceInfo.price',
+    'item.price_info.price',
+    'price_info.price'
+  ]);
+
+  const num = Number(price);
+  return Number.isFinite(num) ? num : null;
+}
+
+function extractSpecsFromText(text) {
+  const source = String(text || '');
+
+  const cpuMatch = source.match(/(?:cpu|процессор)\s*[:\-]\s*(.+)/i);
+  const gpuMatch = source.match(/(?:gpu|видеокарта|видео)\s*[:\-]\s*(.+)/i);
+  const ramMatch = source.match(/(?:ram|озу|оперативная память)\s*[:\-]\s*(.+)/i);
+  const ssdMatch = source.match(/(?:ssd|накопитель)\s*[:\-]\s*(.+)/i);
+
+  return {
+    cpu: cpuMatch ? cpuMatch[1].trim() : '',
+    gpu: gpuMatch ? gpuMatch[1].trim() : '',
+    ram: ramMatch ? ramMatch[1].trim() : '',
+    ssd: ssdMatch ? ssdMatch[1].trim() : ''
+  };
+}
+
 async function saveAvitoTokens(data) {
   const expiresAt = data.expires_in
     ? new Date(Date.now() + Number(data.expires_in) * 1000)
@@ -229,39 +283,16 @@ app.get('/api/auth/avito/callback', async (req, res) => {
     `);
   }
 
+  req.session.avitoAuthCode = code;
   delete req.session.avitoOAuthState;
 
-  try {
-    const params = new URLSearchParams();
-    params.append('grant_type', 'authorization_code');
-    params.append('code', code);
-    params.append('client_id', process.env.AVITO_CLIENT_ID);
-    params.append('client_secret', process.env.AVITO_CLIENT_SECRET);
-    params.append('redirect_uri', process.env.AVITO_REDIRECT_URI);
-
-    const response = await axios.post('https://api.avito.ru/token', params, {
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded'
-      }
-    });
-
-    const data = response.data;
-
-    await saveAvitoTokens(data);
-
-    return res.redirect('/admin');
-  } catch (error) {
-    console.error(
-      'Ошибка обмена code на token:',
-      error.response?.data || error.message
-    );
-
-    return res.status(500).send(`
-      <h1>Ошибка получения токена Авито</h1>
-      <pre>${JSON.stringify(error.response?.data || error.message, null, 2)}</pre>
-      <p><a href="/admin">Вернуться в админку</a></p>
-    `);
-  }
+  return res.send(`
+    <h1>Авторизация Авито прошла успешно</h1>
+    <p>Код получен и сохранён в сессии.</p>
+    <p>Теперь можно получить access_token.</p>
+    <p><a href="/api/auth/avito/token">Получить access_token</a></p>
+    <p><a href="/admin">Вернуться в админку</a></p>
+  `);
 });
 
 app.get('/api/auth/avito/token', async (req, res) => {
@@ -349,6 +380,94 @@ app.get('/api/auth/avito/item/:itemId', async (req, res) => {
     return res.status(500).json({
       message: 'Ошибка получения деталей объявления Авито',
       error: error.response?.data || error.message
+    });
+  }
+});
+
+/* =========================
+   AVITO AUTO-FILL PRODUCT
+========================= */
+app.post('/api/avito/fill-product-by-item-id', async (req, res) => {
+  try {
+    const { itemId } = req.body || {};
+
+    if (!itemId || !String(itemId).trim()) {
+      return res.status(400).json({
+        message: 'Не указан Avito Item ID'
+      });
+    }
+
+    const accessToken = await getValidAvitoAccessToken();
+    const itemData = await fetchAvitoItemDetail(accessToken, String(itemId).trim());
+
+    const title = extractAvitoValue(itemData, [
+      'title',
+      'name',
+      'item.title',
+      'item.name',
+      'data.title',
+      'result.title'
+    ]);
+
+    const description = extractAvitoValue(itemData, [
+      'description',
+      'item.description',
+      'data.description',
+      'result.description'
+    ]);
+
+    const avitoUrl = extractAvitoValue(itemData, [
+      'url',
+      'item.url',
+      'data.url',
+      'result.url'
+    ]);
+
+    const category = extractAvitoValue(itemData, [
+      'category.name',
+      'category',
+      'item.category.name',
+      'item.category',
+      'data.category.name',
+      'result.category.name'
+    ]);
+
+    const status = extractAvitoValue(itemData, [
+      'status',
+      'item.status',
+      'data.status',
+      'result.status'
+    ]);
+
+    const price = extractAvitoPrice(itemData);
+    const parsedSpecs = extractSpecsFromText(description);
+
+    return res.json({
+      ok: true,
+      rawStatus: status,
+      product: {
+        name: title || '',
+        description: description || '',
+        price: price ?? '',
+        avitoUrl: avitoUrl || '',
+        category: category || 'ПК',
+        cpu: parsedSpecs.cpu || '',
+        gpu: parsedSpecs.gpu || '',
+        ram: parsedSpecs.ram || '',
+        ssd: parsedSpecs.ssd || ''
+      }
+    });
+  } catch (error) {
+    console.error(
+      'Ошибка авто-заполнения по Avito ID:',
+      error.response?.data || error.message
+    );
+
+    return res.status(500).json({
+      message:
+        error.response?.data?.message ||
+        error.message ||
+        'Не удалось получить данные объявления из Авито'
     });
   }
 });
