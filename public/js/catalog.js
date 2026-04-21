@@ -1,16 +1,13 @@
 const PRODUCTS_API_URL = '/api/products';
 const catalogProductsContainer = document.getElementById('catalog-products');
-const sortSelect = document.getElementById('catalog-sort');
+const sortButtons = document.querySelectorAll('.catalog-sort-btn');
 
 let allCatalogProducts = [];
+let currentSort = 'cheap';
 
 function formatPrice(price) {
   return new Intl.NumberFormat('ru-RU').format(Number(price) || 0) + ' ₽';
 }
-
-/* =========================
-   ФИЛЬТР: ТОЛЬКО ГОТОВЫЕ ПК
-========================= */
 
 function isReadyPc(product) {
   const category = String(product?.category || '').toLowerCase().trim();
@@ -216,8 +213,9 @@ function initCardSlider(card, images) {
 
   function updateImage() {
     img.src = images[currentIndex];
-    prevBtn.style.display = images.length > 1 ? 'flex' : 'none';
-    nextBtn.style.display = images.length > 1 ? 'flex' : 'none';
+    const showArrows = images.length > 1;
+    prevBtn.style.display = showArrows ? 'flex' : 'none';
+    nextBtn.style.display = showArrows ? 'flex' : 'none';
   }
 
   prevBtn.addEventListener('click', (event) => {
@@ -300,7 +298,7 @@ function createProductCard(rawProduct, index = 0) {
     event.stopPropagation();
 
     if (window.CartUtils && typeof window.CartUtils.addToCart === 'function') {
-      CartUtils.addToCart(product);
+      window.CartUtils.addToCart(product);
       updateCartIndicatorAfterAdd();
     }
 
@@ -326,10 +324,10 @@ function sortProducts(products, sortType) {
 
   if (sortType === 'expensive') {
     sorted.sort((a, b) => Number(b.price || 0) - Number(a.price || 0));
-    return sorted;
+  } else {
+    sorted.sort((a, b) => Number(a.price || 0) - Number(b.price || 0));
   }
 
-  sorted.sort((a, b) => Number(a.price || 0) - Number(b.price || 0));
   return sorted;
 }
 
@@ -348,7 +346,16 @@ function renderCatalogProducts(products) {
   });
 }
 
+function updateSortButtons(sortType) {
+  sortButtons.forEach((button) => {
+    button.classList.toggle('is-active', button.dataset.sort === sortType);
+  });
+}
+
 function applyCatalogSort(sortType) {
+  currentSort = sortType;
+  updateSortButtons(sortType);
+
   const sortedProducts = sortProducts(allCatalogProducts, sortType);
   renderCatalogProducts(sortedProducts);
 }
@@ -369,17 +376,25 @@ async function loadCatalogProducts() {
       ? products.filter(isReadyPc)
       : [];
 
-    applyCatalogSort(sortSelect?.value || 'cheap');
+    applyCatalogSort(currentSort);
   } catch (error) {
     console.error('Ошибка загрузки товаров:', error);
     catalogProductsContainer.innerHTML = '<p>Не удалось загрузить товары.</p>';
   }
 }
 
-if (sortSelect) {
-  sortSelect.addEventListener('change', () => {
-    applyCatalogSort(sortSelect.value);
+function initCatalogSortButtons() {
+  if (!sortButtons.length) return;
+
+  sortButtons.forEach((button) => {
+    button.addEventListener('click', () => {
+      const sortType = button.dataset.sort || 'cheap';
+      applyCatalogSort(sortType);
+    });
   });
 }
 
-document.addEventListener('DOMContentLoaded', loadCatalogProducts);
+document.addEventListener('DOMContentLoaded', () => {
+  initCatalogSortButtons();
+  loadCatalogProducts();
+});
