@@ -6,16 +6,16 @@
   "scripts": {
     "start": "node server/app.js",
     "dev": "nodemon server/app.js",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "db:push": "prisma db push",
+    "db:generate": "prisma generate"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "@prisma/adapter-better-sqlite3": "^7.5.0",
     "@prisma/client": "^7.5.0",
     "axios": "^1.15.0",
-    "better-sqlite3": "^12.8.0",
     "cheerio": "^1.2.0",
     "cors": "^2.8.5",
     "dotenv": "^17.3.1",

@@ -1,22 +1,15 @@
-require('dotenv').config()
+require('dotenv').config();
 
-const { PrismaClient } = require('@prisma/client')
-const { PrismaBetterSqlite3 } = require('@prisma/adapter-better-sqlite3')
+const { PrismaClient } = require('@prisma/client');
 
-const globalForPrisma = globalThis
-
-const adapter = new PrismaBetterSqlite3({
-  url: process.env.DATABASE_URL || 'file:./dev.db',
-})
+const globalForPrisma = globalThis;
 
 const prisma =
   globalForPrisma.prisma ||
-  new PrismaClient({
-    adapter,
-  })
+  new PrismaClient();
 
 if (process.env.NODE_ENV !== 'production') {
-  globalForPrisma.prisma = prisma
+  globalForPrisma.prisma = prisma;
 }
 
-module.exports = prisma
+module.exports = prisma;

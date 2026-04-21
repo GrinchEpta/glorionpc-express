@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
 }
 
 model Product {
@@ -48,7 +48,7 @@ model Product {
 
   specsJson          String?
 
-  avitoItemId        String?
+  avitoItemId        String?        @unique
   avitoUrl           String?
   avitoPrice         Float?
   avitoStatus        String?
