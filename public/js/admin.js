@@ -1252,15 +1252,17 @@ async function loadProducts() {
             method: 'DELETE'
           });
 
+          const data = await deleteResponse.json().catch(() => ({}));
+
           if (!deleteResponse.ok) {
-            throw new Error('Ошибка удаления');
+            throw new Error(data.error || data.message || 'Ошибка удаления');
           }
 
           await loadProducts();
           resetForm();
         } catch (error) {
           console.error(error);
-          alert('Не удалось удалить товар');
+          alert(error.message || 'Не удалось удалить товар');
         }
       });
 
@@ -1337,15 +1339,17 @@ async function loadComponents() {
             method: 'DELETE'
           });
 
+          const data = await deleteResponse.json().catch(() => ({}));
+
           if (!deleteResponse.ok) {
-            throw new Error('Не удалось удалить комплектующее');
+            throw new Error(data.error || data.message || 'Не удалось удалить комплектующее');
           }
 
           await loadComponents();
           resetComponentForm();
         } catch (error) {
           console.error(error);
-          alert('Не удалось удалить комплектующее');
+          alert(error.message || 'Не удалось удалить комплектующее');
         }
       });
 
@@ -1690,8 +1694,10 @@ adminForm?.addEventListener('submit', async (event) => {
       body: formData
     });
 
+    const data = await response.json().catch(() => ({}));
+
     if (!response.ok) {
-      throw new Error('Ошибка сохранения товара');
+      throw new Error(data.error || data.message || 'Ошибка сохранения товара');
     }
 
     resetForm();
@@ -1699,7 +1705,7 @@ adminForm?.addEventListener('submit', async (event) => {
     alert(productId ? 'Товар обновлён' : 'Товар добавлен');
   } catch (error) {
     console.error(error);
-    alert('Не удалось сохранить товар');
+    alert(error.message || 'Не удалось сохранить товар');
   }
 });
 
@@ -1782,8 +1788,10 @@ componentForm?.addEventListener('submit', async (event) => {
       body: formData
     });
 
+    const data = await response.json().catch(() => ({}));
+
     if (!response.ok) {
-      throw new Error('Не удалось сохранить комплектующее');
+      throw new Error(data.error || data.message || 'Не удалось сохранить комплектующее');
     }
 
     resetComponentForm();
@@ -1791,7 +1799,7 @@ componentForm?.addEventListener('submit', async (event) => {
     alert(componentId ? 'Комплектующее обновлено' : 'Комплектующее добавлено');
   } catch (error) {
     console.error(error);
-    alert('Не удалось сохранить комплектующее');
+    alert(error.message || 'Не удалось сохранить комплектующее');
   }
 });
 

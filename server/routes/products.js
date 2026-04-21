@@ -22,15 +22,48 @@ function parseNullableFloat(value) {
   return Number.isNaN(num) ? null : num;
 }
 
+function extractCloudinaryPublicId(url) {
+  try {
+    if (!url || typeof url !== 'string') return null;
+
+    const parts = url.split('/');
+    const uploadIndex = parts.findIndex((part) => part === 'upload');
+
+    if (uploadIndex === -1) return null;
+
+    let publicIdWithExt = parts.slice(uploadIndex + 1).join('/');
+
+    if (publicIdWithExt.startsWith('v') && /^\d+$/.test(publicIdWithExt.split('/')[0].slice(1))) {
+      publicIdWithExt = publicIdWithExt.split('/').slice(1).join('/');
+    }
+
+    return publicIdWithExt.replace(/\.[^/.]+$/, '');
+  } catch (error) {
+    console.error('Ошибка извлечения public_id:', error);
+    return null;
+  }
+}
+
+async function deleteCloudinaryImageByUrl(url) {
+  try {
+    const publicId = extractCloudinaryPublicId(url);
+    if (!publicId) return;
+
+    await cloudinary.uploader.destroy(publicId);
+  } catch (error) {
+    console.error('Не удалось удалить фото из Cloudinary:', error.message);
+  }
+}
+
 router.get('/', async (req, res) => {
   try {
     const products = await prisma.product.findMany({
       include: {
         images: {
-          orderBy: { order: 'asc' },
-        },
+          orderBy: { order: 'asc' }
+        }
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: 'desc' }
     });
 
     res.json(products);
@@ -38,7 +71,7 @@ router.get('/', async (req, res) => {
     console.error('Ошибка получения товаров:', error);
     res.status(500).json({
       message: 'Ошибка получения товаров',
-      error: error.message,
+      error: error.message
     });
   }
 });
@@ -49,9 +82,9 @@ router.get('/:id', async (req, res) => {
       where: { id: Number(req.params.id) },
       include: {
         images: {
-          orderBy: { order: 'asc' },
-        },
-      },
+          orderBy: { order: 'asc' }
+        }
+      }
     });
 
     if (!product) {
@@ -63,7 +96,7 @@ router.get('/:id', async (req, res) => {
     console.error('Ошибка получения товара:', error);
     res.status(500).json({
       message: 'Ошибка получения товара',
-      error: error.message,
+      error: error.message
     });
   }
 });
@@ -104,12 +137,12 @@ router.post('/', upload.array('images', 10), async (req, res) => {
       avitoPrice,
       avitoStatus,
       avitoLastSyncedAt,
-      syncSource,
+      syncSource
     } = req.body;
 
     const uploadedImages = (req.files || []).map((file, index) => ({
       url: file.path,
-      order: index,
+      order: index
     }));
 
     const product = await prisma.product.create({
@@ -160,14 +193,14 @@ router.post('/', upload.array('images', 10), async (req, res) => {
         syncSource: syncSource || null,
 
         images: {
-          create: uploadedImages,
-        },
+          create: uploadedImages
+        }
       },
       include: {
         images: {
-          orderBy: { order: 'asc' },
-        },
-      },
+          orderBy: { order: 'asc' }
+        }
+      }
     });
 
     res.status(201).json(product);
@@ -175,7 +208,7 @@ router.post('/', upload.array('images', 10), async (req, res) => {
     console.error('Ошибка создания товара:', error);
     res.status(500).json({
       message: 'Ошибка создания товара',
-      error: error.message,
+      error: error.message
     });
   }
 });
@@ -186,7 +219,7 @@ router.put('/:id', upload.array('images', 10), async (req, res) => {
 
     const existingProduct = await prisma.product.findUnique({
       where: { id: productId },
-      include: { images: true },
+      include: { images: true }
     });
 
     if (!existingProduct) {
@@ -228,14 +261,15 @@ router.put('/:id', upload.array('images', 10), async (req, res) => {
       avitoStatus,
       avitoLastSyncedAt,
       syncSource,
-      existingImages,
+      existingImages
     } = req.body;
 
     let existingImageUrls = [];
     if (existingImages) {
       try {
         existingImageUrls = JSON.parse(existingImages);
-      } catch {
+      } catch (error) {
+        console.error('Ошибка парсинга existingImages:', error);
         existingImageUrls = [];
       }
     }
@@ -245,32 +279,21 @@ router.put('/:id', upload.array('images', 10), async (req, res) => {
     );
 
     for (const image of imagesToDelete) {
-      try {
-        const parts = image.url.split('/');
-        const uploadIndex = parts.findIndex((part) => part === 'upload');
-
-        if (uploadIndex !== -1) {
-          const publicIdWithExt = parts.slice(uploadIndex + 2).join('/');
-          const publicId = publicIdWithExt.replace(/\.[^/.]+$/, '');
-          await cloudinary.uploader.destroy(publicId);
-        }
-      } catch (err) {
-        console.error('Не удалось удалить фото из Cloudinary:', err.message);
-      }
+      await deleteCloudinaryImageByUrl(image.url);
     }
 
     await prisma.productImage.deleteMany({
-      where: { productId },
+      where: { productId }
     });
 
     const oldImages = existingImageUrls.map((url, index) => ({
       url,
-      order: index,
+      order: index
     }));
 
     const newImages = (req.files || []).map((file, index) => ({
       url: file.path,
-      order: oldImages.length + index,
+      order: oldImages.length + index
     }));
 
     const allImages = [...oldImages, ...newImages];
@@ -324,14 +347,14 @@ router.put('/:id', upload.array('images', 10), async (req, res) => {
         syncSource: syncSource || null,
 
         images: {
-          create: allImages,
-        },
+          create: allImages
+        }
       },
       include: {
         images: {
-          orderBy: { order: 'asc' },
-        },
-      },
+          orderBy: { order: 'asc' }
+        }
+      }
     });
 
     res.json(updatedProduct);
@@ -339,7 +362,7 @@ router.put('/:id', upload.array('images', 10), async (req, res) => {
     console.error('Ошибка обновления товара:', error);
     res.status(500).json({
       message: 'Ошибка обновления товара',
-      error: error.message,
+      error: error.message
     });
   }
 });
@@ -350,7 +373,7 @@ router.delete('/:id', async (req, res) => {
 
     const product = await prisma.product.findUnique({
       where: { id: productId },
-      include: { images: true },
+      include: { images: true }
     });
 
     if (!product) {
@@ -358,22 +381,11 @@ router.delete('/:id', async (req, res) => {
     }
 
     for (const image of product.images) {
-      try {
-        const parts = image.url.split('/');
-        const uploadIndex = parts.findIndex((part) => part === 'upload');
-
-        if (uploadIndex !== -1) {
-          const publicIdWithExt = parts.slice(uploadIndex + 2).join('/');
-          const publicId = publicIdWithExt.replace(/\.[^/.]+$/, '');
-          await cloudinary.uploader.destroy(publicId);
-        }
-      } catch (err) {
-        console.error('Не удалось удалить фото из Cloudinary:', err.message);
-      }
+      await deleteCloudinaryImageByUrl(image.url);
     }
 
     await prisma.product.delete({
-      where: { id: productId },
+      where: { id: productId }
     });
 
     res.json({ message: 'Товар удалён' });
@@ -381,7 +393,7 @@ router.delete('/:id', async (req, res) => {
     console.error('Ошибка удаления товара:', error);
     res.status(500).json({
       message: 'Ошибка удаления товара',
-      error: error.message,
+      error: error.message
     });
   }
 });
