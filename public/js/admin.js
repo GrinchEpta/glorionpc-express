@@ -1056,6 +1056,21 @@ function renderComponentSpecsSummary(product) {
 }
 
 /* =========================
+   AVITO AUTH BUTTON
+========================= */
+function initAvitoConnectButton() {
+  const connectAvitoBtn = document.getElementById('connect-avito-btn');
+
+  if (!connectAvitoBtn) return;
+
+  connectAvitoBtn.addEventListener('click', (event) => {
+    // для <a> это не обязательно, но пусть переход будет явно через JS
+    event.preventDefault();
+    window.location.href = '/api/auth/avito/start';
+  });
+}
+
+/* =========================
    AVITO SYNC
 ========================= */
 async function syncProductsFromAvito() {
@@ -1336,25 +1351,20 @@ async function loadOrders() {
             <span class="${getStatusClass(order.status)}">${getStatusText(order.status)}</span>
           </p>
 
-          <div class="admin-order-status">
-            <select class="order-status-select">
-              <option value="new" ${order.status === 'new' ? 'selected' : ''}>Новый</option>
-              <option value="processing" ${order.status === 'processing' ? 'selected' : ''}>В обработке</option>
-              <option value="completed" ${order.status === 'completed' ? 'selected' : ''}>Завершён</option>
-              <option value="cancelled" ${order.status === 'cancelled' ? 'selected' : ''}>Отменён</option>
-            </select>
-          </div>
-
-          <div class="admin-order-items">
-            <strong>Товары:</strong>
-            <ul>${itemsHtml}</ul>
+          <div class="admin-order-products">
+            <strong>Товары в заказе:</strong>
+            <ul>${itemsHtml || '<li>Нет товаров</li>'}</ul>
           </div>
         </div>
 
         <div class="admin-item__actions">
-          <button type="button" class="btn btn-secondary btn-small delete-order-btn">
-            Удалить заказ
-          </button>
+          <select class="order-status-select btn btn-secondary btn-small">
+            <option value="new" ${order.status === 'new' ? 'selected' : ''}>Новый</option>
+            <option value="processing" ${order.status === 'processing' ? 'selected' : ''}>В обработке</option>
+            <option value="completed" ${order.status === 'completed' ? 'selected' : ''}>Завершён</option>
+            <option value="cancelled" ${order.status === 'cancelled' ? 'selected' : ''}>Отменён</option>
+          </select>
+          <button type="button" class="btn btn-secondary btn-small delete-order-btn">Удалить</button>
         </div>
       `;
 
@@ -1374,7 +1384,7 @@ async function loadOrders() {
           const data = await updateResponse.json();
 
           if (!updateResponse.ok) {
-            throw new Error(data.message || 'Не удалось обновить статус заказа');
+            throw new Error(data.message || 'Не удалось обновить статус');
           }
 
           await loadOrders();
@@ -1401,7 +1411,7 @@ async function loadOrders() {
 
           await loadOrders();
         } catch (error) {
-          console.error(error);
+          console.error('Ошибка удаления заказа:', error);
           alert(error.message || 'Не удалось удалить заказ');
         }
       });
@@ -1424,14 +1434,10 @@ async function loadCustomPcRequests() {
     const response = await fetch(CUSTOM_PC_REQUESTS_API_URL);
     const requests = await response.json();
 
-    if (!response.ok) {
-      throw new Error('Не удалось загрузить заявки на ПК');
-    }
-
     adminCustomPcRequestsList.innerHTML = '';
 
     if (!Array.isArray(requests) || !requests.length) {
-      adminCustomPcRequestsList.innerHTML = '<p>Заявок на ПК пока нет.</p>';
+      adminCustomPcRequestsList.innerHTML = '<p>Заявок пока нет.</p>';
       return;
     }
 
@@ -1446,12 +1452,8 @@ async function loadCustomPcRequests() {
           <p><strong>Имя:</strong> ${request.customerName || '-'}</p>
           <p><strong>Телефон:</strong> ${request.phone || '-'}</p>
           <p><strong>Email:</strong> ${request.email || '-'}</p>
-          <p><strong>Бюджет:</strong> ${
-            request.budget
-              ? new Intl.NumberFormat('ru-RU').format(request.budget) + ' ₽'
-              : '-'
-          }</p>
-          <p><strong>Дизайн:</strong> ${request.designWishes || '-'}</p>
+          <p><strong>Бюджет:</strong> ${request.budget ? formatPrice(request.budget) : '-'}</p>
+          <p><strong>Пожелания по дизайну:</strong> ${request.designWishes || '-'}</p>
           <p><strong>Размер корпуса:</strong> ${request.caseSize || '-'}</p>
           <p><strong>Назначение:</strong> ${request.purpose || '-'}</p>
           <p><strong>Комментарий:</strong> ${request.comment || '-'}</p>
@@ -1459,21 +1461,16 @@ async function loadCustomPcRequests() {
             <strong>Статус:</strong>
             <span class="${getAdminStatusClass(request.status)}">${getAdminStatusText(request.status)}</span>
           </p>
-
-          <div class="admin-order-status">
-            <select class="order-status-select">
-              <option value="new" ${request.status === 'new' ? 'selected' : ''}>Новая</option>
-              <option value="processing" ${request.status === 'processing' ? 'selected' : ''}>В обработке</option>
-              <option value="completed" ${request.status === 'completed' ? 'selected' : ''}>Завершена</option>
-              <option value="cancelled" ${request.status === 'cancelled' ? 'selected' : ''}>Отменена</option>
-            </select>
-          </div>
         </div>
 
         <div class="admin-item__actions">
-          <button type="button" class="btn btn-secondary btn-small delete-custom-pc-request-btn">
-            Удалить
-          </button>
+          <select class="order-status-select btn btn-secondary btn-small">
+            <option value="new" ${request.status === 'new' ? 'selected' : ''}>Новая</option>
+            <option value="processing" ${request.status === 'processing' ? 'selected' : ''}>В обработке</option>
+            <option value="completed" ${request.status === 'completed' ? 'selected' : ''}>Завершена</option>
+            <option value="cancelled" ${request.status === 'cancelled' ? 'selected' : ''}>Отменена</option>
+          </select>
+          <button type="button" class="btn btn-secondary btn-small delete-custom-pc-request-btn">Удалить</button>
         </div>
       `;
 
@@ -1742,6 +1739,7 @@ componentForm?.addEventListener('submit', async (event) => {
 document.addEventListener('DOMContentLoaded', async () => {
   setupAdminTabs();
   resetComponentForm();
+  initAvitoConnectButton();
 
   const syncAvitoBtn = document.getElementById('sync-avito-products-btn');
   if (syncAvitoBtn) {
@@ -1870,47 +1868,47 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   }
 
-function bindFormToggles() {
-  if (showProductFormBtn) {
-    showProductFormBtn.addEventListener('click', () => {
-      resetForm();
-      setActiveTab('products');
-      showBlock(productFormBlock);
-    });
-  }
+  function bindFormToggles() {
+    if (showProductFormBtn) {
+      showProductFormBtn.addEventListener('click', () => {
+        resetForm();
+        setActiveTab('products');
+        showBlock(productFormBlock);
+      });
+    }
 
-  if (hideProductFormBtn) {
-    hideProductFormBtn.addEventListener('click', () => {
-      hideBlock(productFormBlock);
-    });
-  }
+    if (hideProductFormBtn) {
+      hideProductFormBtn.addEventListener('click', () => {
+        hideBlock(productFormBlock);
+      });
+    }
 
-  if (showComponentFormBtn) {
-    showComponentFormBtn.addEventListener('click', () => {
-      resetComponentForm();
-      setActiveTab('components');
-      showBlock(componentFormBlock);
-    });
-  }
+    if (showComponentFormBtn) {
+      showComponentFormBtn.addEventListener('click', () => {
+        resetComponentForm();
+        setActiveTab('components');
+        showBlock(componentFormBlock);
+      });
+    }
 
-  if (hideComponentFormBtn) {
-    hideComponentFormBtn.addEventListener('click', () => {
-      hideBlock(componentFormBlock);
-    });
-  }
+    if (hideComponentFormBtn) {
+      hideComponentFormBtn.addEventListener('click', () => {
+        hideBlock(componentFormBlock);
+      });
+    }
 
-  if (productCancelBtn) {
-    productCancelBtn.addEventListener('click', () => {
-      setTimeout(() => hideBlock(productFormBlock), 0);
-    });
-  }
+    if (productCancelBtn) {
+      productCancelBtn.addEventListener('click', () => {
+        setTimeout(() => hideBlock(productFormBlock), 0);
+      });
+    }
 
-  if (componentCancelBtn) {
-    componentCancelBtn.addEventListener('click', () => {
-      setTimeout(() => hideBlock(componentFormBlock), 0);
-    });
+    if (componentCancelBtn) {
+      componentCancelBtn.addEventListener('click', () => {
+        setTimeout(() => hideBlock(componentFormBlock), 0);
+      });
+    }
   }
-}
 
   function bindTabs() {
     adminTabs.forEach((tab) => {

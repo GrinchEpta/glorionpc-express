@@ -209,6 +209,7 @@ app.get('/api/auth/avito/callback', async (req, res) => {
       <h1>Ошибка авторизации Авито</h1>
       <p>${error}</p>
       <p>${error_description || ''}</p>
+      <p><a href="/admin">Вернуться в админку</a></p>
     `);
   }
 
@@ -216,6 +217,7 @@ app.get('/api/auth/avito/callback', async (req, res) => {
     return res.status(400).send(`
       <h1>Код авторизации не получен</h1>
       <p>Авито не вернул параметр code.</p>
+      <p><a href="/admin">Вернуться в админку</a></p>
     `);
   }
 
@@ -223,19 +225,43 @@ app.get('/api/auth/avito/callback', async (req, res) => {
     return res.status(400).send(`
       <h1>Неверный state</h1>
       <p>Проверка безопасности не пройдена.</p>
+      <p><a href="/admin">Вернуться в админку</a></p>
     `);
   }
 
-  req.session.avitoAuthCode = code;
   delete req.session.avitoOAuthState;
 
-  return res.send(`
-    <h1>Авторизация Авито прошла успешно</h1>
-    <p>Код получен и сохранён в сессии.</p>
-    <p>Теперь можно получить access_token.</p>
-    <p><a href="/api/auth/avito/token">Получить access_token</a></p>
-    <p><a href="/admin">Вернуться в админку</a></p>
-  `);
+  try {
+    const params = new URLSearchParams();
+    params.append('grant_type', 'authorization_code');
+    params.append('code', code);
+    params.append('client_id', process.env.AVITO_CLIENT_ID);
+    params.append('client_secret', process.env.AVITO_CLIENT_SECRET);
+    params.append('redirect_uri', process.env.AVITO_REDIRECT_URI);
+
+    const response = await axios.post('https://api.avito.ru/token', params, {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      }
+    });
+
+    const data = response.data;
+
+    await saveAvitoTokens(data);
+
+    return res.redirect('/admin');
+  } catch (error) {
+    console.error(
+      'Ошибка обмена code на token:',
+      error.response?.data || error.message
+    );
+
+    return res.status(500).send(`
+      <h1>Ошибка получения токена Авито</h1>
+      <pre>${JSON.stringify(error.response?.data || error.message, null, 2)}</pre>
+      <p><a href="/admin">Вернуться в админку</a></p>
+    `);
+  }
 });
 
 app.get('/api/auth/avito/token', async (req, res) => {
