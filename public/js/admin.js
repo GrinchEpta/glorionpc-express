@@ -995,44 +995,61 @@ async function fillProductFromAvito() {
     }
 
     const product = data.product || {};
-
-    if (product.name) {
-      document.getElementById('name').value = product.name;
-    }
+    let appliedCount = 0;
 
     if (product.description) {
       document.getElementById('description').value = product.description;
+      appliedCount += 1;
     }
 
     if (product.price !== null && product.price !== undefined && product.price !== '') {
       document.getElementById('price').value = product.price;
+      appliedCount += 1;
     }
 
     if (product.avitoUrl) {
       document.getElementById('avitoUrl').value = product.avitoUrl;
+      appliedCount += 1;
     }
 
     if (product.category) {
       document.getElementById('category').value = product.category;
+      appliedCount += 1;
     }
 
     if (product.cpu) {
       document.getElementById('cpu').value = product.cpu;
+      appliedCount += 1;
     }
 
     if (product.gpu) {
       document.getElementById('gpu').value = product.gpu;
+      appliedCount += 1;
     }
 
     if (product.ram) {
       document.getElementById('ram').value = product.ram;
+      appliedCount += 1;
     }
 
     if (product.ssd) {
       document.getElementById('ssd').value = product.ssd;
+      appliedCount += 1;
     }
 
-    alert('Данные из Авито успешно подставлены в форму');
+    if (typeof product.inStock === 'boolean') {
+      const inStockInput = document.getElementById('inStock');
+      if (inStockInput) {
+        inStockInput.checked = product.inStock;
+        appliedCount += 1;
+      }
+    }
+
+    if (appliedCount > 0) {
+      alert(`Данные из Авито подставлены в форму: ${appliedCount}`);
+    } else {
+      alert('Запрос к Авито прошёл, но API не вернуло полей для заполнения формы.');
+    }
   } catch (error) {
     console.error('Ошибка авто-заполнения по Avito ID:', error);
     alert(error.message || 'Не удалось заполнить товар по Avito ID');
@@ -1490,7 +1507,7 @@ async function loadOrders() {
           await loadOrders();
         } catch (error) {
           console.error('Ошибка удаления заказа:', error);
-          alert(error.message || 'Не удалось удалить заказ');
+          alert('Не удалось удалить заказ');
         }
       });
 

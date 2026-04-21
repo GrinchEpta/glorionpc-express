@@ -201,11 +201,10 @@ function getAvitoItemCategory(item) {
 function hasUsefulAutofillData(item) {
   if (!item || typeof item !== 'object') return false;
 
-  const title = getAvitoItemTitle(item);
   const description = getAvitoItemDescription(item);
   const price = extractAvitoPrice(item);
 
-  return Boolean(title || description || price);
+  return Boolean(description || price);
 }
 
 /* =========================
@@ -516,7 +515,6 @@ app.post('/api/avito/fill-product-by-item-id', async (req, res) => {
       ? matchedItem
       : (detailData || matchedItem || {});
 
-    const title = getAvitoItemTitle(source);
     const description = getAvitoItemDescription(source);
     const price = extractAvitoPrice(source);
     const status = getAvitoItemStatus(source);
@@ -526,11 +524,11 @@ app.post('/api/avito/fill-product-by-item-id', async (req, res) => {
     const urlFromDetail = detailData ? getAvitoItemUrl(detailData) : '';
     const normalizedUrl = urlFromSource || urlFromDetail || '';
 
-    const parsedSpecs = extractSpecsFromText(description || title);
+    const parsedSpecs = extractSpecsFromText(description);
 
     const product = {
-      name: title || '',
-      description: description || title || '',
+      name: '',
+      description: description || '',
       price: price ?? '',
       avitoUrl: normalizedUrl,
       category: category || 'ПК',
@@ -542,7 +540,6 @@ app.post('/api/avito/fill-product-by-item-id', async (req, res) => {
     };
 
     const usefulFieldsCount = [
-      product.name,
       product.description,
       product.price,
       product.avitoUrl
