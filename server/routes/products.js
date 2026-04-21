@@ -234,159 +234,182 @@ router.post('/', upload.array('images', 10), async (req, res) => {
   }
 });
 
-router.put('/:id', upload.array('images', 10), async (req, res) => {
-  try {
-    const productId = Number(req.params.id);
+router.put(
+  '/:id',
+  (req, res, next) => {
+    upload.array('images', 10)(req, res, (error) => {
+      if (error) {
+        console.error(
+          '🔥 UPLOAD ERROR UPDATE PRODUCT:',
+          error?.message,
+          error?.stack,
+          JSON.stringify(error, Object.getOwnPropertyNames(error), 2)
+        );
 
-    const existingProduct = await prisma.product.findUnique({
-      where: { id: productId },
-      include: { images: true }
-    });
-
-    if (!existingProduct) {
-      return res.status(404).json({ message: 'Товар не найден' });
-    }
-
-    const {
-      name,
-      description,
-      price,
-      oldPrice,
-      category,
-      cpu,
-      gpu,
-      ram,
-      ssd,
-      inStock,
-      componentType,
-      isConfiguratorItem,
-      socket,
-      ramType,
-      chipset,
-      formFactor,
-      memoryCapacity,
-      storageType,
-      storageCapacity,
-      powerDraw,
-      recommendedPsu,
-      psuWattage,
-      coolingLevel,
-      supportedSockets,
-      gpuLength,
-      gpuWidth,
-      gpuHeight,
-      specsJson,
-      avitoItemId,
-      avitoUrl,
-      avitoPrice,
-      avitoStatus,
-      avitoLastSyncedAt,
-      syncSource,
-      existingImages
-    } = req.body;
-
-    let existingImageUrls = [];
-    if (existingImages) {
-      try {
-        existingImageUrls = JSON.parse(existingImages);
-      } catch (error) {
-        console.error('Ошибка парсинга existingImages:', error);
-        existingImageUrls = [];
+        return res.status(500).json({
+          message: 'Ошибка загрузки изображений',
+          error: error?.message || 'Не удалось загрузить изображения'
+        });
       }
-    }
 
-    const imagesToDelete = existingProduct.images.filter(
-      (img) => !existingImageUrls.includes(img.url)
-    );
-
-    for (const image of imagesToDelete) {
-      await deleteCloudinaryImageByUrl(image.url);
-    }
-
-    await prisma.productImage.deleteMany({
-      where: { productId }
+      next();
     });
+  },
+  async (req, res) => {
+    try {
+      const productId = Number(req.params.id);
 
-    const oldImages = existingImageUrls.map((url, index) => ({
-      url,
-      order: index
-    }));
+      const existingProduct = await prisma.product.findUnique({
+        where: { id: productId },
+        include: { images: true }
+      });
 
-    const newImages = (req.files || []).map((file, index) => ({
-      url: file.path,
-      order: oldImages.length + index
-    }));
+      if (!existingProduct) {
+        return res.status(404).json({ message: 'Товар не найден' });
+      }
 
-    const allImages = [...oldImages, ...newImages];
+      const {
+        name,
+        description,
+        price,
+        oldPrice,
+        category,
+        cpu,
+        gpu,
+        ram,
+        ssd,
+        inStock,
+        componentType,
+        isConfiguratorItem,
+        socket,
+        ramType,
+        chipset,
+        formFactor,
+        memoryCapacity,
+        storageType,
+        storageCapacity,
+        powerDraw,
+        recommendedPsu,
+        psuWattage,
+        coolingLevel,
+        supportedSockets,
+        gpuLength,
+        gpuWidth,
+        gpuHeight,
+        specsJson,
+        avitoItemId,
+        avitoUrl,
+        avitoPrice,
+        avitoStatus,
+        avitoLastSyncedAt,
+        syncSource,
+        existingImages
+      } = req.body;
 
-    const updatedProduct = await prisma.product.update({
-      where: { id: productId },
-      data: {
-        name: name || '',
-        description: description || '',
-        price: parseNullableFloat(price) || 0,
-        oldPrice: parseNullableFloat(oldPrice),
-        category: category || 'ПК',
-
-        cpu: cpu || null,
-        gpu: gpu || null,
-        ram: ram || null,
-        ssd: ssd || null,
-
-        inStock: parseBoolean(inStock),
-
-        componentType: componentType || null,
-        isConfiguratorItem: parseBoolean(isConfiguratorItem),
-
-        socket: socket || null,
-        ramType: ramType || null,
-        chipset: chipset || null,
-        formFactor: formFactor || null,
-
-        memoryCapacity: memoryCapacity || null,
-        storageType: storageType || null,
-        storageCapacity: storageCapacity || null,
-
-        powerDraw: parseNullableInt(powerDraw),
-        recommendedPsu: parseNullableInt(recommendedPsu),
-        psuWattage: parseNullableInt(psuWattage),
-
-        coolingLevel: coolingLevel || null,
-        supportedSockets: supportedSockets || null,
-
-        gpuLength: parseNullableInt(gpuLength),
-        gpuWidth: parseNullableInt(gpuWidth),
-        gpuHeight: parseNullableInt(gpuHeight),
-
-        specsJson: specsJson || null,
-
-        avitoItemId: avitoItemId || null,
-        avitoUrl: avitoUrl || null,
-        avitoPrice: parseNullableFloat(avitoPrice),
-        avitoStatus: avitoStatus || null,
-        avitoLastSyncedAt: avitoLastSyncedAt ? new Date(avitoLastSyncedAt) : null,
-        syncSource: syncSource || null,
-
-        images: {
-          create: allImages
-        }
-      },
-      include: {
-        images: {
-          orderBy: { order: 'asc' }
+      let existingImageUrls = [];
+      if (existingImages) {
+        try {
+          existingImageUrls = JSON.parse(existingImages);
+        } catch (error) {
+          console.error('Ошибка парсинга existingImages:', error);
+          existingImageUrls = [];
         }
       }
-    });
 
-    res.json(updatedProduct);
-  } catch (error) {
-    console.error('Ошибка обновления товара:', error?.message || error);
-    res.status(500).json({
-      message: 'Ошибка обновления товара',
-      error: normalizeErrorMessage(error)
-    });
+      const imagesToDelete = existingProduct.images.filter(
+        (img) => !existingImageUrls.includes(img.url)
+      );
+
+      for (const image of imagesToDelete) {
+        await deleteCloudinaryImageByUrl(image.url);
+      }
+
+      await prisma.productImage.deleteMany({
+        where: { productId }
+      });
+
+      const oldImages = existingImageUrls.map((url, index) => ({
+        url,
+        order: index
+      }));
+
+      const newImages = (req.files || []).map((file, index) => ({
+        url: file.path,
+        order: oldImages.length + index
+      }));
+
+      const allImages = [...oldImages, ...newImages];
+
+      const updatedProduct = await prisma.product.update({
+        where: { id: productId },
+        data: {
+          name: name || '',
+          description: description || '',
+          price: parseNullableFloat(price) || 0,
+          oldPrice: parseNullableFloat(oldPrice),
+          category: category || 'ПК',
+
+          cpu: cpu || null,
+          gpu: gpu || null,
+          ram: ram || null,
+          ssd: ssd || null,
+
+          inStock: parseBoolean(inStock),
+
+          componentType: componentType || null,
+          isConfiguratorItem: parseBoolean(isConfiguratorItem),
+
+          socket: socket || null,
+          ramType: ramType || null,
+          chipset: chipset || null,
+          formFactor: formFactor || null,
+
+          memoryCapacity: memoryCapacity || null,
+          storageType: storageType || null,
+          storageCapacity: storageCapacity || null,
+
+          powerDraw: parseNullableInt(powerDraw),
+          recommendedPsu: parseNullableInt(recommendedPsu),
+          psuWattage: parseNullableInt(psuWattage),
+
+          coolingLevel: coolingLevel || null,
+          supportedSockets: supportedSockets || null,
+
+          gpuLength: parseNullableInt(gpuLength),
+          gpuWidth: parseNullableInt(gpuWidth),
+          gpuHeight: parseNullableInt(gpuHeight),
+
+          specsJson: specsJson || null,
+
+          avitoItemId: avitoItemId || null,
+          avitoUrl: avitoUrl || null,
+          avitoPrice: parseNullableFloat(avitoPrice),
+          avitoStatus: avitoStatus || null,
+          avitoLastSyncedAt: avitoLastSyncedAt ? new Date(avitoLastSyncedAt) : null,
+          syncSource: syncSource || null,
+
+          images: {
+            create: allImages
+          }
+        },
+        include: {
+          images: {
+            orderBy: { order: 'asc' }
+          }
+        }
+      });
+
+      res.json(updatedProduct);
+    } catch (error) {
+      console.error('🔥 FULL ERROR UPDATE PRODUCT:', error?.message, error?.stack, error);
+
+      res.status(500).json({
+        message: 'Ошибка обновления товара',
+        error: error?.message || 'Неизвестная ошибка'
+      });
+    }
   }
-});
+);
 
 router.delete('/:id', async (req, res) => {
   try {
