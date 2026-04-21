@@ -45,6 +45,7 @@ function normalizeProduct(product) {
     gpu: product.gpu || '-',
     ram: product.ram || '-',
     ssd: product.ssd || '-',
+    avitoUrl: product.avitoUrl ? String(product.avitoUrl).trim() : '',
     images: getImages(product)
   };
 }
@@ -247,7 +248,7 @@ function createProductCard(rawProduct, index = 0) {
   article.innerHTML = `
     <div class="product-card__image-slider" onclick="goToProduct(${product.id})">
       <button type="button" class="product-card__arrow product-card__arrow--left">‹</button>
-      <img src="${product.images[0]}" alt="${product.name}" class="product-card__image-main">
+      <img src="${product.images[0] || '/images/logo-glorionpc.png'}" alt="${product.name}" class="product-card__image-main">
       <button type="button" class="product-card__arrow product-card__arrow--right">›</button>
     </div>
 
@@ -279,14 +280,21 @@ function createProductCard(rawProduct, index = 0) {
           }
         </div>
 
-        <button type="button" class="product-card__button">Купить</button>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button type="button" class="product-card__button product-card__buy-button">Купить</button>
+          ${
+            product.avitoUrl
+              ? `<a href="${product.avitoUrl}" target="_blank" rel="noopener noreferrer" class="product-card__button" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center;">Авито</a>`
+              : ''
+          }
+        </div>
       </div>
     </div>
   `;
 
-  const button = article.querySelector('.product-card__button');
+  const buyButton = article.querySelector('.product-card__buy-button');
 
-  button.addEventListener('click', (event) => {
+  buyButton.addEventListener('click', (event) => {
     event.preventDefault();
     event.stopPropagation();
 
@@ -295,15 +303,15 @@ function createProductCard(rawProduct, index = 0) {
       updateCartIndicatorAfterAdd();
     }
 
-    animateFlyFromButton(button, product.images[0], article);
+    animateFlyFromButton(buyButton, product.images[0], article);
 
-    const originalText = button.textContent;
-    button.textContent = 'Добавлено';
-    button.disabled = true;
+    const originalText = buyButton.textContent;
+    buyButton.textContent = 'Добавлено';
+    buyButton.disabled = true;
 
     setTimeout(() => {
       button.textContent = originalText;
-      button.disabled = false;
+      buyButton.disabled = false;
     }, 1200);
   });
 

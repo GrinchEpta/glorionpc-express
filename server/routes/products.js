@@ -22,7 +22,7 @@ const storage = multer.diskStorage({
   },
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname);
-    const fileName = Date.now() + '-' + Math.round(Math.random() * 1e9) + ext;
+    const fileName = `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
     cb(null, fileName);
   }
 });
@@ -34,7 +34,7 @@ const upload = multer({ storage });
 ========================= */
 
 function parseBool(value) {
-  return value === true || value === 'true';
+  return value === true || value === 'true' || value === 'on' || value === '1';
 }
 
 function parseNum(value) {
@@ -54,9 +54,16 @@ function parseExistingImages(raw) {
   }
 }
 
+function normalizeString(value) {
+  if (value === undefined || value === null) return null;
+  const trimmed = String(value).trim();
+  return trimmed ? trimmed : null;
+}
+
 /* =========================
    GET ALL PRODUCTS
 ========================= */
+
 router.get('/', async (req, res) => {
   try {
     const products = await prisma.product.findMany({
@@ -80,6 +87,7 @@ router.get('/', async (req, res) => {
 /* =========================
    GET PRODUCT BY ID
 ========================= */
+
 router.get('/:id', async (req, res) => {
   try {
     const productId = Number(req.params.id);
@@ -111,6 +119,7 @@ router.get('/:id', async (req, res) => {
 /* =========================
    CREATE PRODUCT
 ========================= */
+
 router.post('/', upload.array('images', 10), async (req, res) => {
   try {
     const body = req.body;
@@ -146,12 +155,15 @@ router.post('/', upload.array('images', 10), async (req, res) => {
         ramType: body.ramType || null,
         chipset: body.chipset || null,
         formFactor: body.formFactor || null,
+
         memoryCapacity: body.memoryCapacity || null,
         storageType: body.storageType || null,
         storageCapacity: body.storageCapacity || null,
+
         powerDraw: parseNum(body.powerDraw),
         recommendedPsu: parseNum(body.recommendedPsu),
         psuWattage: parseNum(body.psuWattage),
+
         coolingLevel: body.coolingLevel || null,
         supportedSockets: body.supportedSockets || null,
 
@@ -161,8 +173,11 @@ router.post('/', upload.array('images', 10), async (req, res) => {
 
         specsJson: body.specsJson || null,
 
-        avitoItemId: body.avitoItemId || null,
-        avitoUrl: body.avitoUrl || null,
+        avitoItemId: normalizeString(body.avitoItemId),
+        avitoUrl: normalizeString(body.avitoUrl),
+        avitoPrice: parseNum(body.avitoPrice),
+        avitoStatus: normalizeString(body.avitoStatus),
+        syncSource: normalizeString(body.syncSource),
 
         images: {
           create: allImages.map((url, index) => ({
@@ -188,6 +203,7 @@ router.post('/', upload.array('images', 10), async (req, res) => {
 /* =========================
    UPDATE PRODUCT
 ========================= */
+
 router.put('/:id', upload.array('images', 10), async (req, res) => {
   try {
     const productId = Number(req.params.id);
@@ -239,12 +255,15 @@ router.put('/:id', upload.array('images', 10), async (req, res) => {
         ramType: body.ramType || null,
         chipset: body.chipset || null,
         formFactor: body.formFactor || null,
+
         memoryCapacity: body.memoryCapacity || null,
         storageType: body.storageType || null,
         storageCapacity: body.storageCapacity || null,
+
         powerDraw: parseNum(body.powerDraw),
         recommendedPsu: parseNum(body.recommendedPsu),
         psuWattage: parseNum(body.psuWattage),
+
         coolingLevel: body.coolingLevel || null,
         supportedSockets: body.supportedSockets || null,
 
@@ -254,8 +273,11 @@ router.put('/:id', upload.array('images', 10), async (req, res) => {
 
         specsJson: body.specsJson || null,
 
-        avitoItemId: body.avitoItemId || null,
-        avitoUrl: body.avitoUrl || null,
+        avitoItemId: normalizeString(body.avitoItemId),
+        avitoUrl: normalizeString(body.avitoUrl),
+        avitoPrice: parseNum(body.avitoPrice),
+        avitoStatus: normalizeString(body.avitoStatus),
+        syncSource: normalizeString(body.syncSource),
 
         images: {
           create: allImages.map((url, index) => ({
@@ -281,6 +303,7 @@ router.put('/:id', upload.array('images', 10), async (req, res) => {
 /* =========================
    DELETE PRODUCT
 ========================= */
+
 router.delete('/:id', async (req, res) => {
   try {
     const productId = Number(req.params.id);

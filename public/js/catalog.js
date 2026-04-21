@@ -1,13 +1,16 @@
-const CATALOG_API_URL = '/api/products';
+const PRODUCTS_API_URL = '/api/products';
 const catalogProductsContainer = document.getElementById('catalog-products');
-const catalogSortButtons = Array.from(document.querySelectorAll('[data-sort]'));
+const sortSelect = document.getElementById('catalog-sort');
 
-let catalogProductsData = [];
-let currentCatalogSort = 'cheap';
+let allCatalogProducts = [];
 
 function formatPrice(price) {
   return new Intl.NumberFormat('ru-RU').format(Number(price) || 0) + ' ₽';
 }
+
+/* =========================
+   ФИЛЬТР: ТОЛЬКО ГОТОВЫЕ ПК
+========================= */
 
 function isReadyPc(product) {
   const category = String(product?.category || '').toLowerCase().trim();
@@ -46,6 +49,7 @@ function normalizeProduct(product) {
     gpu: product.gpu || '-',
     ram: product.ram || '-',
     ssd: product.ssd || '-',
+    avitoUrl: product.avitoUrl ? String(product.avitoUrl).trim() : '',
     images: getImages(product)
   };
 }
@@ -277,14 +281,21 @@ function createProductCard(rawProduct, index = 0) {
           }
         </div>
 
-        <button type="button" class="product-card__button">Купить</button>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button type="button" class="product-card__button product-card__buy-button">Купить</button>
+          ${
+            product.avitoUrl
+              ? `<a href="${product.avitoUrl}" target="_blank" rel="noopener noreferrer" class="product-card__button" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center;">Авито</a>`
+              : ''
+          }
+        </div>
       </div>
     </div>
   `;
 
-  const button = article.querySelector('.product-card__button');
+  const buyButton = article.querySelector('.product-card__buy-button');
 
-  button.addEventListener('click', (event) => {
+  buyButton.addEventListener('click', (event) => {
     event.preventDefault();
     event.stopPropagation();
 
@@ -293,15 +304,15 @@ function createProductCard(rawProduct, index = 0) {
       updateCartIndicatorAfterAdd();
     }
 
-    animateFlyFromButton(button, product.images[0], article);
+    animateFlyFromButton(buyButton, product.images[0], article);
 
-    const originalText = button.textContent;
-    button.textContent = 'Добавлено';
-    button.disabled = true;
+    const originalText = buyButton.textContent;
+    buyButton.textContent = 'Добавлено';
+    buyButton.disabled = true;
 
     setTimeout(() => {
-      button.textContent = originalText;
-      button.disabled = false;
+      buyButton.textContent = originalText;
+      buyButton.disabled = false;
     }, 1200);
   });
 
@@ -338,50 +349,37 @@ function renderCatalogProducts(products) {
 }
 
 function applyCatalogSort(sortType) {
-  currentCatalogSort = sortType;
-
-  catalogSortButtons.forEach((button) => {
-    button.classList.toggle('is-active', button.dataset.sort === sortType);
-  });
-
-  renderCatalogProducts(sortProducts(catalogProductsData, currentCatalogSort));
-}
-
-function initCatalogSort() {
-  if (!catalogSortButtons.length) return;
-
-  catalogSortButtons.forEach((button) => {
-    button.addEventListener('click', () => {
-      applyCatalogSort(button.dataset.sort || 'cheap');
-    });
-  });
+  const sortedProducts = sortProducts(allCatalogProducts, sortType);
+  renderCatalogProducts(sortedProducts);
 }
 
 async function loadCatalogProducts() {
   if (!catalogProductsContainer) return;
 
   try {
-    const response = await fetch(CATALOG_API_URL);
+    const response = await fetch(PRODUCTS_API_URL);
 
     if (!response.ok) {
-      throw new Error(`Ошибка загрузки: ${response.status}`);
+      throw new Error('Не удалось загрузить товары');
     }
 
     const products = await response.json();
 
-    const readyProducts = Array.isArray(products)
+    allCatalogProducts = Array.isArray(products)
       ? products.filter(isReadyPc)
       : [];
 
-    catalogProductsData = readyProducts;
-    applyCatalogSort(currentCatalogSort);
+    applyCatalogSort(sortSelect?.value || 'cheap');
   } catch (error) {
-    console.error('Ошибка загрузки каталога:', error);
+    console.error('Ошибка загрузки товаров:', error);
     catalogProductsContainer.innerHTML = '<p>Не удалось загрузить товары.</p>';
   }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  initCatalogSort();
-  loadCatalogProducts();
-});
+if (sortSelect) {
+  sortSelect.addEventListener('change', () => {
+    applyCatalogSort(sortSelect.value);
+  });
+}
+
+document.addEventListener('DOMContentLoaded', loadCatalogProducts);

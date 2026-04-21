@@ -38,6 +38,7 @@ function normalizeProduct(product) {
     ssd: product.ssd || '-',
     inStock: Boolean(product.inStock),
     slug: product.slug || `product-${product.id}`,
+    avitoUrl: product.avitoUrl ? String(product.avitoUrl).trim() : '',
     images: getImages(product)
   };
 }
@@ -128,6 +129,19 @@ function renderSpecs(product) {
       `
     )
     .join('');
+}
+
+function renderAvitoButton(product) {
+  const avitoButton = document.getElementById('product-avito-button');
+  if (!avitoButton) return;
+
+  if (product.avitoUrl) {
+    avitoButton.href = product.avitoUrl;
+    avitoButton.style.display = 'inline-flex';
+  } else {
+    avitoButton.removeAttribute('href');
+    avitoButton.style.display = 'none';
+  }
 }
 
 /* =========================
@@ -289,7 +303,7 @@ function animateFlyFromButton(buttonElement, imageSrc, pulseElement = null) {
 }
 
 /* =========================
-   УВЕЛИЧЕНИЕ КАРТИНКИ
+   IMAGE MODAL
 ========================= */
 
 function initImageModal() {
@@ -300,16 +314,18 @@ function initImageModal() {
 
   if (!mainImage || !modal || !modalImg || !closeBtn) return;
 
+  mainImage.style.cursor = 'zoom-in';
+
   function openModal(src) {
     modalImg.src = src;
     modal.classList.add('is-open');
-    document.body.classList.add('modal-open');
+    document.body.style.overflow = 'hidden';
   }
 
   function closeModal() {
     modal.classList.remove('is-open');
-    document.body.classList.remove('modal-open');
     modalImg.src = '';
+    document.body.style.overflow = '';
   }
 
   mainImage.addEventListener('click', () => {
@@ -333,62 +349,9 @@ function initImageModal() {
   });
 }
 
-function bindBuyButton(product) {
-  const button = document.getElementById('product-buy-button');
-  if (!button) return;
-
-  button.addEventListener('click', () => {
-    if (!window.CartUtils) return;
-
-    const productInfoCard = document.querySelector('.product-details__info');
-    const imageSrc = product.images[0] || '/images/logo-glorionpc.png';
-
-    window.CartUtils.addToCart({
-      id: product.id,
-      name: product.name,
-      slug: product.slug,
-      category: product.category || 'Товар',
-      price: Number(product.price) || 0,
-      oldPrice: product.oldPrice ? Number(product.oldPrice) : null,
-      image: imageSrc,
-      quantity: 1,
-      specs: {
-        cpu: product.cpu || '',
-        gpu: product.gpu || '',
-        ram: product.ram || '',
-        storage: product.ssd || ''
-      }
-    });
-
-    updateCartIndicatorAfterAdd();
-    animateFlyFromButton(button, imageSrc, productInfoCard);
-
-    const originalText = button.textContent;
-    button.textContent = 'Добавлено';
-    button.disabled = true;
-
-    setTimeout(() => {
-      button.textContent = originalText;
-      button.disabled = false;
-    }, 1200);
-  });
-}
-
-function renderProduct(product) {
-  document.title = `${product.name} — GlorionPC`;
-
-  setText('product-page-title', product.name);
-  setText('product-category', product.category);
-  setText('product-title', product.name);
-  setText('product-description', product.description);
-
-  renderGallery(product.images);
-  renderPrices(product);
-  renderStock(product);
-  renderSpecs(product);
-  bindBuyButton(product);
-  initImageModal();
-}
+/* =========================
+   LOAD PRODUCT
+========================= */
 
 async function loadProduct() {
   const productId = getProductIdFromUrl();
@@ -396,7 +359,7 @@ async function loadProduct() {
   if (!productId) {
     setText('product-page-title', 'Товар не найден');
     setText('product-title', 'Товар не найден');
-    setText('product-description', 'В ссылке отсутствует ID товара.');
+    setText('product-description', 'Некорректный ID товара.');
     return;
   }
 
@@ -410,12 +373,46 @@ async function loadProduct() {
     const rawProduct = await response.json();
     const product = normalizeProduct(rawProduct);
 
-    renderProduct(product);
+    document.title = `GlorionPC — ${product.name}`;
+    setText('product-page-title', product.name);
+    setText('product-category', product.category);
+    setText('product-title', product.name);
+    setText('product-description', product.description);
+
+    renderPrices(product);
+    renderStock(product);
+    renderSpecs(product);
+    renderGallery(product.images);
+    renderAvitoButton(product);
+
+    const buyButton = document.getElementById('product-buy-button');
+
+    if (buyButton) {
+      buyButton.addEventListener('click', () => {
+        if (window.CartUtils && typeof window.CartUtils.addToCart === 'function') {
+          window.CartUtils.addToCart(product);
+          updateCartIndicatorAfterAdd();
+        }
+
+        animateFlyFromButton(buyButton, product.images[0]);
+
+        const originalText = buyButton.textContent;
+        buyButton.textContent = 'Добавлено';
+        buyButton.disabled = true;
+
+        setTimeout(() => {
+          buyButton.textContent = originalText;
+          buyButton.disabled = false;
+        }, 1200);
+      });
+    }
+
+    initImageModal();
   } catch (error) {
     console.error('Ошибка загрузки товара:', error);
-    setText('product-page-title', 'Ошибка загрузки');
-    setText('product-title', 'Ошибка загрузки');
-    setText('product-description', 'Не удалось загрузить карточку товара.');
+    setText('product-page-title', 'Ошибка');
+    setText('product-title', 'Не удалось загрузить товар');
+    setText('product-description', 'Попробуйте открыть страницу позже.');
   }
 }
 
