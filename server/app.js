@@ -123,22 +123,6 @@ function normalizeAvitoUrl(value) {
   return `https://www.avito.ru/${url.replace(/^\/+/, '')}`;
 }
 
-function extractSpecsFromText(text) {
-  const source = String(text || '');
-
-  const cpuMatch = source.match(/(?:cpu|процессор)\s*[:\-]\s*(.+)/i);
-  const gpuMatch = source.match(/(?:gpu|видеокарта|видео)\s*[:\-]\s*(.+)/i);
-  const ramMatch = source.match(/(?:ram|озу|оперативная память)\s*[:\-]\s*(.+)/i);
-  const ssdMatch = source.match(/(?:ssd|накопитель)\s*[:\-]\s*(.+)/i);
-
-  return {
-    cpu: cpuMatch ? cpuMatch[1].trim() : '',
-    gpu: gpuMatch ? gpuMatch[1].trim() : '',
-    ram: ramMatch ? ramMatch[1].trim() : '',
-    ssd: ssdMatch ? ssdMatch[1].trim() : ''
-  };
-}
-
 function getAvitoItemStatus(item) {
   return (
     extractAvitoValue(item, ['status']) ||
@@ -159,15 +143,6 @@ function getAvitoItemUrl(item) {
   );
 }
 
-function getAvitoItemDescription(item) {
-  return extractAvitoValue(item, [
-    'description',
-    'item.description',
-    'data.description',
-    'result.description'
-  ]) || '';
-}
-
 function getAvitoItemCategory(item) {
   return (
     extractAvitoValue(item, [
@@ -186,13 +161,16 @@ function getAvitoItemCategory(item) {
   );
 }
 
-function hasUsefulAutofillData(item) {
-  if (!item || typeof item !== 'object') return false;
-
-  const description = getAvitoItemDescription(item);
-  const price = extractAvitoPrice(item);
-
-  return Boolean(description || price);
+function getAvitoItemTitle(item) {
+  return extractAvitoValue(item, [
+    'title',
+    'name',
+    'subject',
+    'item.title',
+    'item.name',
+    'data.title',
+    'result.title'
+  ]) || '';
 }
 
 /* =========================
@@ -492,50 +470,32 @@ app.post('/api/avito/fill-product-by-item-id', async (req, res) => {
         String(item.id || item.item_id || item.ad_id || '') === normalizedItemId
     );
 
-    const detailData = await fetchAvitoItemDetail(accessToken, normalizedItemId);
-    console.log('AVITO ITEM DATA:', JSON.stringify(detailData, null, 2));
+    if (!matchedItem) {
+      return res.status(404).json({
+        message: 'Объявление с таким Avito Item ID не найдено'
+      });
+    }
 
-    const description = getAvitoItemDescription(detailData);
-    const price = matchedItem ? extractAvitoPrice(matchedItem) : extractAvitoPrice(detailData);
-    const status = matchedItem ? getAvitoItemStatus(matchedItem) : getAvitoItemStatus(detailData);
-    const category =
-      (matchedItem ? getAvitoItemCategory(matchedItem) : '') ||
-      getAvitoItemCategory(detailData);
-
-    const normalizedUrl =
-      (matchedItem ? getAvitoItemUrl(matchedItem) : '') ||
-      getAvitoItemUrl(detailData) ||
-      '';
-
-    const parsedSpecs = extractSpecsFromText(description);
-
-    const product = {
-      name: '',
-      description: description || '',
-      price: price ?? '',
-      avitoUrl: normalizedUrl,
-      category: category || 'ПК',
-      cpu: parsedSpecs.cpu || '',
-      gpu: parsedSpecs.gpu || '',
-      ram: parsedSpecs.ram || '',
-      ssd: parsedSpecs.ssd || '',
-      inStock: status === 'active'
-    };
-
-    const usefulFieldsCount = [
-      product.description,
-      product.price,
-      product.avitoUrl
-    ].filter((value) => value !== null && value !== undefined && value !== '').length;
+    const title = getAvitoItemTitle(matchedItem);
+    const price = extractAvitoPrice(matchedItem);
+    const category = getAvitoItemCategory(matchedItem);
 
     return res.json({
       ok: true,
-      usefulFieldsCount,
-      rawStatus: status || '',
-      product
+      usefulFieldsCount: [title, price, category].filter(
+        (value) => value !== null && value !== undefined && value !== ''
+      ).length,
+      product: {
+        name: title,
+        price: price ?? '',
+        category: category || 'ПК'
+      }
     });
   } catch (error) {
-    console.error('Ошибка авто-заполнения по Avito ID:', error.response?.data || error.message);
+    console.error(
+      'Ошибка авто-заполнения по Avito ID:',
+      error.response?.data || error.message
+    );
 
     return res.status(500).json({
       message:

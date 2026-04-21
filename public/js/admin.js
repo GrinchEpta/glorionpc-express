@@ -997,8 +997,8 @@ async function fillProductFromAvito() {
     const product = data.product || {};
     let appliedCount = 0;
 
-    if (product.description) {
-      document.getElementById('description').value = product.description;
+    if (product.name) {
+      document.getElementById('name').value = product.name;
       appliedCount += 1;
     }
 
@@ -1007,48 +1007,15 @@ async function fillProductFromAvito() {
       appliedCount += 1;
     }
 
-    if (product.avitoUrl) {
-      document.getElementById('avitoUrl').value = product.avitoUrl;
-      appliedCount += 1;
-    }
-
     if (product.category) {
       document.getElementById('category').value = product.category;
       appliedCount += 1;
     }
 
-    if (product.cpu) {
-      document.getElementById('cpu').value = product.cpu;
-      appliedCount += 1;
-    }
-
-    if (product.gpu) {
-      document.getElementById('gpu').value = product.gpu;
-      appliedCount += 1;
-    }
-
-    if (product.ram) {
-      document.getElementById('ram').value = product.ram;
-      appliedCount += 1;
-    }
-
-    if (product.ssd) {
-      document.getElementById('ssd').value = product.ssd;
-      appliedCount += 1;
-    }
-
-    if (typeof product.inStock === 'boolean') {
-      const inStockInput = document.getElementById('inStock');
-      if (inStockInput) {
-        inStockInput.checked = product.inStock;
-        appliedCount += 1;
-      }
-    }
-
     if (appliedCount > 0) {
       alert(`Данные из Авито подставлены в форму: ${appliedCount}`);
     } else {
-      alert('Запрос к Авито прошёл, но API не вернуло полей для заполнения формы.');
+      alert('Авито не вернуло данные для автозаполнения.');
     }
   } catch (error) {
     console.error('Ошибка авто-заполнения по Avito ID:', error);
