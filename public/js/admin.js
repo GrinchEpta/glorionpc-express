@@ -1109,13 +1109,14 @@ async function syncProductsFromAvito() {
       method: 'POST'
     });
 
-    const data = await response.json();
+    const data = await readApiResponse(response);
 
     if (!response.ok) {
-      throw new Error(data.message || 'Не удалось синхронизировать товары из Авито');
+      throw new Error(extractApiError(data, 'Не удалось синхронизировать товары из Авито'));
     }
 
     await loadProducts();
+    await loadComponents();
     alert(`Синхронизация завершена. Обновлено товаров: ${data.updated || 0}`);
   } catch (error) {
     console.error('Ошибка синхронизации с Авито:', error);
