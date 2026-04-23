@@ -280,6 +280,77 @@ async function fetchAvitoItemDetail(accessToken, itemId) {
   return response.data;
 }
 
+async function syncAvitoPricesWithDatabase() {
+  const accessToken = await getValidAvitoAccessToken();
+  const avitoResponseData = await fetchAvitoItems(accessToken);
+
+  console.log('AVITO ITEMS DATA:', JSON.stringify(avitoResponseData, null, 2));
+
+  const avitoItems = extractAvitoItems(avitoResponseData);
+
+  if (!avitoItems.length) {
+    return {
+      message: 'Объявления Авито не найдены',
+      updated: 0,
+      notMatched: [],
+      totalAvitoItems: 0
+    };
+  }
+
+  const products = await prisma.product.findMany({
+    where: {
+      avitoItemId: {
+        not: null
+      }
+    }
+  });
+
+  let updated = 0;
+  const notMatched = [];
+
+  for (const product of products) {
+    const matched = avitoItems.find(
+      (item) =>
+        String(item.id || item.item_id || item.ad_id || '') === String(product.avitoItemId)
+    );
+
+    if (!matched) {
+      notMatched.push({
+        productId: product.id,
+        name: product.name,
+        avitoItemId: product.avitoItemId
+      });
+      continue;
+    }
+
+    const avitoPrice = extractAvitoPrice(matched);
+    const avitoUrl = getAvitoItemUrl(matched);
+    const avitoStatus = getAvitoItemStatus(matched);
+
+    await prisma.product.update({
+      where: { id: product.id },
+      data: {
+        price: avitoPrice ?? product.price,
+        avitoPrice: avitoPrice ?? product.avitoPrice,
+        avitoUrl: avitoUrl || product.avitoUrl,
+        avitoStatus: avitoStatus || product.avitoStatus,
+        avitoLastSyncedAt: new Date(),
+        syncSource: 'avito',
+        inStock: avitoStatus === 'active' ? true : product.inStock
+      }
+    });
+
+    updated += 1;
+  }
+
+  return {
+    message: 'Синхронизация завершена',
+    updated,
+    notMatched,
+    totalAvitoItems: avitoItems.length
+  };
+}
+
 /* =========================
    BASE API ROUTES
 ========================= */
@@ -511,79 +582,44 @@ app.post('/api/avito/fill-product-by-item-id', async (req, res) => {
 ========================= */
 app.post('/api/auth/avito/sync-products', async (req, res) => {
   try {
-    const accessToken = await getValidAvitoAccessToken();
-    const avitoResponseData = await fetchAvitoItems(accessToken);
-
-    console.log('AVITO ITEMS DATA:', JSON.stringify(avitoResponseData, null, 2));
-
-    const avitoItems = extractAvitoItems(avitoResponseData);
-
-    if (!avitoItems.length) {
-      return res.json({
-        message: 'Объявления Авито не найдены',
-        updated: 0,
-        notMatched: [],
-        totalAvitoItems: 0
-      });
-    }
-
-    const products = await prisma.product.findMany({
-      where: {
-        avitoItemId: {
-          not: null
-        }
-      }
-    });
-
-    let updated = 0;
-    const notMatched = [];
-
-    for (const product of products) {
-      const matched = avitoItems.find(
-        (item) =>
-          String(item.id || item.item_id || item.ad_id || '') === String(product.avitoItemId)
-      );
-
-      if (!matched) {
-        notMatched.push({
-          productId: product.id,
-          name: product.name,
-          avitoItemId: product.avitoItemId
-        });
-        continue;
-      }
-
-      const avitoPrice = extractAvitoPrice(matched);
-      const avitoUrl = getAvitoItemUrl(matched);
-      const avitoStatus = getAvitoItemStatus(matched);
-
-      await prisma.product.update({
-        where: { id: product.id },
-        data: {
-          price: avitoPrice ?? product.price,
-          avitoPrice: avitoPrice ?? product.avitoPrice,
-          avitoUrl: avitoUrl || product.avitoUrl,
-          avitoStatus: avitoStatus || product.avitoStatus,
-          avitoLastSyncedAt: new Date(),
-          syncSource: 'avito',
-          inStock: avitoStatus === 'active' ? true : product.inStock
-        }
-      });
-
-      updated += 1;
-    }
-
-    return res.json({
-      message: 'Синхронизация завершена',
-      updated,
-      notMatched,
-      totalAvitoItems: avitoItems.length
-    });
+    const result = await syncAvitoPricesWithDatabase();
+    return res.json(result);
   } catch (error) {
     console.error('Ошибка синхронизации товаров из Авито:', error.response?.data || error.message);
 
     return res.status(500).json({
       message: 'Ошибка синхронизации товаров из Авито',
+      error: error.response?.data || error.message
+    });
+  }
+});
+
+app.post('/api/internal/avito/sync-prices', async (req, res) => {
+  try {
+    const headerSecret = req.get('x-cron-secret');
+    const bodySecret = req.body?.secret;
+    const secret = headerSecret || bodySecret;
+    const expectedSecret = process.env.AVITO_SYNC_CRON_SECRET;
+
+    if (!expectedSecret) {
+      return res.status(500).json({
+        message: 'Не заполнен AVITO_SYNC_CRON_SECRET в .env'
+      });
+    }
+
+    if (secret !== expectedSecret) {
+      return res.status(403).json({
+        message: 'Недостаточно прав для запуска синхронизации'
+      });
+    }
+
+    const result = await syncAvitoPricesWithDatabase();
+    return res.json(result);
+  } catch (error) {
+    console.error('Ошибка фоновой синхронизации цен из Авито:', error.response?.data || error.message);
+
+    return res.status(500).json({
+      message: 'Ошибка фоновой синхронизации цен из Авито',
       error: error.response?.data || error.message
     });
   }

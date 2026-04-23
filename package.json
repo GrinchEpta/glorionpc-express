@@ -8,7 +8,8 @@
     "dev": "nodemon server/app.js",
     "postinstall": "prisma generate",
     "db:push": "prisma db push",
-    "db:generate": "prisma generate"
+    "db:generate": "prisma generate",
+    "sync:avito-prices": "node server/jobs/trigger-avito-price-sync.js"
   },
   "keywords": [],
   "author": "",
