@@ -20,6 +20,15 @@ function initMobileMenu() {
 
   headerInner.insertBefore(toggle, nav);
 
+  function updateCartDot() {
+    try {
+      const cart = JSON.parse(localStorage.getItem('glorionpc_cart') || '[]');
+      toggle.classList.toggle('has-cart', Array.isArray(cart) && cart.length > 0);
+    } catch (error) {
+      toggle.classList.remove('has-cart');
+    }
+  }
+
   function closeMenu() {
     header.classList.remove('is-menu-open');
     toggle.setAttribute('aria-expanded', 'false');
@@ -58,6 +67,9 @@ function initMobileMenu() {
       closeMenu();
     }
   });
+
+  window.addEventListener('storage', updateCartDot);
+  updateCartDot();
 }
 
 document.addEventListener('DOMContentLoaded', initMobileMenu);
