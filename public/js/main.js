@@ -270,7 +270,16 @@ function createProductCard(rawProduct, index = 0) {
         ${product.name}
       </h3>
 
-      <ul class="product-card__specs" onclick="goToProduct(${product.id})">
+      <button
+        type="button"
+        class="product-card__specs-toggle"
+        aria-expanded="false"
+      >
+        <span>Характеристики</span>
+        <span class="product-card__specs-toggle-icon">⌄</span>
+      </button>
+
+      <ul class="product-card__specs">
         <li><strong>CPU:</strong> ${product.cpu}</li>
         <li><strong>GPU:</strong> ${product.gpu}</li>
         <li><strong>RAM:</strong> ${product.ram}</li>
@@ -300,6 +309,12 @@ function createProductCard(rawProduct, index = 0) {
   `;
 
   const buyButton = article.querySelector('.product-card__buy-button');
+  const specsToggle = article.querySelector('.product-card__specs-toggle');
+
+  specsToggle?.addEventListener('click', () => {
+    const isOpen = article.classList.toggle('is-specs-open');
+    specsToggle.setAttribute('aria-expanded', String(isOpen));
+  });
 
   buyButton.addEventListener('click', (event) => {
     event.preventDefault();
