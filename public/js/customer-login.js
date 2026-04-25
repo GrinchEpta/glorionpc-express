@@ -77,7 +77,7 @@ async function requestCode() {
       throw new Error(data.message || 'Не удалось получить код');
     }
 
-    showMessage('Код создан. Посмотрите его в консоли сервера.');
+    showMessage('Код отправлен по SMS. Если SMS-сервис не настроен, код появится в консоли сервера.');
     codeInput?.focus();
   } catch (error) {
     showMessage(error.message || 'Не удалось получить код.', 'error');

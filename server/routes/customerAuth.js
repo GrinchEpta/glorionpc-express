@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const prisma = require('../prisma');
+const { sendLoginCodeSms } = require('../services/smsService');
 const { findOrCreateCustomer, isValidPhone, normalizePhone } = require('../utils/customer');
 
 function getPublicCustomer(customer) {
@@ -35,7 +36,17 @@ router.post('/auth/request-code', async (req, res) => {
     const code = String(Math.floor(100000 + Math.random() * 900000));
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-    await prisma.phoneLoginCode.create({
+    await prisma.phoneLoginCode.updateMany({
+      where: {
+        phone,
+        used: false
+      },
+      data: {
+        used: true
+      }
+    });
+
+    const loginCode = await prisma.phoneLoginCode.create({
       data: {
         phone,
         code,
@@ -43,12 +54,21 @@ router.post('/auth/request-code', async (req, res) => {
       }
     });
 
-    console.log(`GlorionPC customer login code for ${phone}: ${code}`);
+    try {
+      await sendLoginCodeSms(phone, code);
+    } catch (error) {
+      await prisma.phoneLoginCode.update({
+        where: { id: loginCode.id },
+        data: { used: true }
+      });
+
+      throw error;
+    }
 
     return res.json({ ok: true });
   } catch (error) {
     console.error('Customer auth request-code error:', error);
-    return res.status(500).json({ message: 'Не удалось создать код входа' });
+    return res.status(500).json({ message: 'Не удалось отправить SMS с кодом' });
   }
 });
 
