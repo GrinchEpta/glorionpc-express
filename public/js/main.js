@@ -259,10 +259,6 @@ function createProductCard(rawProduct, index = 0) {
         ${product.name}
       </h3>
 
-      <p class="product-card__desc" onclick="goToProduct(${product.id})">
-        ${product.description}
-      </p>
-
       <ul class="product-card__specs" onclick="goToProduct(${product.id})">
         <li><strong>CPU:</strong> ${product.cpu}</li>
         <li><strong>GPU:</strong> ${product.gpu}</li>
