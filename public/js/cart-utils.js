@@ -104,6 +104,7 @@ async function refreshCartPrices() {
 
 function updateCartIndicator() {
   const cartTarget = document.getElementById('cart-target');
+  const mobileMenuButton = document.querySelector('.mobile-menu-toggle');
 
   // если элемент ещё не загрузился — пробуем позже
   if (!cartTarget) {
@@ -115,8 +116,10 @@ function updateCartIndicator() {
 
   if (cart.length > 0) {
     cartTarget.classList.add('is-visible');
+    mobileMenuButton?.classList.add('has-cart');
   } else {
     cartTarget.classList.remove('is-visible');
+    mobileMenuButton?.classList.remove('has-cart');
   }
 }
 

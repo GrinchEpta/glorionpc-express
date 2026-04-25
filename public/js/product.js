@@ -149,6 +149,12 @@ function renderAvitoButton(product) {
 ========================= */
 
 function getCartTarget() {
+  const mobileMenuButton = document.querySelector('.mobile-menu-toggle');
+
+  if (mobileMenuButton && window.matchMedia('(max-width: 820px)').matches) {
+    return mobileMenuButton;
+  }
+
   return document.querySelector('#cart-target');
 }
 
@@ -265,7 +271,7 @@ function animateFlyFromButton(buttonElement, imageSrc, pulseElement = null) {
 
       const cartIcon = document.querySelector('#cart-icon');
       const cartCount = document.getElementById('cart-count');
-      const cartTargetElement = document.getElementById('cart-target');
+      const cartTargetElement = getCartTarget();
 
       if (cartIcon) {
         cartIcon.classList.add('cart-bump-strong');

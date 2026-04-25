@@ -155,9 +155,24 @@ function saveCart(cart) {
 function updateCartIndicator() {
   const cart = getCart();
   const target = document.getElementById('cart-target');
+  const mobileMenuButton = document.querySelector('.mobile-menu-toggle');
 
   if (!target) return;
   target.classList.toggle('is-visible', cart.length > 0);
+
+  if (mobileMenuButton) {
+    mobileMenuButton.classList.toggle('has-cart', cart.length > 0);
+  }
+}
+
+function getCartAnimationTarget() {
+  const mobileMenuButton = document.querySelector('.mobile-menu-toggle');
+
+  if (mobileMenuButton && window.matchMedia('(max-width: 820px)').matches) {
+    return mobileMenuButton;
+  }
+
+  return document.getElementById('cart-target');
 }
 
 function getSelect(id) {
@@ -576,11 +591,11 @@ function getConfiguratorPreviewImage() {
 }
 
 function animateConfiguredPcToCart() {
-  const cartTarget = document.getElementById('cart-target');
+  const cartTarget = getCartAnimationTarget();
   const cartLink = document.querySelector('.cart-link');
   const addButton = document.getElementById('add-config-to-cart');
 
-  if (!cartTarget || !cartLink || !addButton) return;
+  if (!cartTarget || !addButton) return;
 
   const imageSrc = getConfiguratorPreviewImage();
   const buttonRect = addButton.getBoundingClientRect();
@@ -614,11 +629,18 @@ function animateConfiguredPcToCart() {
   });
 
   setTimeout(() => {
-    cartLink.classList.remove('bump');
-    void cartLink.offsetWidth;
-    cartLink.classList.add('bump');
+    const bumpTarget = cartTarget.classList.contains('mobile-menu-toggle')
+      ? cartTarget
+      : cartLink;
+
+    if (bumpTarget) {
+      bumpTarget.classList.remove('bump');
+      void bumpTarget.offsetWidth;
+      bumpTarget.classList.add('bump');
+    }
 
     cartTarget.classList.add('is-visible');
+    cartTarget.classList.add('has-cart');
     addButton.classList.remove('config-add-success');
     void addButton.offsetWidth;
     addButton.classList.add('config-add-success');
