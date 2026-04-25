@@ -34,6 +34,29 @@ function formatDate(value) {
   }).format(new Date(value));
 }
 
+function revealAccountBlocks() {
+  const elements = [
+    document.querySelector('.customer-account__top'),
+    ...document.querySelectorAll(
+      '#customer-account-orders > .customer-order-card, #customer-account-orders > .cart-empty, #customer-account-orders > .checkout-message'
+    )
+  ].filter(Boolean);
+
+  elements.forEach((element, index) => {
+    element.classList.add('reveal');
+    element.classList.remove('is-visible');
+    element.style.transitionDelay = `${Math.min(index * 80, 240)}ms`;
+  });
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      elements.forEach((element) => {
+        element.classList.add('is-visible');
+      });
+    });
+  });
+}
+
 function renderProfile(customer) {
   if (!profileContainer) return;
 
@@ -70,7 +93,7 @@ function renderItems(items = []) {
 
 function renderOrderCard(order) {
   return `
-    <article class="customer-order-card">
+    <article class="customer-order-card reveal">
       <div class="customer-order-card__top">
         <div>
           <div class="customer-order-card__label">Заказ</div>
@@ -124,7 +147,7 @@ function renderCustomRequestCard(request) {
   const total = request.budget ? formatPrice(request.budget) : 'Бюджет не указан';
 
   return `
-    <article class="customer-order-card">
+    <article class="customer-order-card reveal">
       <div class="customer-order-card__top">
         <div>
           <div class="customer-order-card__label">Индивидуальная сборка</div>
@@ -191,7 +214,7 @@ function renderOrders(data) {
 
   if (!orders.length && !requests.length) {
     ordersContainer.innerHTML = `
-      <div class="cart-empty">
+      <div class="cart-empty reveal">
         <p>Заказы пока не найдены.</p>
         <a href="/catalog.html" class="btn btn-gold">Перейти в каталог</a>
       </div>
@@ -230,13 +253,15 @@ async function loadAccount() {
     }
 
     renderOrders(ordersData);
+    revealAccountBlocks();
   } catch (error) {
     if (ordersContainer) {
       ordersContainer.innerHTML = `
-        <div class="checkout-message checkout-message--error">
+        <div class="checkout-message checkout-message--error reveal">
           ${escapeHtml(error.message || 'Не удалось загрузить личный кабинет.')}
         </div>
       `;
+      revealAccountBlocks();
     }
   }
 }
