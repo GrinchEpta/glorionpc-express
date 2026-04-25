@@ -187,6 +187,14 @@ body.custom-pc-page .checkout-summary {
     0 18px 42px rgba(0, 0, 0, 0.2);
 }
 
+body:not(.custom-pc-page) .checkout-page .checkout-form-block,
+body:not(.custom-pc-page) .checkout-page .checkout-summary {
+  border-color: rgba(212, 166, 74, 0.55);
+  box-shadow:
+    0 0 0 1px rgba(212, 166, 74, 0.16),
+    0 18px 42px rgba(0, 0, 0, 0.2);
+}
+
 .checkout-form,
 .custom-pc-form {
   display: flex;
