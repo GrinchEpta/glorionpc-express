@@ -163,7 +163,7 @@ router.get('/orders', requireCustomer, async (req, res) => {
   }
 });
 
-router.post('/logout', requireCustomer, (req, res) => {
+router.post('/logout', (req, res) => {
   delete req.session.customerId;
   return res.json({ ok: true });
 });

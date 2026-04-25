@@ -242,7 +242,22 @@ async function loadAccount() {
 }
 
 async function logout() {
-  await fetch('/api/customer/logout', { method: 'POST' });
+  try {
+    await fetch('/api/customer/logout', { method: 'POST' });
+  } finally {
+    localStorage.setItem('glorionpc_cart', '[]');
+    localStorage.setItem('glorionpc_orders', '[]');
+    localStorage.setItem('glorionpc_custom_pc_requests', '[]');
+
+    if (window.CartUtils && typeof window.CartUtils.clearCart === 'function') {
+      window.CartUtils.clearCart();
+    }
+
+    if (window.updateCartIndicator) {
+      window.updateCartIndicator();
+    }
+  }
+
   window.location.href = '/customer-login.html';
 }
 
