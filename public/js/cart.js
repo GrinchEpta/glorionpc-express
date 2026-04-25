@@ -40,10 +40,13 @@ function renderSpecs(specs = {}) {
    🛒 РЕНДЕР КОРЗИНЫ
 ========================= */
 
-function renderCart() {
+async function renderCart() {
   if (!cartItemsContainer) return;
 
-  const cart = CartUtils.getCart();
+  const cart =
+    typeof CartUtils.refreshCartPrices === 'function'
+      ? await CartUtils.refreshCartPrices()
+      : CartUtils.getCart();
 
   if (!cart.length) {
     cartItemsContainer.innerHTML = `

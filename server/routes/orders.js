@@ -13,6 +13,14 @@ function parseSpecs(value) {
   }
 }
 
+function getProductImage(product) {
+  if (Array.isArray(product?.images) && product.images.length > 0) {
+    return product.images[0].url || '/images/logo-glorionpc.png';
+  }
+
+  return '/images/logo-glorionpc.png';
+}
+
 router.get('/', async (req, res) => {
   try {
     const orders = await prisma.order.findMany({
@@ -51,7 +59,7 @@ router.post('/', async (req, res) => {
       });
     }
 
-    const normalizedItems = order.items.map((item) => {
+    const requestedItems = order.items.map((item) => {
       const numericId = Number(item.id);
 
       return {
@@ -66,13 +74,67 @@ router.post('/', async (req, res) => {
       };
     });
 
+    const productIds = [
+      ...new Set(
+        requestedItems
+          .filter((item) => item.productId !== null)
+          .map((item) => item.productId)
+      )
+    ];
+
+    const products = productIds.length
+      ? await prisma.product.findMany({
+          where: {
+            id: {
+              in: productIds
+            }
+          },
+          include: {
+            images: {
+              orderBy: { order: 'asc' }
+            }
+          }
+        })
+      : [];
+
+    const productsById = new Map(
+      products.map((product) => [product.id, product])
+    );
+
+    const missingProduct = requestedItems.find(
+      (item) => item.productId !== null && !productsById.has(item.productId)
+    );
+
+    if (missingProduct) {
+      return res.status(400).json({
+        message: `Товар "${missingProduct.productName}" больше недоступен`
+      });
+    }
+
+    const normalizedItems = requestedItems.map((item) => {
+      const product = item.productId !== null
+        ? productsById.get(item.productId)
+        : null;
+
+      return {
+        ...item,
+        productName: product?.name || item.productName,
+        productImage: product ? getProductImage(product) : item.productImage,
+        price: product ? Math.round(Number(product.price) || 0) : item.price
+      };
+    });
+
+    const orderTotal = normalizedItems.reduce((sum, item) => {
+      return sum + item.price * item.quantity;
+    }, 0);
+
     const createdOrder = await prisma.order.create({
       data: {
         customerName: order.customer.name,
         phone: order.customer.phone,
         email: order.customer.email,
         comment: order.customer.comment || '',
-        total: Number(order.total) || 0,
+        total: orderTotal,
         status: 'new',
         items: {
           create: normalizedItems

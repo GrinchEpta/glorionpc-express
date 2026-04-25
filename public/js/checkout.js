@@ -57,9 +57,13 @@ function normalizeCartItem(item = {}) {
   };
 }
 
-function getCartItems() {
+async function getCartItems() {
   if (window.CartUtils && typeof window.CartUtils.getCart === 'function') {
-    const cart = window.CartUtils.getCart();
+    const cart =
+      typeof window.CartUtils.refreshCartPrices === 'function'
+        ? await window.CartUtils.refreshCartPrices()
+        : window.CartUtils.getCart();
+
     return Array.isArray(cart) ? cart.map(normalizeCartItem) : [];
   }
 
@@ -223,10 +227,10 @@ function setupPhoneMask() {
 /* =========================
    🧾 РЕНДЕР ТОВАРОВ
 ========================= */
-function renderCheckoutItems() {
+async function renderCheckoutItems() {
   if (!checkoutItemsContainer || !checkoutTotalElement) return;
 
-  const cart = getCartItems();
+  const cart = await getCartItems();
 
   if (!cart.length) {
     checkoutItemsContainer.innerHTML = `
@@ -420,7 +424,7 @@ async function submitOrder(event) {
 
   if (!checkoutForm) return;
 
-  const cart = getCartItems();
+  const cart = await getCartItems();
 
   if (!cart.length) {
     showCheckoutMessage('Корзина пуста. Добавьте товары.', 'error');
@@ -491,6 +495,7 @@ async function submitOrder(event) {
     }
 
     currentOrderId = data?.order?.id || null;
+    lastOrderTotal = Number(data?.order?.total) || lastOrderTotal;
     saveOrderIdToLocalStorage(currentOrderId);
 
     if (window.CartUtils && typeof window.CartUtils.clearCart === 'function') {
@@ -499,7 +504,7 @@ async function submitOrder(event) {
       localStorage.setItem(CART_STORAGE_KEY, '[]');
     }
 
-    renderCheckoutItems();
+    await renderCheckoutItems();
 
     if (window.updateCartIndicator) {
       window.updateCartIndicator();

@@ -38,6 +38,66 @@ function saveCart(cart) {
   localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(cart));
 }
 
+function isCatalogProductItem(item) {
+  const numericId = Number(item?.id);
+  return Number.isInteger(numericId) && !String(item.id).startsWith('config-');
+}
+
+function mergeCartItemWithProduct(item, product) {
+  return {
+    ...item,
+    name: product.name || item.name || 'Товар',
+    price: Number(product.price) || 0,
+    oldPrice: product.oldPrice ? Number(product.oldPrice) : null,
+    image: getMainImage(product),
+    images: Array.isArray(product.images) ? product.images : [],
+    category: product.category || item.category || '',
+    description: product.description || item.description || '',
+    cpu: product.cpu || item.cpu || '-',
+    gpu: product.gpu || item.gpu || '-',
+    ram: product.ram || item.ram || '-',
+    ssd: product.ssd || item.ssd || '-'
+  };
+}
+
+async function refreshCartPrices() {
+  const cart = getCart();
+  const productIds = cart
+    .filter(isCatalogProductItem)
+    .map(item => Number(item.id));
+
+  if (!productIds.length) {
+    return cart;
+  }
+
+  try {
+    const products = await Promise.all(
+      [...new Set(productIds)].map(async (id) => {
+        const response = await fetch(`/api/products/${id}`);
+        if (!response.ok) return null;
+        return response.json();
+      })
+    );
+
+    const productsById = new Map(
+      products
+        .filter(Boolean)
+        .map(product => [String(product.id), product])
+    );
+
+    const refreshedCart = cart.map((item) => {
+      const product = productsById.get(String(item.id));
+      return product ? mergeCartItemWithProduct(item, product) : item;
+    });
+
+    saveCart(refreshedCart);
+    return refreshedCart;
+  } catch (error) {
+    console.error('Ошибка обновления цен корзины:', error);
+    return cart;
+  }
+}
+
 /* =========================
    🔵 ИНДИКАТОР КОРЗИНЫ
 ========================= */
@@ -174,6 +234,7 @@ document.addEventListener('DOMContentLoaded', () => {
 window.CartUtils = {
   getCart,
   saveCart,
+  refreshCartPrices,
   addToCart,
   removeFromCart,
   updateCartQuantity,
