@@ -124,26 +124,50 @@ function renderEmptyState(message) {
   if (!customerOrdersList) return;
 
   customerOrdersList.innerHTML = `
-    <div class="cart-empty">
+    <div class="cart-empty reveal">
       <p>${message}</p>
       <a href="/catalog.html" class="btn btn-gold" style="margin-top: 16px;">
         Перейти в каталог
       </a>
     </div>
   `;
+  revealOrdersBlocks();
 }
 
 function renderErrorState(message) {
   if (!customerOrdersList) return;
 
   customerOrdersList.innerHTML = `
-    <div class="cart-empty">
+    <div class="cart-empty reveal">
       <p>${message}</p>
       <a href="/catalog.html" class="btn btn-gold" style="margin-top: 16px;">
         Перейти в каталог
       </a>
     </div>
   `;
+  revealOrdersBlocks();
+}
+
+function revealOrdersBlocks() {
+  const elements = [
+    ...document.querySelectorAll(
+      '#customer-orders-list > .customer-order-card, #customer-orders-list > .cart-empty, #customer-orders-list > .orders-loading'
+    )
+  ];
+
+  elements.forEach((element, index) => {
+    element.classList.add('reveal');
+    element.classList.remove('is-visible');
+    element.style.transitionDelay = `${Math.min(index * 80, 240)}ms`;
+  });
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      elements.forEach((element) => {
+        element.classList.add('is-visible');
+      });
+    });
+  });
 }
 
 function buildSpecsHtml(specs) {
@@ -209,7 +233,7 @@ function buildItemsHtml(items) {
 
 function createOrderCard(order) {
   const item = document.createElement('article');
-  item.className = 'customer-order-card';
+  item.className = 'customer-order-card reveal';
 
   const itemsHtml = buildItemsHtml(order.items);
   const canMarkAsPaid = order.status === 'new';
@@ -334,7 +358,7 @@ function createOrderCard(order) {
 
 function createCustomPcRequestCard(request) {
   const item = document.createElement('article');
-  item.className = 'customer-order-card';
+  item.className = 'customer-order-card reveal';
 
   const caseSizeText =
     request.caseSize === 'mini'
@@ -469,6 +493,8 @@ function renderMergedOrders(orders = [], customPcRequests = []) {
 
     customerOrdersList.appendChild(card);
   });
+
+  revealOrdersBlocks();
 }
 
 async function tryLoadAuthorizedCustomerOrders() {
