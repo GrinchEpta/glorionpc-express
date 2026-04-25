@@ -159,6 +159,33 @@
   max-width: 560px;
 }
 
+.customer-login-page {
+  min-height: calc(100vh - 92px);
+  display: flex;
+  align-items: flex-start;
+  padding-top: clamp(48px, 8vh, 96px);
+}
+
+.customer-login-page .container {
+  display: grid;
+  justify-items: center;
+}
+
+.customer-login-page .section-heading {
+  width: min(560px, 100%);
+  text-align: left;
+  margin-bottom: 22px;
+}
+
+.customer-login-page .section-heading__text {
+  max-width: 560px;
+}
+
+.customer-login-page .customer-login-card {
+  width: min(560px, 100%);
+  margin: 0 auto;
+}
+
 .customer-account__top {
   display: flex;
   justify-content: space-between;
@@ -225,5 +252,24 @@
   .customer-account__top {
     padding: 18px;
     border-radius: 18px;
+  }
+
+  .customer-login-page {
+    min-height: auto;
+    display: block;
+    padding-top: 0;
+  }
+
+  .customer-login-page .container {
+    display: block;
+  }
+
+  .customer-login-page .section-heading {
+    width: 100%;
+    margin-bottom: 20px;
+  }
+
+  .customer-login-page .customer-login-card {
+    width: 100%;
   }
 }
