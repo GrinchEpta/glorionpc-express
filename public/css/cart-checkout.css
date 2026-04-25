@@ -169,6 +169,14 @@
   min-width: 0;
 }
 
+body.custom-pc-page .checkout-form-block,
+body.custom-pc-page .checkout-summary {
+  border-color: rgba(212, 166, 74, 0.55);
+  box-shadow:
+    0 0 0 1px rgba(212, 166, 74, 0.16),
+    0 18px 42px rgba(0, 0, 0, 0.2);
+}
+
 .checkout-form,
 .custom-pc-form {
   display: flex;
