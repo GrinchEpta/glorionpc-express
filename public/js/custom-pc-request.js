@@ -6,6 +6,16 @@ function getPhoneDigits(value) {
   return String(value || '').replace(/\D/g, '');
 }
 
+function normalizePhoneDigits(value) {
+  let digits = getPhoneDigits(value);
+
+  if (!digits.length) return '';
+  if (digits[0] === '8') digits = '7' + digits.slice(1);
+  if (digits[0] !== '7') digits = '7' + digits;
+
+  return digits.slice(0, 11);
+}
+
 function formatPhoneValue(value) {
   let digits = getPhoneDigits(value);
 
@@ -79,6 +89,38 @@ function setupCustomPcPhoneMask() {
   });
 }
 
+async function validateCustomPcPhoneOwner(phone) {
+  try {
+    const response = await fetch('/api/customer/me');
+
+    if (response.status === 401) {
+      return true;
+    }
+
+    const data = await response.json();
+
+    if (!response.ok || !data.customer) {
+      return true;
+    }
+
+    const accountPhone = normalizePhoneDigits(data.customer.phone);
+    const enteredPhone = normalizePhoneDigits(phone);
+
+    if (accountPhone && enteredPhone && accountPhone !== enteredPhone) {
+      showCustomPcMessage(
+        'Вы уже вошли в личный кабинет с другим номером телефона. Введите номер из личного кабинета или выйдите из аккаунта.',
+        'error'
+      );
+      customPcPhoneInput?.focus();
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    return true;
+  }
+}
+
 function saveCustomPcRequest(request) {
   if (!request || !request.id) return;
 
@@ -116,6 +158,10 @@ async function submitCustomPcRequest(event) {
 
   if (phoneDigits.length !== 11 || phoneDigits[0] !== '7') {
     showCustomPcMessage('Введите телефон в формате +7 (999) 999-99-99.', 'error');
+    return;
+  }
+
+  if (!(await validateCustomPcPhoneOwner(phone))) {
     return;
   }
 

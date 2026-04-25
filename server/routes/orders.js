@@ -65,6 +65,19 @@ router.post('/', async (req, res) => {
 
     try {
       normalizedPhone = normalizePhone(order.customer.phone);
+
+      if (req.session.customerId) {
+        const sessionCustomer = await prisma.customer.findUnique({
+          where: { id: req.session.customerId }
+        });
+
+        if (sessionCustomer && sessionCustomer.phone !== normalizedPhone) {
+          return res.status(400).json({
+            message: 'Вы вошли под другим номером телефона. Для нового заказа используйте номер из личного кабинета или выйдите из аккаунта.'
+          });
+        }
+      }
+
       customer = await findOrCreateCustomer(prisma, {
         phone: normalizedPhone,
         name: order.customer.name,
