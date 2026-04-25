@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const prisma = require('../prisma');
+const { findOrCreateCustomer, normalizePhone } = require('../utils/customer');
 
 function parseSpecs(value) {
   if (!value) return null;
@@ -56,6 +57,23 @@ router.post('/', async (req, res) => {
     ) {
       return res.status(400).json({
         message: 'Некорректные данные заказа'
+      });
+    }
+
+    let customer;
+    let normalizedPhone;
+
+    try {
+      normalizedPhone = normalizePhone(order.customer.phone);
+      customer = await findOrCreateCustomer(prisma, {
+        phone: normalizedPhone,
+        name: order.customer.name,
+        email: order.customer.email
+      });
+      req.session.customerId = customer.id;
+    } catch (error) {
+      return res.status(400).json({
+        message: error.message || 'Некорректный номер телефона'
       });
     }
 
@@ -131,11 +149,12 @@ router.post('/', async (req, res) => {
     const createdOrder = await prisma.order.create({
       data: {
         customerName: order.customer.name,
-        phone: order.customer.phone,
+        phone: normalizedPhone,
         email: order.customer.email,
         comment: order.customer.comment || '',
         total: orderTotal,
         status: 'new',
+        customerId: customer.id,
         items: {
           create: normalizedItems
         }
@@ -151,7 +170,8 @@ router.post('/', async (req, res) => {
 
     res.status(201).json({
       message: 'Заказ успешно оформлен',
-      order: createdOrder
+      order: createdOrder,
+      customer
     });
   } catch (error) {
     console.error('Ошибка при сохранении заказа:', error);

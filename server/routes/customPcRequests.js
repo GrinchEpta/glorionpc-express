@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const prisma = require('../prisma');
+const { findOrCreateCustomer, normalizePhone } = require('../utils/customer');
 
 router.get('/', async (req, res) => {
   try {
@@ -34,23 +35,42 @@ router.post('/', async (req, res) => {
       });
     }
 
+    let customer;
+    let normalizedPhone;
+
+    try {
+      normalizedPhone = normalizePhone(phone);
+      customer = await findOrCreateCustomer(prisma, {
+        phone: normalizedPhone,
+        name: customerName,
+        email
+      });
+      req.session.customerId = customer.id;
+    } catch (error) {
+      return res.status(400).json({
+        message: error.message || 'Некорректный номер телефона'
+      });
+    }
+
     const createdRequest = await prisma.customPcRequest.create({
       data: {
         customerName: customerName.trim(),
-        phone: phone.trim(),
+        phone: normalizedPhone,
         email: email.trim(),
         budget: budget ? Number(budget) : null,
         designWishes: designWishes?.trim() || '',
         caseSize: caseSize?.trim() || '',
         purpose: purpose?.trim() || '',
         comment: comment?.trim() || '',
-        status: 'new'
+        status: 'new',
+        customerId: customer.id
       }
     });
 
     res.status(201).json({
       message: 'Заявка на сборку ПК успешно отправлена',
-      request: createdRequest
+      request: createdRequest,
+      customer
     });
   } catch (error) {
     console.error('Ошибка создания заявки на ПК:', error);

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GlorionPC - личный кабинет</title>
+  <meta name="description" content="Личный кабинет покупателя GlorionPC." />
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <header class="header">
+    <div class="container header__inner">
+      <a href="/" class="brand">
+        <div class="brand__logo-wrap">
+          <img src="/images/logo-glorionpc.png" alt="GlorionPC" class="brand__logo" />
+        </div>
+
+        <div class="brand__content">
+          <span class="brand__mark">GlorionPC</span>
+          <span class="brand__text">Premium PC Store</span>
+        </div>
+      </a>
+
+      <nav class="nav">
+        <a href="/">Главная</a>
+        <a href="/catalog.html">Каталог</a>
+        <a href="/custom-pc.html">Заказать ПК</a>
+        <a href="/configure.html">Конфигуратор ПК</a>
+        <a href="/cart.html" class="cart-link" aria-label="Корзина">
+          <span class="cart-link__text">Корзина</span>
+          <span class="cart-link__target" id="cart-target"></span>
+        </a>
+        <a href="/customer-account.html">Личный кабинет</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="orders-page">
+      <div class="container">
+        <div class="section-heading reveal">
+          <p class="section-heading__eyebrow">GlorionPC</p>
+          <h1 class="section-heading__title">Личный кабинет</h1>
+          <p class="section-heading__text">
+            Здесь отображаются обычные заказы, индивидуальные сборки и конфигурации, оформленные по вашему номеру телефона.
+          </p>
+        </div>
+
+        <div class="customer-account__top reveal">
+          <div id="customer-account-profile" class="customer-account__profile"></div>
+          <button type="button" class="btn btn-secondary" id="customer-logout-btn">
+            Выйти
+          </button>
+        </div>
+
+        <section class="orders-block reveal">
+          <div id="customer-account-orders" class="customer-orders-list">
+            <div class="orders-loading">Загружаем заказы...</div>
+          </div>
+        </section>
+      </div>
+    </section>
+  </main>
+
+  <script src="/js/cart-utils.js"></script>
+  <script src="/js/customer-account.js"></script>
+  <script src="/js/reveal.js"></script>
+  <script src="/js/mobile-menu.js"></script>
+</body>
+</html>

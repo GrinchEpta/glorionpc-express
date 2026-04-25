@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GlorionPC - вход в личный кабинет</title>
+  <meta name="description" content="Вход в личный кабинет покупателя GlorionPC по номеру телефона." />
+  <link rel="stylesheet" href="/css/style.css" />
+</head>
+<body>
+  <header class="header">
+    <div class="container header__inner">
+      <a href="/" class="brand">
+        <div class="brand__logo-wrap">
+          <img src="/images/logo-glorionpc.png" alt="GlorionPC" class="brand__logo" />
+        </div>
+
+        <div class="brand__content">
+          <span class="brand__mark">GlorionPC</span>
+          <span class="brand__text">Premium PC Store</span>
+        </div>
+      </a>
+
+      <nav class="nav">
+        <a href="/">Главная</a>
+        <a href="/catalog.html">Каталог</a>
+        <a href="/custom-pc.html">Заказать ПК</a>
+        <a href="/configure.html">Конфигуратор ПК</a>
+        <a href="/cart.html" class="cart-link" aria-label="Корзина">
+          <span class="cart-link__text">Корзина</span>
+          <span class="cart-link__target" id="cart-target"></span>
+        </a>
+        <a href="/customer-account.html">Личный кабинет</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section class="orders-page">
+      <div class="container">
+        <div class="section-heading reveal">
+          <p class="section-heading__eyebrow">GlorionPC</p>
+          <h1 class="section-heading__title">Вход в личный кабинет</h1>
+          <p class="section-heading__text">
+            Введите номер телефона, получите код и смотрите свои заказы с любого устройства.
+          </p>
+        </div>
+
+        <div class="customer-login-card reveal">
+          <form id="customer-login-form" class="checkout-form">
+            <div class="form-group">
+              <label for="customer-login-phone">Телефон</label>
+              <input
+                type="tel"
+                id="customer-login-phone"
+                name="phone"
+                placeholder="+7 (___) ___-__-__"
+                maxlength="18"
+                required
+              />
+            </div>
+
+            <button type="button" class="checkout-submit-btn" id="request-code-btn">
+              Получить код
+            </button>
+
+            <div class="form-group">
+              <label for="customer-login-code">Код из консоли</label>
+              <input
+                type="text"
+                id="customer-login-code"
+                name="code"
+                inputmode="numeric"
+                maxlength="6"
+                placeholder="000000"
+                required
+              />
+            </div>
+
+            <button type="submit" class="checkout-submit-btn">
+              Войти
+            </button>
+          </form>
+
+          <div id="customer-login-message"></div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="/js/cart-utils.js"></script>
+  <script src="/js/customer-login.js"></script>
+  <script src="/js/reveal.js"></script>
+  <script src="/js/mobile-menu.js"></script>
+</body>
+</html>

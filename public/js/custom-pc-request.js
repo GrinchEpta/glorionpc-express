@@ -169,6 +169,10 @@ async function submitCustomPcRequest(event) {
       `Заявка успешно отправлена. Номер заявки: #${request?.id || '-'}.`,
       'success'
     );
+
+    setTimeout(() => {
+      window.location.href = '/customer-account.html';
+    }, 900);
   } catch (error) {
     console.error('Ошибка отправки заявки:', error);
     showCustomPcMessage(

@@ -76,8 +76,10 @@ model Order {
   total        Float
   status       OrderStatus @default(new)
   createdAt    DateTime    @default(now())
+  customerId   Int?
 
   items        OrderItem[]
+  customer     Customer?   @relation(fields: [customerId], references: [id])
 }
 
 model OrderItem {
@@ -106,6 +108,9 @@ model CustomPcRequest {
   comment       String?
   status        OrderStatus @default(new)
   createdAt     DateTime    @default(now())
+  customerId    Int?
+
+  customer      Customer?   @relation(fields: [customerId], references: [id])
 }
 
 model IntegrationToken {
@@ -117,6 +122,27 @@ model IntegrationToken {
   expiresAt    DateTime?
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+}
+
+model Customer {
+  id               Int               @id @default(autoincrement())
+  phone            String            @unique
+  name             String?
+  email            String?
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  orders           Order[]
+  customPcRequests CustomPcRequest[]
+}
+
+model PhoneLoginCode {
+  id        Int      @id @default(autoincrement())
+  phone     String
+  code      String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
 }
 
 enum OrderStatus {

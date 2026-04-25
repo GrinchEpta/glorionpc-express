@@ -401,6 +401,10 @@ async function markOrderAsPaid() {
     if (paymentPaidBtn) {
       paymentPaidBtn.textContent = 'Статус обновлён';
     }
+
+    setTimeout(() => {
+      window.location.href = '/customer-account.html';
+    }, 900);
   } catch (error) {
     console.error('Ошибка обновления статуса заказа:', error);
 
