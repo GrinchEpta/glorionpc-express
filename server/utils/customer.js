@@ -18,6 +18,16 @@ function isValidPhone(phone) {
   return /^7\d{10}$/.test(phone);
 }
 
+function normalizeName(value) {
+  return String(value || '')
+    .trim()
+    .replace(/\s+/g, ' ');
+}
+
+function namesEqual(a, b) {
+  return normalizeName(a).toLowerCase() === normalizeName(b).toLowerCase();
+}
+
 async function findOrCreateCustomer(prisma, { phone, name, email }) {
   const normalizedPhone = normalizePhone(phone);
 
@@ -25,7 +35,7 @@ async function findOrCreateCustomer(prisma, { phone, name, email }) {
     throw new Error('Некорректный номер телефона');
   }
 
-  const normalizedName = name ? String(name).trim() : null;
+  const normalizedName = name ? normalizeName(name) : null;
   const normalizedEmail = email ? String(email).trim() : null;
 
   return prisma.customer.upsert({
@@ -45,5 +55,7 @@ async function findOrCreateCustomer(prisma, { phone, name, email }) {
 module.exports = {
   normalizePhone,
   isValidPhone,
+  normalizeName,
+  namesEqual,
   findOrCreateCustomer
 };

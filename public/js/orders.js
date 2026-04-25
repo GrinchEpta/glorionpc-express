@@ -439,8 +439,72 @@ function createCustomPcRequestCard(request) {
   return item;
 }
 
+function renderMergedOrders(orders = [], customPcRequests = []) {
+  const mergedItems = [
+    ...orders.map((order) => ({
+      type: 'order',
+      createdAt: order.createdAt,
+      data: order
+    })),
+    ...customPcRequests.map((request) => ({
+      type: 'custom-pc',
+      createdAt: request.createdAt,
+      data: request
+    }))
+  ];
+
+  mergedItems.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  customerOrdersList.innerHTML = '';
+
+  if (!mergedItems.length) {
+    renderEmptyState('Заказы пока не найдены.');
+    return;
+  }
+
+  mergedItems.forEach((entry) => {
+    const card =
+      entry.type === 'order'
+        ? createOrderCard(entry.data)
+        : createCustomPcRequestCard(entry.data);
+
+    customerOrdersList.appendChild(card);
+  });
+}
+
+async function tryLoadAuthorizedCustomerOrders() {
+  try {
+    const response = await fetch('/api/customer/orders');
+
+    if (response.status === 401) {
+      return false;
+    }
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Не удалось загрузить заказы личного кабинета');
+    }
+
+    renderMergedOrders(data.orders || [], data.customPcRequests || []);
+    return true;
+  } catch (error) {
+    console.error('Ошибка загрузки заказов личного кабинета:', error);
+    return false;
+  }
+}
+
 async function loadCustomerOrders() {
   if (!customerOrdersList) return;
+
+  customerOrdersList.innerHTML = `
+    <div class="orders-loading">Загрузка заказов...</div>
+  `;
+
+  const loadedFromAccount = await tryLoadAuthorizedCustomerOrders();
+
+  if (loadedFromAccount) {
+    return;
+  }
 
   const savedOrderIds = getSavedOrderIds();
   const savedCustomPcRequestIds = getSavedCustomPcRequestIds();
@@ -487,6 +551,9 @@ async function loadCustomerOrders() {
     saveValidCustomPcRequestIds(
       filteredCustomPcRequests.map((request) => request.id)
     );
+
+    renderMergedOrders(filteredOrders, filteredCustomPcRequests);
+    return;
 
     const mergedItems = [
       ...filteredOrders.map((order) => ({

@@ -16,6 +16,13 @@ function normalizePhoneDigits(value) {
   return digits.slice(0, 11);
 }
 
+function normalizeCustomerName(value) {
+  return String(value || '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLowerCase();
+}
+
 function formatPhoneValue(value) {
   let digits = getPhoneDigits(value);
 
@@ -89,7 +96,7 @@ function setupCustomPcPhoneMask() {
   });
 }
 
-async function validateCustomPcPhoneOwner(phone) {
+async function validateCustomPcCustomerOwner(phone, name) {
   try {
     const response = await fetch('/api/customer/me');
 
@@ -112,6 +119,18 @@ async function validateCustomPcPhoneOwner(phone) {
         'error'
       );
       customPcPhoneInput?.focus();
+      return false;
+    }
+
+    const accountName = normalizeCustomerName(data.customer.name);
+    const enteredName = normalizeCustomerName(name);
+
+    if (accountName && enteredName && accountName !== enteredName) {
+      showCustomPcMessage(
+        'Имя в заявке отличается от имени в личном кабинете. Введите имя из личного кабинета или выйдите из аккаунта.',
+        'error'
+      );
+      document.getElementById('custom-pc-name')?.focus();
       return false;
     }
 
@@ -161,7 +180,7 @@ async function submitCustomPcRequest(event) {
     return;
   }
 
-  if (!(await validateCustomPcPhoneOwner(phone))) {
+  if (!(await validateCustomPcCustomerOwner(phone, customerName))) {
     return;
   }
 

@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const prisma = require('../prisma');
-const { findOrCreateCustomer, normalizePhone } = require('../utils/customer');
+const { findOrCreateCustomer, namesEqual, normalizeName, normalizePhone } = require('../utils/customer');
 
 function parseSpecs(value) {
   if (!value) return null;
@@ -65,6 +65,7 @@ router.post('/', async (req, res) => {
 
     try {
       normalizedPhone = normalizePhone(order.customer.phone);
+      const normalizedName = normalizeName(order.customer.name);
 
       if (req.session.customerId) {
         const sessionCustomer = await prisma.customer.findUnique({
@@ -76,6 +77,22 @@ router.post('/', async (req, res) => {
             message: 'Вы вошли под другим номером телефона. Для нового заказа используйте номер из личного кабинета или выйдите из аккаунта.'
           });
         }
+
+        if (sessionCustomer?.name && normalizedName && !namesEqual(sessionCustomer.name, normalizedName)) {
+          return res.status(400).json({
+            message: 'Имя в заказе отличается от имени в личном кабинете. Введите имя из личного кабинета или выйдите из аккаунта.'
+          });
+        }
+      }
+
+      const existingCustomer = await prisma.customer.findUnique({
+        where: { phone: normalizedPhone }
+      });
+
+      if (existingCustomer?.name && normalizedName && !namesEqual(existingCustomer.name, normalizedName)) {
+        return res.status(400).json({
+          message: 'Для этого номера телефона уже указано другое имя. Введите имя из личного кабинета или войдите по SMS.'
+        });
       }
 
       customer = await findOrCreateCustomer(prisma, {

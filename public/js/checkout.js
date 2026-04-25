@@ -164,6 +164,13 @@ function normalizePhoneDigits(value) {
   return digits.slice(0, 11);
 }
 
+function normalizeCustomerName(value) {
+  return String(value || '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLowerCase();
+}
+
 function formatPhoneValue(value) {
   let digits = getPhoneDigits(value);
 
@@ -321,7 +328,7 @@ function showPaymentStatusMessage(text, type = 'success') {
   `;
 }
 
-async function validateCheckoutPhoneOwner(phone) {
+async function validateCheckoutCustomerOwner(phone, name) {
   try {
     const response = await fetch('/api/customer/me');
 
@@ -344,6 +351,18 @@ async function validateCheckoutPhoneOwner(phone) {
         'error'
       );
       phoneInput?.focus();
+      return false;
+    }
+
+    const accountName = normalizeCustomerName(data.customer.name);
+    const enteredName = normalizeCustomerName(name);
+
+    if (accountName && enteredName && accountName !== enteredName) {
+      showCheckoutMessage(
+        'Имя в заказе отличается от имени в личном кабинете. Введите имя из личного кабинета или выйдите из аккаунта.',
+        'error'
+      );
+      document.getElementById('name')?.focus();
       return false;
     }
 
@@ -496,7 +515,7 @@ async function submitOrder(event) {
     return;
   }
 
-  if (!(await validateCheckoutPhoneOwner(customerPhone))) {
+  if (!(await validateCheckoutCustomerOwner(customerPhone, customerName))) {
     return;
   }
 
