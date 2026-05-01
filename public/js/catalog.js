@@ -265,6 +265,11 @@ function createProductCard(rawProduct, index = 0) {
 
     <div class="product-card__body">
       <span class="product-card__category">${product.category}</span>
+      ${
+        product.inStock
+          ? ''
+          : '<span class="product-card__stock product-card__stock--out">Нет в наличии</span>'
+      }
 
       <h3 class="product-card__title" onclick="goToProduct(${product.id})">
         ${product.name}
