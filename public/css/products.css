@@ -217,9 +217,17 @@
   padding: 18px;
 }
 
+.product-card__badges {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
 .product-card__category {
   display: inline-block;
-  margin-bottom: 10px;
+  margin-bottom: 0;
   padding: 6px 10px;
   border-radius: 999px;
   font-size: 12px;
@@ -229,9 +237,10 @@
 }
 
 .product-card__stock {
-  display: table;
+  display: inline-flex;
+  align-items: center;
   width: fit-content;
-  margin: 0 0 12px;
+  margin: 0;
   padding: 6px 10px;
   border-radius: 999px;
   font-size: 12px;
