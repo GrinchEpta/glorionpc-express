@@ -297,9 +297,11 @@ function createProductCard(rawProduct, index = 0) {
         </div>
 
         <div style="display:flex;gap:10px;flex-wrap:wrap;">
-          <button type="button" class="product-card__button product-card__buy-button" ${product.inStock ? '' : 'disabled'}>
-            ${product.inStock ? 'Купить' : 'Нет в наличии'}
-          </button>
+          ${
+            product.inStock
+              ? '<button type="button" class="product-card__button product-card__buy-button">Купить</button>'
+              : ''
+          }
           ${
             product.avitoUrl
               ? `<a href="${product.avitoUrl}" target="_blank" rel="noopener noreferrer" class="product-card__button" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center;">Авито</a>`
@@ -312,7 +314,7 @@ function createProductCard(rawProduct, index = 0) {
 
   const buyButton = article.querySelector('.product-card__buy-button');
 
-  buyButton.addEventListener('click', (event) => {
+  buyButton?.addEventListener('click', (event) => {
     event.preventDefault();
     event.stopPropagation();
 
