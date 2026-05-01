@@ -129,8 +129,51 @@ function getAvitoItemStatus(item) {
     extractAvitoValue(item, ['status']) ||
     extractAvitoValue(item, ['state']) ||
     extractAvitoValue(item, ['item.status']) ||
+    extractAvitoValue(item, ['item.state']) ||
+    extractAvitoValue(item, ['data.status']) ||
+    extractAvitoValue(item, ['data.state']) ||
+    extractAvitoValue(item, ['result.status']) ||
+    extractAvitoValue(item, ['result.state']) ||
+    extractAvitoValue(item, ['status.value']) ||
+    extractAvitoValue(item, ['state.value']) ||
     null
   );
+}
+
+function isAvitoItemAvailable(status, hasMatchedItem = false) {
+  const normalized = String(status || '').trim().toLowerCase();
+
+  if (!normalized) {
+    return hasMatchedItem;
+  }
+
+  const activeStatuses = new Set([
+    'active',
+    'published',
+    'open',
+    'opened',
+    'approved'
+  ]);
+
+  const inactiveStatuses = new Set([
+    'sold',
+    'closed',
+    'removed',
+    'deleted',
+    'archived',
+    'archive',
+    'old',
+    'blocked',
+    'rejected',
+    'inactive',
+    'stopped',
+    'paused'
+  ]);
+
+  if (activeStatuses.has(normalized)) return true;
+  if (inactiveStatuses.has(normalized)) return false;
+
+  return false;
 }
 
 function getAvitoItemUrl(item) {
@@ -538,6 +581,7 @@ app.post('/api/auth/avito/sync-products', async (req, res) => {
     });
 
     let updated = 0;
+    let markedUnavailable = 0;
     const notMatched = [];
 
     for (const product of products) {
@@ -552,12 +596,45 @@ app.post('/api/auth/avito/sync-products', async (req, res) => {
           name: product.name,
           avitoItemId: product.avitoItemId
         });
+
+        await prisma.product.update({
+          where: { id: product.id },
+          data: {
+            avitoStatus: 'not_found',
+            avitoLastSyncedAt: new Date(),
+            syncSource: 'avito',
+            inStock: false
+          }
+        });
+
+        updated += 1;
+        markedUnavailable += 1;
         continue;
       }
 
-      const avitoPrice = extractAvitoPrice(matched);
-      const avitoUrl = getAvitoItemUrl(matched);
-      const avitoStatus = getAvitoItemStatus(matched);
+      let avitoItemData = matched;
+      let detailLookupFailed = false;
+
+      if (process.env.AVITO_USER_ID) {
+        try {
+          avitoItemData = await fetchAvitoItemDetail(accessToken, product.avitoItemId);
+        } catch (error) {
+          detailLookupFailed = true;
+          console.error(
+            `Ошибка проверки объявления Авито ${product.avitoItemId}:`,
+            error.response?.data || error.message
+          );
+        }
+      }
+
+      const avitoPrice = extractAvitoPrice(avitoItemData) ?? extractAvitoPrice(matched);
+      const avitoUrl = getAvitoItemUrl(avitoItemData) || getAvitoItemUrl(matched);
+      const avitoStatus = detailLookupFailed
+        ? 'not_found'
+        : getAvitoItemStatus(avitoItemData) || getAvitoItemStatus(matched);
+      const inStockByAvito = detailLookupFailed
+        ? false
+        : isAvitoItemAvailable(avitoStatus, Boolean(matched));
 
       await prisma.product.update({
         where: { id: product.id },
@@ -568,16 +645,21 @@ app.post('/api/auth/avito/sync-products', async (req, res) => {
           avitoStatus: avitoStatus || product.avitoStatus,
           avitoLastSyncedAt: new Date(),
           syncSource: 'avito',
-          inStock: avitoStatus === 'active' ? true : product.inStock
+          inStock: inStockByAvito
         }
       });
 
       updated += 1;
+
+      if (!inStockByAvito) {
+        markedUnavailable += 1;
+      }
     }
 
     return res.json({
       message: 'Синхронизация завершена',
       updated,
+      markedUnavailable,
       notMatched,
       totalAvitoItems: avitoItems.length
     });

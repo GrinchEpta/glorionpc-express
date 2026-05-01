@@ -394,7 +394,17 @@ async function loadProduct() {
     const buyButton = document.getElementById('product-buy-button');
 
     if (buyButton) {
+      if (!product.inStock) {
+        buyButton.textContent = 'Нет в наличии';
+        buyButton.disabled = true;
+        return;
+      }
+
       buyButton.addEventListener('click', () => {
+        if (!product.inStock) {
+          return;
+        }
+
         if (window.CartUtils && typeof window.CartUtils.addToCart === 'function') {
           window.CartUtils.addToCart(product);
           updateCartIndicatorAfterAdd();
