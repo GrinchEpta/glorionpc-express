@@ -473,10 +473,21 @@
 }
 
 .admin-db-stat {
+  width: 100%;
+  text-align: left;
   padding: 16px;
   border: 1px solid var(--gold-border);
   border-radius: 14px;
   background: rgba(212, 166, 74, 0.08);
+  cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.admin-db-stat:hover,
+.admin-db-stat.is-active {
+  transform: translateY(-2px);
+  border-color: var(--gold);
+  background: rgba(212, 166, 74, 0.18);
 }
 
 .admin-db-stat span {
@@ -505,6 +516,10 @@
 }
 
 .admin-db-table.is-hidden-by-search {
+  display: none;
+}
+
+.admin-db-table.is-hidden-by-section {
   display: none;
 }
 

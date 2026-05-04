@@ -35,6 +35,7 @@ const componentSpecsDynamic = document.getElementById('component-specs-dynamic')
 
 let imageItems = [];
 let componentImageItems = [];
+let activeDatabaseSection = '';
 
 /* =========================
    HELPERS
@@ -1854,22 +1855,34 @@ function renderDatabaseSummary(counts = {}) {
   if (!adminDatabaseSummary) return;
 
   const items = [
-    ['Товары', counts.products],
-    ['Заказы', counts.orders],
-    ['Заявки на ПК', counts.customPcRequests],
-    ['Покупатели', counts.customers],
-    ['SMS-коды', counts.loginCodes],
-    ['Интеграции', counts.integrationTokens]
+    ['products', 'Товары', counts.products],
+    ['orders', 'Заказы', counts.orders],
+    ['customPcRequests', 'Заявки на ПК', counts.customPcRequests],
+    ['customers', 'Покупатели', counts.customers],
+    ['loginCodes', 'SMS-коды', counts.loginCodes],
+    ['integrationTokens', 'Интеграции', counts.integrationTokens]
   ];
 
   adminDatabaseSummary.innerHTML = items
-    .map(([label, value]) => `
-      <div class="admin-db-stat">
+    .map(([key, label, value]) => `
+      <button
+        type="button"
+        class="admin-db-stat ${activeDatabaseSection === key ? 'is-active' : ''}"
+        data-db-target="${escapeHtml(key)}"
+      >
         <span>${escapeHtml(label)}</span>
         <strong>${escapeHtml(value ?? 0)}</strong>
-      </div>
+      </button>
     `)
     .join('');
+
+  adminDatabaseSummary.querySelectorAll('.admin-db-stat').forEach((button) => {
+    button.addEventListener('click', () => {
+      const target = button.dataset.dbTarget || '';
+      activeDatabaseSection = activeDatabaseSection === target ? '' : target;
+      updateDatabaseSectionVisibility();
+    });
+  });
 }
 
 function renderDatabaseRow(row, section) {
@@ -1956,6 +1969,38 @@ function filterDatabaseRows() {
   });
 }
 
+function updateDatabaseSectionVisibility() {
+  if (!adminDatabaseList || !adminDatabaseSummary) return;
+
+  adminDatabaseSummary.querySelectorAll('.admin-db-stat').forEach((button) => {
+    button.classList.toggle(
+      'is-active',
+      button.dataset.dbTarget === activeDatabaseSection
+    );
+  });
+
+  adminDatabaseList.querySelectorAll('.admin-db-table').forEach((section) => {
+    const isSelected =
+      !activeDatabaseSection ||
+      section.dataset.dbSection === activeDatabaseSection;
+
+    section.classList.toggle('is-hidden-by-section', !isSelected);
+  });
+
+  filterDatabaseRows();
+
+  if (activeDatabaseSection) {
+    const selectedSection = adminDatabaseList.querySelector(
+      `[data-db-section="${activeDatabaseSection}"]`
+    );
+
+    selectedSection?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'start'
+    });
+  }
+}
+
 async function loadDatabaseView() {
   if (!adminDatabaseList || !adminDatabaseSummary) return;
 
@@ -1972,7 +2017,7 @@ async function loadDatabaseView() {
 
     renderDatabaseSummary(data.counts);
     renderDatabaseSections(data);
-    filterDatabaseRows();
+    updateDatabaseSectionVisibility();
   } catch (error) {
     console.error('Ошибка загрузки базы данных:', error);
     adminDatabaseList.innerHTML = `<p class="admin-empty">${escapeHtml(error.message || 'Не удалось загрузить данные базы.')}</p>`;
