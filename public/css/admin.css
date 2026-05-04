@@ -465,6 +465,128 @@
   display: block;
 }
 
+.admin-db-summary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+  margin-bottom: 22px;
+}
+
+.admin-db-stat {
+  padding: 16px;
+  border: 1px solid var(--gold-border);
+  border-radius: 14px;
+  background: rgba(212, 166, 74, 0.08);
+}
+
+.admin-db-stat span {
+  display: block;
+  margin-bottom: 8px;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.admin-db-stat strong {
+  color: var(--gold-soft);
+  font-size: 26px;
+}
+
+.admin-db-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.admin-db-table {
+  border: 1px solid var(--gold-border);
+  border-radius: 16px;
+  background: rgba(10, 14, 24, 0.72);
+  overflow: hidden;
+}
+
+.admin-db-table.is-hidden-by-search {
+  display: none;
+}
+
+.admin-db-table__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 16px 18px;
+  border-bottom: 1px solid rgba(212, 166, 74, 0.22);
+}
+
+.admin-db-table__header h3 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.admin-db-table__header span {
+  color: var(--gold-soft);
+  font-size: 14px;
+  white-space: nowrap;
+}
+
+.admin-db-table__rows {
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-db-row {
+  padding: 16px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.admin-db-row:last-child {
+  border-bottom: 0;
+}
+
+.admin-db-row.is-hidden-by-search {
+  display: none;
+}
+
+.admin-db-row__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 12px;
+}
+
+.admin-db-row__cell {
+  min-width: 0;
+}
+
+.admin-db-row__cell span,
+.admin-db-row__details span {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.admin-db-row__cell strong {
+  display: block;
+  color: var(--text);
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
+.admin-db-row__details {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.admin-db-row__details p {
+  margin: 0;
+  color: #ddd5c6;
+  font-size: 14px;
+  overflow-wrap: anywhere;
+}
+
 .admin-checkbox {
   display: flex;
   align-items: center;

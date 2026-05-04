@@ -50,6 +50,9 @@
         <button type="button" class="admin-tab" data-tab="components">
           Комплектующие
         </button>
+        <button type="button" class="admin-tab" data-tab="database">
+          База данных
+        </button>
       </div>
 
       <div class="admin-section active" id="tab-products">
@@ -305,6 +308,37 @@
         <section class="admin-block reveal">
           <h2>Список комплектующих</h2>
           <div id="components-list" class="admin-list"></div>
+        </section>
+      </div>
+
+      <div class="admin-section" id="tab-database">
+        <section class="admin-block admin-toolbar-block reveal">
+          <div class="admin-toolbar">
+            <div class="admin-search">
+              <label for="admin-database-search" class="admin-search__label">Поиск по базе</label>
+              <input
+                type="text"
+                id="admin-database-search"
+                class="admin-search__input"
+                placeholder="Ищи по заказам, покупателям, товарам, телефону, email..."
+              />
+            </div>
+
+            <div class="admin-toolbar__actions">
+              <button type="button" class="btn btn-gold" id="refresh-database-btn">
+                Обновить данные
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <section class="admin-block reveal">
+          <div class="admin-block__header">
+            <h2>Просмотр базы данных</h2>
+          </div>
+
+          <div id="admin-database-summary" class="admin-db-summary"></div>
+          <div id="admin-database-list" class="admin-db-list"></div>
         </section>
       </div>
     </div>

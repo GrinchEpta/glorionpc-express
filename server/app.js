@@ -11,6 +11,7 @@ const ordersRoutes = require('./routes/orders');
 const authRoutes = require('./routes/auth');
 const customPcRequestsRoutes = require('./routes/customPcRequests');
 const customerAuthRoutes = require('./routes/customerAuth');
+const adminDatabaseRoutes = require('./routes/adminDatabase');
 
 const app = express();
 
@@ -332,6 +333,7 @@ app.use('/api/orders', ordersRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/custom-pc-requests', customPcRequestsRoutes);
 app.use('/api/customer', customerAuthRoutes);
+app.use('/api/admin', adminDatabaseRoutes);
 
 /* =========================
    AVITO OAUTH

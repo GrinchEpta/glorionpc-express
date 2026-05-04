@@ -1,6 +1,7 @@
 const API_URL = '/api/products';
 const ORDERS_API_URL = '/api/orders';
 const CUSTOM_PC_REQUESTS_API_URL = '/api/custom-pc-requests';
+const ADMIN_DATABASE_API_URL = '/api/admin/database';
 
 /* =========================
    MAIN ADMIN NODES
@@ -12,6 +13,10 @@ const cancelEditBtn = document.getElementById('cancel-edit-btn');
 const productsList = document.getElementById('admin-products-list');
 const ordersList = document.getElementById('admin-orders-list');
 const adminCustomPcRequestsList = document.getElementById('admin-custom-pc-requests-list');
+const adminDatabaseSummary = document.getElementById('admin-database-summary');
+const adminDatabaseList = document.getElementById('admin-database-list');
+const adminDatabaseSearch = document.getElementById('admin-database-search');
+const refreshDatabaseBtn = document.getElementById('refresh-database-btn');
 const imagesInput = document.getElementById('images');
 const imagesPreview = document.getElementById('admin-images-preview');
 
@@ -252,6 +257,31 @@ function extractApiError(data, fallbackMessage) {
   }
 
   return errorText;
+}
+
+function escapeHtml(value) {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function formatBoolean(value) {
+  return value ? 'Да' : 'Нет';
+}
+
+function formatDbDate(value) {
+  return value ? formatAdminDate(value) : '-';
+}
+
+function formatDbValue(value) {
+  if (value === null || value === undefined || value === '') return '-';
+  if (typeof value === 'boolean') return formatBoolean(value);
+  if (Array.isArray(value)) return `${value.length} шт.`;
+  if (typeof value === 'object') return JSON.stringify(value);
+  return String(value);
 }
 
 /* =========================
@@ -1702,6 +1732,254 @@ async function loadCustomPcRequests() {
 }
 
 /* =========================
+   LOAD DATABASE VIEW
+========================= */
+function getDatabaseSections(data) {
+  return [
+    {
+      key: 'products',
+      title: 'Товары',
+      rows: data.products || [],
+      columns: [
+        ['id', 'ID'],
+        ['name', 'Название'],
+        ['category', 'Категория'],
+        ['price', 'Цена'],
+        ['inStock', 'В наличии'],
+        ['avitoItemId', 'Avito ID'],
+        ['avitoStatus', 'Статус Avito'],
+        ['createdAt', 'Создан']
+      ],
+      detail: (product) => [
+        ['CPU', product.cpu],
+        ['GPU', product.gpu],
+        ['RAM', product.ram],
+        ['SSD', product.ssd],
+        ['Фото', product.images?.length ? `${product.images.length} шт.` : '-']
+      ]
+    },
+    {
+      key: 'orders',
+      title: 'Обычные заказы',
+      rows: data.orders || [],
+      columns: [
+        ['id', 'ID'],
+        ['customerName', 'Имя'],
+        ['phone', 'Телефон'],
+        ['email', 'Email'],
+        ['total', 'Сумма'],
+        ['status', 'Статус'],
+        ['createdAt', 'Дата']
+      ],
+      detail: (order) => [
+        ['Customer ID', order.customerId],
+        ['Комментарий', order.comment],
+        [
+          'Товары',
+          order.items?.length
+            ? order.items
+                .map((item) => `${item.productName || 'Товар'} x${item.quantity} - ${formatPrice(item.price)}`)
+                .join('; ')
+            : '-'
+        ]
+      ]
+    },
+    {
+      key: 'customPcRequests',
+      title: 'Заявки на ПК',
+      rows: data.customPcRequests || [],
+      columns: [
+        ['id', 'ID'],
+        ['customerName', 'Имя'],
+        ['phone', 'Телефон'],
+        ['email', 'Email'],
+        ['budget', 'Бюджет'],
+        ['status', 'Статус'],
+        ['createdAt', 'Дата']
+      ],
+      detail: (request) => [
+        ['Customer ID', request.customerId],
+        ['Дизайн', request.designWishes],
+        ['Размер корпуса', request.caseSize],
+        ['Назначение', request.purpose],
+        ['Комментарий', request.comment]
+      ]
+    },
+    {
+      key: 'customers',
+      title: 'Покупатели',
+      rows: data.customers || [],
+      columns: [
+        ['id', 'ID'],
+        ['name', 'Имя'],
+        ['phone', 'Телефон'],
+        ['email', 'Email'],
+        ['createdAt', 'Создан'],
+        ['updatedAt', 'Обновлен']
+      ],
+      detail: (customer) => [
+        ['Обычных заказов', customer._count?.orders],
+        ['Заявок на ПК', customer._count?.customPcRequests]
+      ]
+    },
+    {
+      key: 'loginCodes',
+      title: 'SMS-коды входа',
+      rows: data.loginCodes || [],
+      columns: [
+        ['id', 'ID'],
+        ['phone', 'Телефон'],
+        ['code', 'Код'],
+        ['used', 'Использован'],
+        ['expiresAt', 'Истекает'],
+        ['createdAt', 'Создан']
+      ]
+    },
+    {
+      key: 'integrationTokens',
+      title: 'Интеграции',
+      rows: data.integrationTokens || [],
+      columns: [
+        ['id', 'ID'],
+        ['provider', 'Провайдер'],
+        ['tokenType', 'Тип'],
+        ['expiresAt', 'Истекает'],
+        ['updatedAt', 'Обновлен']
+      ]
+    }
+  ];
+}
+
+function renderDatabaseSummary(counts = {}) {
+  if (!adminDatabaseSummary) return;
+
+  const items = [
+    ['Товары', counts.products],
+    ['Заказы', counts.orders],
+    ['Заявки на ПК', counts.customPcRequests],
+    ['Покупатели', counts.customers],
+    ['SMS-коды', counts.loginCodes],
+    ['Интеграции', counts.integrationTokens]
+  ];
+
+  adminDatabaseSummary.innerHTML = items
+    .map(([label, value]) => `
+      <div class="admin-db-stat">
+        <span>${escapeHtml(label)}</span>
+        <strong>${escapeHtml(value ?? 0)}</strong>
+      </div>
+    `)
+    .join('');
+}
+
+function renderDatabaseRow(row, section) {
+  const cells = section.columns
+    .map(([key, label]) => {
+      const rawValue = key.endsWith('At') ? formatDbDate(row[key]) : formatDbValue(row[key]);
+
+      return `
+        <div class="admin-db-row__cell">
+          <span>${escapeHtml(label)}</span>
+          <strong>${escapeHtml(rawValue)}</strong>
+        </div>
+      `;
+    })
+    .join('');
+
+  const details = typeof section.detail === 'function' ? section.detail(row) : [];
+  const detailsHtml = details.length
+    ? `
+      <div class="admin-db-row__details">
+        ${details
+          .map(([label, value]) => `
+            <p>
+              <span>${escapeHtml(label)}:</span>
+              ${escapeHtml(formatDbValue(value))}
+            </p>
+          `)
+          .join('')}
+      </div>
+    `
+    : '';
+
+  return `
+    <article class="admin-db-row" data-search="${escapeHtml(JSON.stringify(row).toLowerCase())}">
+      <div class="admin-db-row__grid">
+        ${cells}
+      </div>
+      ${detailsHtml}
+    </article>
+  `;
+}
+
+function renderDatabaseSections(data) {
+  if (!adminDatabaseList) return;
+
+  const sections = getDatabaseSections(data);
+
+  adminDatabaseList.innerHTML = sections
+    .map((section) => `
+      <section class="admin-db-table" data-db-section="${escapeHtml(section.key)}">
+        <div class="admin-db-table__header">
+          <h3>${escapeHtml(section.title)}</h3>
+          <span>${escapeHtml(section.rows.length)} записей</span>
+        </div>
+        ${
+          section.rows.length
+            ? `<div class="admin-db-table__rows">${section.rows.map((row) => renderDatabaseRow(row, section)).join('')}</div>`
+            : '<p class="admin-empty">Записей пока нет.</p>'
+        }
+      </section>
+    `)
+    .join('');
+}
+
+function filterDatabaseRows() {
+  if (!adminDatabaseList || !adminDatabaseSearch) return;
+
+  const query = adminDatabaseSearch.value.toLowerCase().trim();
+
+  adminDatabaseList.querySelectorAll('.admin-db-table').forEach((section) => {
+    let visibleCount = 0;
+
+    section.querySelectorAll('.admin-db-row').forEach((row) => {
+      const isVisible = !query || row.dataset.search.includes(query);
+      row.classList.toggle('is-hidden-by-search', !isVisible);
+
+      if (isVisible) visibleCount += 1;
+    });
+
+    section.classList.toggle(
+      'is-hidden-by-search',
+      query && section.querySelectorAll('.admin-db-row').length > 0 && visibleCount === 0
+    );
+  });
+}
+
+async function loadDatabaseView() {
+  if (!adminDatabaseList || !adminDatabaseSummary) return;
+
+  adminDatabaseList.innerHTML = '<p class="admin-empty">Загружаю данные базы...</p>';
+  adminDatabaseSummary.innerHTML = '';
+
+  try {
+    const response = await fetch(ADMIN_DATABASE_API_URL);
+    const data = await readApiResponse(response);
+
+    if (!response.ok) {
+      throw new Error(extractApiError(data, 'Не удалось загрузить данные базы'));
+    }
+
+    renderDatabaseSummary(data.counts);
+    renderDatabaseSections(data);
+    filterDatabaseRows();
+  } catch (error) {
+    console.error('Ошибка загрузки базы данных:', error);
+    adminDatabaseList.innerHTML = `<p class="admin-empty">${escapeHtml(error.message || 'Не удалось загрузить данные базы.')}</p>`;
+  }
+}
+
+/* =========================
    ADMIN TABS
 ========================= */
 function setupAdminTabs() {
@@ -1920,10 +2198,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     fillFromAvitoBtn.addEventListener('click', fillProductFromAvito);
   }
 
+  if (refreshDatabaseBtn) {
+    refreshDatabaseBtn.addEventListener('click', loadDatabaseView);
+  }
+
+  if (adminDatabaseSearch) {
+    adminDatabaseSearch.addEventListener('input', filterDatabaseRows);
+  }
+
   await loadProducts();
   await loadOrders();
   await loadCustomPcRequests();
   await loadComponents();
+  await loadDatabaseView();
 });
 
 /* =========================
