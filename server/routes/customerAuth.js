@@ -59,7 +59,10 @@ router.post('/auth/request-code', async (req, res) => {
     });
 
     try {
-      await sendLoginCodeEmail(email, code);
+      const sendResult = await sendLoginCodeEmail(email, code);
+      console.log(
+        `Customer login code email sent to ${email} via ${sendResult?.provider || 'unknown'}`
+      );
     } catch (error) {
       await prisma.emailLoginCode.update({
         where: { id: loginCode.id },
