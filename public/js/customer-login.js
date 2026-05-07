@@ -30,7 +30,12 @@ async function requestCode() {
     return;
   }
 
+  let timeoutId;
+
   try {
+    const controller = new AbortController();
+    timeoutId = setTimeout(() => controller.abort(), 25000);
+
     requestCodeBtn.disabled = true;
     requestCodeBtn.textContent = 'Отправляем код...';
     showMessage('');
@@ -38,8 +43,11 @@ async function requestCode() {
     const response = await fetch('/api/customer/auth/request-code', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email })
+      body: JSON.stringify({ email }),
+      signal: controller.signal
     });
+
+    clearTimeout(timeoutId);
 
     const data = await response.json();
 
@@ -50,8 +58,13 @@ async function requestCode() {
     showMessage('Код отправлен на email. Проверьте входящие и папку спам.');
     codeInput?.focus();
   } catch (error) {
-    showMessage(error.message || 'Не удалось получить код.', 'error');
+    const message = error.name === 'AbortError'
+      ? 'Сервер слишком долго отправляет письмо. Попробуйте еще раз или проверьте SMTP-порт.'
+      : error.message || 'Не удалось получить код.';
+
+    showMessage(message, 'error');
   } finally {
+    if (timeoutId) clearTimeout(timeoutId);
     requestCodeBtn.disabled = false;
     requestCodeBtn.textContent = 'Получить код';
   }
