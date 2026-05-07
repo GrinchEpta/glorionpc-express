@@ -41,6 +41,37 @@ function hasAnySmtpEnv() {
   );
 }
 
+function getEmailProviderDiagnostics() {
+  const sender = getSender();
+
+  let selectedProvider = 'console';
+
+  if (process.env.RESEND_API_KEY) {
+    selectedProvider = 'resend';
+  } else if (hasSmtpConfig()) {
+    selectedProvider = 'smtp';
+  } else if (process.env.BREVO_API_KEY && sender.email) {
+    selectedProvider = 'brevo-api';
+  } else if (hasAnySmtpEnv()) {
+    selectedProvider = 'smtp-incomplete';
+  }
+
+  return {
+    selectedProvider,
+    env: {
+      RESEND_API_KEY: Boolean(process.env.RESEND_API_KEY),
+      BREVO_API_KEY: Boolean(process.env.BREVO_API_KEY),
+      EMAIL_FROM: sender.email || null,
+      EMAIL_FROM_NAME: sender.name || null,
+      SMTP_HOST: Boolean(process.env.SMTP_HOST),
+      SMTP_PORT: Boolean(process.env.SMTP_PORT),
+      SMTP_USER: Boolean(process.env.SMTP_USER),
+      SMTP_PASS: Boolean(process.env.SMTP_PASS),
+      SMTP_SECURE: process.env.SMTP_SECURE ?? null
+    }
+  };
+}
+
 async function sendViaSmtp(email, code) {
   const sender = getSender();
 
@@ -71,6 +102,36 @@ async function sendViaSmtp(email, code) {
   });
 
   return { provider: 'smtp' };
+}
+
+async function sendViaResend(email, code) {
+  const apiKey = process.env.RESEND_API_KEY;
+  const sender = getSender();
+
+  if (!apiKey || !sender.email) {
+    throw new Error('RESEND_API_KEY or EMAIL_FROM is not configured');
+  }
+
+  const message = buildLoginCodeMessage(code);
+
+  await axios.post(
+    'https://api.resend.com/emails',
+    {
+      from: `${sender.name} <${sender.email}>`,
+      to: [email],
+      subject: message.subject,
+      html: message.html,
+      text: message.text
+    },
+    {
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json'
+      }
+    }
+  );
+
+  return { provider: 'resend' };
 }
 
 async function sendViaBrevoApi(email, code) {
@@ -109,6 +170,10 @@ async function sendViaBrevoApi(email, code) {
 }
 
 async function sendLoginCodeEmail(email, code) {
+  if (process.env.RESEND_API_KEY) {
+    return sendViaResend(email, code);
+  }
+
   if (hasSmtpConfig()) {
     return sendViaSmtp(email, code);
   }
@@ -121,5 +186,6 @@ async function sendLoginCodeEmail(email, code) {
 }
 
 module.exports = {
-  sendLoginCodeEmail
+  sendLoginCodeEmail,
+  getEmailProviderDiagnostics
 };

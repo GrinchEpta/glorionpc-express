@@ -12,6 +12,7 @@ const authRoutes = require('./routes/auth');
 const customPcRequestsRoutes = require('./routes/customPcRequests');
 const customerAuthRoutes = require('./routes/customerAuth');
 const adminDatabaseRoutes = require('./routes/adminDatabase');
+const { getEmailProviderDiagnostics } = require('./services/emailService');
 
 const app = express();
 
@@ -692,6 +693,10 @@ app.get('/admin', requireAdmin, (req, res) => {
 
 app.get('/admin-login', (req, res) => {
   res.sendFile(path.join(__dirname, '../public/admin-login.html'));
+});
+
+app.get('/api/debug/email-env', requireAdmin, (req, res) => {
+  res.json(getEmailProviderDiagnostics());
 });
 
 /* =========================
