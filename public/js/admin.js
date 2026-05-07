@@ -1825,11 +1825,11 @@ function getDatabaseSections(data) {
     },
     {
       key: 'loginCodes',
-      title: 'SMS-коды входа',
+      title: 'Email-коды входа',
       rows: data.loginCodes || [],
       columns: [
         ['id', 'ID'],
-        ['phone', 'Телефон'],
+        ['email', 'Email'],
         ['code', 'Код'],
         ['used', 'Использован'],
         ['expiresAt', 'Истекает'],
@@ -1859,7 +1859,7 @@ function renderDatabaseSummary(counts = {}) {
     ['orders', 'Заказы', counts.orders],
     ['customPcRequests', 'Заявки на ПК', counts.customPcRequests],
     ['customers', 'Покупатели', counts.customers],
-    ['loginCodes', 'SMS-коды', counts.loginCodes],
+    ['loginCodes', 'Email-коды', counts.loginCodes],
     ['integrationTokens', 'Интеграции', counts.integrationTokens]
   ];
 

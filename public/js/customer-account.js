@@ -60,13 +60,14 @@ function revealAccountBlocks() {
 function renderProfile(customer) {
   if (!profileContainer) return;
 
+  const meta = [customer?.email, customer?.phone].filter(Boolean);
+
   profileContainer.innerHTML = `
     <div class="customer-account__profile-title">
       ${escapeHtml(customer?.name || 'Покупатель GlorionPC')}
     </div>
     <div class="customer-account__profile-meta">
-      <span>${escapeHtml(customer?.phone || '')}</span>
-      ${customer?.email ? `<span>${escapeHtml(customer.email)}</span>` : ''}
+      ${meta.map((item) => `<span>${escapeHtml(item)}</span>`).join('')}
     </div>
   `;
 }

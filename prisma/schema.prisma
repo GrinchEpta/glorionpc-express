@@ -126,9 +126,9 @@ model IntegrationToken {
 
 model Customer {
   id               Int               @id @default(autoincrement())
-  phone            String            @unique
+  phone            String?           @unique
   name             String?
-  email            String?
+  email            String?           @unique
   createdAt        DateTime          @default(now())
   updatedAt        DateTime          @updatedAt
 
@@ -139,6 +139,15 @@ model Customer {
 model PhoneLoginCode {
   id        Int      @id @default(autoincrement())
   phone     String
+  code      String
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model EmailLoginCode {
+  id        Int      @id @default(autoincrement())
+  email     String
   code      String
   expiresAt DateTime
   used      Boolean  @default(false)

@@ -1,8 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const prisma = require('../prisma');
-const { sendLoginCodeSms } = require('../services/smsService');
-const { findOrCreateCustomer, isValidPhone, normalizePhone } = require('../utils/customer');
+const { sendLoginCodeEmail } = require('../services/emailService');
+const {
+  findOrCreateCustomer,
+  isValidEmail,
+  normalizeEmail
+} = require('../utils/customer');
 
 function getPublicCustomer(customer) {
   if (!customer) return null;
@@ -27,18 +31,18 @@ function requireCustomer(req, res, next) {
 
 router.post('/auth/request-code', async (req, res) => {
   try {
-    const phone = normalizePhone(req.body?.phone);
+    const email = normalizeEmail(req.body?.email);
 
-    if (!isValidPhone(phone)) {
-      return res.status(400).json({ message: 'Некорректный номер телефона' });
+    if (!isValidEmail(email)) {
+      return res.status(400).json({ message: 'Некорректный email' });
     }
 
     const code = String(Math.floor(100000 + Math.random() * 900000));
     const expiresAt = new Date(Date.now() + 10 * 60 * 1000);
 
-    await prisma.phoneLoginCode.updateMany({
+    await prisma.emailLoginCode.updateMany({
       where: {
-        phone,
+        email,
         used: false
       },
       data: {
@@ -46,18 +50,18 @@ router.post('/auth/request-code', async (req, res) => {
       }
     });
 
-    const loginCode = await prisma.phoneLoginCode.create({
+    const loginCode = await prisma.emailLoginCode.create({
       data: {
-        phone,
+        email,
         code,
         expiresAt
       }
     });
 
     try {
-      await sendLoginCodeSms(phone, code);
+      await sendLoginCodeEmail(email, code);
     } catch (error) {
-      await prisma.phoneLoginCode.update({
+      await prisma.emailLoginCode.update({
         where: { id: loginCode.id },
         data: { used: true }
       });
@@ -67,23 +71,23 @@ router.post('/auth/request-code', async (req, res) => {
 
     return res.json({ ok: true });
   } catch (error) {
-    console.error('Customer auth request-code error:', error);
-    return res.status(500).json({ message: 'Не удалось отправить SMS с кодом' });
+    console.error('Customer auth request-code error:', error.response?.data || error.message);
+    return res.status(500).json({ message: 'Не удалось отправить письмо с кодом' });
   }
 });
 
 router.post('/auth/verify-code', async (req, res) => {
   try {
-    const phone = normalizePhone(req.body?.phone);
+    const email = normalizeEmail(req.body?.email);
     const code = String(req.body?.code || '').trim();
 
-    if (!isValidPhone(phone) || !/^\d{6}$/.test(code)) {
-      return res.status(400).json({ message: 'Некорректный телефон или код' });
+    if (!isValidEmail(email) || !/^\d{6}$/.test(code)) {
+      return res.status(400).json({ message: 'Некорректный email или код' });
     }
 
-    const loginCode = await prisma.phoneLoginCode.findFirst({
+    const loginCode = await prisma.emailLoginCode.findFirst({
       where: {
-        phone,
+        email,
         code,
         used: false,
         expiresAt: {
@@ -99,9 +103,9 @@ router.post('/auth/verify-code', async (req, res) => {
       return res.status(400).json({ message: 'Код неверный или истек' });
     }
 
-    const customer = await findOrCreateCustomer(prisma, { phone });
+    const customer = await findOrCreateCustomer(prisma, { email });
 
-    await prisma.phoneLoginCode.update({
+    await prisma.emailLoginCode.update({
       where: { id: loginCode.id },
       data: { used: true }
     });

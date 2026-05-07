@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const prisma = require('../prisma');
-const { findOrCreateCustomer, namesEqual, normalizeName, normalizePhone } = require('../utils/customer');
+const { findOrCreateCustomer, namesEqual, normalizeEmail, normalizeName, normalizePhone } = require('../utils/customer');
 
 router.get('/', async (req, res) => {
   try {
@@ -37,9 +37,11 @@ router.post('/', async (req, res) => {
 
     let customer;
     let normalizedPhone;
+    let normalizedEmail;
 
     try {
       normalizedPhone = normalizePhone(phone);
+      normalizedEmail = normalizeEmail(email);
       const normalizedName = normalizeName(customerName);
 
       if (req.session.customerId) {
@@ -47,7 +49,13 @@ router.post('/', async (req, res) => {
           where: { id: req.session.customerId }
         });
 
-        if (sessionCustomer && sessionCustomer.phone !== normalizedPhone) {
+        if (sessionCustomer?.email && sessionCustomer.email !== normalizedEmail) {
+          return res.status(400).json({
+            message: 'Вы вошли под другим email. Для новой заявки используйте email из личного кабинета или выйдите из аккаунта.'
+          });
+        }
+
+        if (sessionCustomer?.phone && sessionCustomer.phone !== normalizedPhone) {
           return res.status(400).json({
             message: 'Вы вошли под другим номером телефона. Для новой заявки используйте номер из личного кабинета или выйдите из аккаунта.'
           });
@@ -66,14 +74,14 @@ router.post('/', async (req, res) => {
 
       if (existingCustomer?.name && normalizedName && !namesEqual(existingCustomer.name, normalizedName)) {
         return res.status(400).json({
-          message: 'Для этого номера телефона уже указано другое имя. Введите имя из личного кабинета или войдите по SMS.'
+          message: 'Для этого номера телефона уже указано другое имя. Введите имя из личного кабинета или войдите по email.'
         });
       }
 
       customer = await findOrCreateCustomer(prisma, {
         phone: normalizedPhone,
         name: customerName,
-        email
+        email: normalizedEmail
       });
       req.session.customerId = customer.id;
     } catch (error) {
@@ -86,7 +94,7 @@ router.post('/', async (req, res) => {
       data: {
         customerName: customerName.trim(),
         phone: normalizedPhone,
-        email: email.trim(),
+        email: normalizedEmail,
         budget: budget ? Number(budget) : null,
         designWishes: designWishes?.trim() || '',
         caseSize: caseSize?.trim() || '',

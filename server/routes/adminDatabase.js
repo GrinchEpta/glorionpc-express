@@ -20,7 +20,7 @@ function serializeDate(value) {
 function sanitizeLoginCode(code) {
   return {
     id: code.id,
-    phone: code.phone,
+    email: code.email,
     code: code.code,
     used: code.used,
     expiresAt: serializeDate(code.expiresAt),
@@ -73,7 +73,7 @@ router.get('/database', requireAdmin, async (req, res) => {
           }
         }
       }),
-      prisma.phoneLoginCode.findMany({
+      prisma.emailLoginCode.findMany({
         orderBy: { id: 'desc' },
         take: 100
       }),

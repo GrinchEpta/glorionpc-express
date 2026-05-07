@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>GlorionPC - вход в личный кабинет</title>
-  <meta name="description" content="Вход в личный кабинет покупателя GlorionPC по номеру телефона." />
+  <meta name="description" content="Вход в личный кабинет покупателя GlorionPC по email." />
   <link rel="stylesheet" href="/css/style.css" />
 </head>
 <body>
@@ -43,20 +43,19 @@
           <p class="section-heading__eyebrow">GlorionPC</p>
           <h1 class="section-heading__title">Вход в личный кабинет</h1>
           <p class="section-heading__text">
-            Введите номер телефона, получите код и смотрите свои заказы с любого устройства.
+            Введите email, получите одноразовый код и смотрите свои заказы с любого устройства.
           </p>
         </div>
 
         <div class="customer-login-card reveal">
           <form id="customer-login-form" class="checkout-form">
             <div class="form-group">
-              <label for="customer-login-phone">Телефон</label>
+              <label for="customer-login-email">Email</label>
               <input
-                type="tel"
-                id="customer-login-phone"
-                name="phone"
-                placeholder="+7 (___) ___-__-__"
-                maxlength="18"
+                type="email"
+                id="customer-login-email"
+                name="email"
+                placeholder="example@mail.ru"
                 required
               />
             </div>
@@ -66,7 +65,7 @@
             </button>
 
             <div class="form-group">
-              <label for="customer-login-code">Код из SMS</label>
+              <label for="customer-login-code">Код из письма</label>
               <input
                 type="text"
                 id="customer-login-code"

@@ -1,29 +1,17 @@
 const loginForm = document.getElementById('customer-login-form');
-const phoneInput = document.getElementById('customer-login-phone');
+const emailInput = document.getElementById('customer-login-email');
 const codeInput = document.getElementById('customer-login-code');
 const requestCodeBtn = document.getElementById('request-code-btn');
 const loginMessage = document.getElementById('customer-login-message');
 
-function getPhoneDigits(value) {
-  return String(value || '').replace(/\D/g, '');
+function normalizeEmail(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase();
 }
 
-function formatPhoneValue(value) {
-  let digits = getPhoneDigits(value);
-
-  if (!digits.length) return '';
-  if (digits[0] === '8') digits = '7' + digits.slice(1);
-  if (digits[0] !== '7') digits = '7' + digits;
-
-  digits = digits.slice(0, 11);
-
-  let result = '+7';
-  if (digits.length > 1) result += ' (' + digits.slice(1, 4);
-  if (digits.length >= 5) result += ') ' + digits.slice(4, 7);
-  if (digits.length >= 8) result += '-' + digits.slice(7, 9);
-  if (digits.length >= 10) result += '-' + digits.slice(9, 11);
-
-  return result;
+function isValidEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizeEmail(value));
 }
 
 function showMessage(text, type = 'success') {
@@ -34,29 +22,11 @@ function showMessage(text, type = 'success') {
     : '';
 }
 
-function setupPhoneMask() {
-  if (!phoneInput) return;
-
-  phoneInput.addEventListener('focus', () => {
-    if (!phoneInput.value.trim()) phoneInput.value = '+7';
-  });
-
-  phoneInput.addEventListener('input', () => {
-    phoneInput.value = formatPhoneValue(phoneInput.value);
-  });
-
-  phoneInput.addEventListener('blur', () => {
-    if (getPhoneDigits(phoneInput.value).length <= 1) {
-      phoneInput.value = '';
-    }
-  });
-}
-
 async function requestCode() {
-  const phone = phoneInput?.value.trim();
+  const email = normalizeEmail(emailInput?.value);
 
-  if (getPhoneDigits(phone).length !== 11) {
-    showMessage('Введите телефон в формате +7 (999) 999-99-99.', 'error');
+  if (!isValidEmail(email)) {
+    showMessage('Введите корректный email.', 'error');
     return;
   }
 
@@ -68,7 +38,7 @@ async function requestCode() {
     const response = await fetch('/api/customer/auth/request-code', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone })
+      body: JSON.stringify({ email })
     });
 
     const data = await response.json();
@@ -77,7 +47,7 @@ async function requestCode() {
       throw new Error(data.message || 'Не удалось получить код');
     }
 
-    showMessage('Код отправлен по SMS. Если SMS-сервис не настроен, код появится в консоли сервера.');
+    showMessage('Код отправлен на email. Проверьте входящие и папку спам.');
     codeInput?.focus();
   } catch (error) {
     showMessage(error.message || 'Не удалось получить код.', 'error');
@@ -90,11 +60,11 @@ async function requestCode() {
 async function verifyCode(event) {
   event.preventDefault();
 
-  const phone = phoneInput?.value.trim();
+  const email = normalizeEmail(emailInput?.value);
   const code = codeInput?.value.trim();
 
-  if (getPhoneDigits(phone).length !== 11 || !/^\d{6}$/.test(code)) {
-    showMessage('Введите телефон и 6-значный код.', 'error');
+  if (!isValidEmail(email) || !/^\d{6}$/.test(code)) {
+    showMessage('Введите email и 6-значный код.', 'error');
     return;
   }
 
@@ -104,7 +74,7 @@ async function verifyCode(event) {
     const response = await fetch('/api/customer/auth/verify-code', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ phone, code })
+      body: JSON.stringify({ email, code })
     });
 
     const data = await response.json();
@@ -120,7 +90,6 @@ async function verifyCode(event) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-  setupPhoneMask();
   requestCodeBtn?.addEventListener('click', requestCode);
   loginForm?.addEventListener('submit', verifyCode);
 });

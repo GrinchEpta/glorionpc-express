@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const prisma = require('../prisma');
-const { findOrCreateCustomer, namesEqual, normalizeName, normalizePhone } = require('../utils/customer');
+const { findOrCreateCustomer, namesEqual, normalizeEmail, normalizeName, normalizePhone } = require('../utils/customer');
 
 function parseSpecs(value) {
   if (!value) return null;
@@ -62,9 +62,11 @@ router.post('/', async (req, res) => {
 
     let customer;
     let normalizedPhone;
+    let normalizedEmail;
 
     try {
       normalizedPhone = normalizePhone(order.customer.phone);
+      normalizedEmail = normalizeEmail(order.customer.email);
       const normalizedName = normalizeName(order.customer.name);
 
       if (req.session.customerId) {
@@ -72,7 +74,13 @@ router.post('/', async (req, res) => {
           where: { id: req.session.customerId }
         });
 
-        if (sessionCustomer && sessionCustomer.phone !== normalizedPhone) {
+        if (sessionCustomer?.email && sessionCustomer.email !== normalizedEmail) {
+          return res.status(400).json({
+            message: 'Вы вошли под другим email. Для нового заказа используйте email из личного кабинета или выйдите из аккаунта.'
+          });
+        }
+
+        if (sessionCustomer?.phone && sessionCustomer.phone !== normalizedPhone) {
           return res.status(400).json({
             message: 'Вы вошли под другим номером телефона. Для нового заказа используйте номер из личного кабинета или выйдите из аккаунта.'
           });
@@ -91,14 +99,14 @@ router.post('/', async (req, res) => {
 
       if (existingCustomer?.name && normalizedName && !namesEqual(existingCustomer.name, normalizedName)) {
         return res.status(400).json({
-          message: 'Для этого номера телефона уже указано другое имя. Введите имя из личного кабинета или войдите по SMS.'
+          message: 'Для этого номера телефона уже указано другое имя. Введите имя из личного кабинета или войдите по email.'
         });
       }
 
       customer = await findOrCreateCustomer(prisma, {
         phone: normalizedPhone,
         name: order.customer.name,
-        email: order.customer.email
+        email: normalizedEmail
       });
       req.session.customerId = customer.id;
     } catch (error) {
@@ -180,7 +188,7 @@ router.post('/', async (req, res) => {
       data: {
         customerName: order.customer.name,
         phone: normalizedPhone,
-        email: order.customer.email,
+        email: normalizedEmail,
         comment: order.customer.comment || '',
         total: orderTotal,
         status: 'new',
