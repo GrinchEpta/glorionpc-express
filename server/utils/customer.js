@@ -64,26 +64,21 @@ async function findOrCreateCustomer(prisma, { phone, name, email }) {
       : null
   ]);
 
-  if (customerByPhone && customerByEmail && customerByPhone.id !== customerByEmail.id) {
-    throw new Error('Этот телефон и email уже привязаны к разным покупателям');
+  if (customerByPhone) {
+    return prisma.customer.update({
+      where: { id: customerByPhone.id },
+      data: {
+        ...(normalizedEmail && (!customerByEmail || customerByEmail.id === customerByPhone.id) ? { email: normalizedEmail } : {}),
+        ...(normalizedName ? { name: normalizedName } : {})
+      }
+    });
   }
 
-  const existingCustomer = customerByEmail || customerByPhone;
-
-  if (existingCustomer) {
-    if (normalizedEmail && existingCustomer.email && existingCustomer.email !== normalizedEmail) {
-      throw new Error('Этот телефон уже привязан к другому email');
-    }
-
-    if (normalizedPhone && existingCustomer.phone && existingCustomer.phone !== normalizedPhone) {
-      throw new Error('Этот email уже привязан к другому телефону');
-    }
-
+  if (customerByEmail && (!normalizedPhone || !customerByEmail.phone || customerByEmail.phone === normalizedPhone)) {
     return prisma.customer.update({
-      where: { id: existingCustomer.id },
+      where: { id: customerByEmail.id },
       data: {
-        ...(normalizedPhone && !existingCustomer.phone ? { phone: normalizedPhone } : {}),
-        ...(normalizedEmail && !existingCustomer.email ? { email: normalizedEmail } : {}),
+        ...(normalizedPhone && !customerByEmail.phone ? { phone: normalizedPhone } : {}),
         ...(normalizedName ? { name: normalizedName } : {})
       }
     });
@@ -93,7 +88,7 @@ async function findOrCreateCustomer(prisma, { phone, name, email }) {
     data: {
       phone: normalizedPhone || null,
       name: normalizedName,
-      email: normalizedEmail || null
+      email: normalizedEmail && !customerByEmail ? normalizedEmail : null
     }
   });
 }

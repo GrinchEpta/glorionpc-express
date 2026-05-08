@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const prisma = require('../prisma');
-const { findOrCreateCustomer, namesEqual, normalizeEmail, normalizeName, normalizePhone } = require('../utils/customer');
+const { findOrCreateCustomer, normalizeEmail, normalizePhone } = require('../utils/customer');
 
 router.get('/', async (req, res) => {
   try {
@@ -42,18 +42,12 @@ router.post('/', async (req, res) => {
     try {
       normalizedPhone = normalizePhone(phone);
       normalizedEmail = normalizeEmail(email);
-      const normalizedName = normalizeName(customerName);
 
       if (req.session.customerId) {
         const sessionCustomer = await prisma.customer.findUnique({
           where: { id: req.session.customerId }
         });
 
-        if (sessionCustomer?.email && sessionCustomer.email !== normalizedEmail) {
-          return res.status(400).json({
-            message: 'Вы вошли под другим email. Для новой заявки используйте email из личного кабинета или выйдите из аккаунта.'
-          });
-        }
 
         if (sessionCustomer?.phone && sessionCustomer.phone !== normalizedPhone) {
           return res.status(400).json({
@@ -61,22 +55,8 @@ router.post('/', async (req, res) => {
           });
         }
 
-        if (sessionCustomer?.name && normalizedName && !namesEqual(sessionCustomer.name, normalizedName)) {
-          return res.status(400).json({
-            message: 'Имя в заявке отличается от имени в личном кабинете. Введите имя из личного кабинета или выйдите из аккаунта.'
-          });
-        }
       }
 
-      const existingCustomer = await prisma.customer.findUnique({
-        where: { phone: normalizedPhone }
-      });
-
-      if (existingCustomer?.name && normalizedName && !namesEqual(existingCustomer.name, normalizedName)) {
-        return res.status(400).json({
-          message: 'Для этого номера телефона уже указано другое имя. Введите имя из личного кабинета или войдите по email.'
-        });
-      }
 
       customer = await findOrCreateCustomer(prisma, {
         phone: normalizedPhone,
