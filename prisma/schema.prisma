@@ -157,6 +157,7 @@ model EmailLoginCode {
 enum OrderStatus {
   new
   processing
+  shipping
   completed
   cancelled
 }
