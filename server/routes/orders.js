@@ -204,7 +204,7 @@ router.put('/:id/status', async (req, res) => {
     const orderId = Number(req.params.id);
     const { status } = req.body;
 
-    const allowedStatuses = ['new', 'processing', 'completed', 'cancelled'];
+    const allowedStatuses = ['new', 'processing', 'shipping', 'completed', 'cancelled'];
 
     if (Number.isNaN(orderId)) {
       return res.status(400).json({ message: 'Некорректный ID заказа' });

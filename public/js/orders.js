@@ -24,6 +24,8 @@ function getStatusText(status) {
       return 'Создан';
     case 'processing':
       return 'В обработке';
+    case 'shipping':
+      return 'В пути';
     case 'completed':
       return 'Завершён';
     case 'cancelled':
@@ -39,6 +41,8 @@ function getStatusClass(status) {
       return 'order-status order-status--new';
     case 'processing':
       return 'order-status order-status--processing';
+    case 'shipping':
+      return 'order-status order-status--shipping';
     case 'completed':
       return 'order-status order-status--completed';
     case 'cancelled':
@@ -309,6 +313,8 @@ function createOrderCard(order) {
               ${
                 order.status === 'processing'
                   ? 'Оплата отмечена, заказ находится в обработке.'
+                  : order.status === 'shipping'
+                  ? 'Заказ передан в доставку и находится в пути.'
                   : order.status === 'completed'
                   ? 'Заказ успешно завершён.'
                   : order.status === 'cancelled'

@@ -64,6 +64,8 @@ function getStatusText(status) {
       return 'Новый';
     case 'processing':
       return 'В обработке';
+    case 'shipping':
+      return 'В пути';
     case 'completed':
       return 'Завершён';
     case 'cancelled':
@@ -79,6 +81,8 @@ function getStatusClass(status) {
       return 'order-status order-status--new';
     case 'processing':
       return 'order-status order-status--processing';
+    case 'shipping':
+      return 'order-status order-status--shipping';
     case 'completed':
       return 'order-status order-status--completed';
     case 'cancelled':
@@ -94,6 +98,8 @@ function getAdminStatusText(status) {
       return 'Новая';
     case 'processing':
       return 'В обработке';
+    case 'shipping':
+      return 'В пути';
     case 'completed':
       return 'Завершена';
     case 'cancelled':
@@ -109,6 +115,8 @@ function getAdminStatusClass(status) {
       return 'order-status order-status--new';
     case 'processing':
       return 'order-status order-status--processing';
+    case 'shipping':
+      return 'order-status order-status--shipping';
     case 'completed':
       return 'order-status order-status--completed';
     case 'cancelled':
@@ -1553,6 +1561,7 @@ async function loadOrders() {
           <select class="order-status-select btn btn-secondary btn-small">
             <option value="new" ${order.status === 'new' ? 'selected' : ''}>Новый</option>
             <option value="processing" ${order.status === 'processing' ? 'selected' : ''}>В обработке</option>
+            <option value="shipping" ${order.status === 'shipping' ? 'selected' : ''}>В пути</option>
             <option value="completed" ${order.status === 'completed' ? 'selected' : ''}>Завершён</option>
             <option value="cancelled" ${order.status === 'cancelled' ? 'selected' : ''}>Отменён</option>
           </select>

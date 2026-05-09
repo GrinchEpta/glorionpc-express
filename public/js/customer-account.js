@@ -5,6 +5,7 @@ const logoutBtn = document.getElementById('customer-logout-btn');
 const statusLabels = {
   new: 'Новый',
   processing: 'В обработке',
+  shipping: 'В пути',
   completed: 'Завершен',
   cancelled: 'Отменен'
 };
@@ -97,6 +98,8 @@ function renderOrderCard(order) {
   const statusHint =
     order.status === 'processing'
       ? 'Оплата отмечена, заказ находится в обработке.'
+      : order.status === 'shipping'
+      ? 'Заказ передан в доставку и находится в пути.'
       : order.status === 'completed'
       ? 'Заказ успешно завершён.'
       : order.status === 'cancelled'

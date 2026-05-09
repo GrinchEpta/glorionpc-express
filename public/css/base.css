@@ -160,6 +160,12 @@ video {
   border-color: rgba(71, 141, 255, 0.24);
 }
 
+.order-status--shipping {
+  background: rgba(74, 201, 212, 0.12);
+  color: #8df0ff;
+  border-color: rgba(74, 201, 212, 0.26);
+}
+
 .order-status--completed {
   background: rgba(89, 181, 124, 0.12);
   color: #7ee0a0;
