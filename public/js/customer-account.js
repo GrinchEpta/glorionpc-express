@@ -93,6 +93,16 @@ function renderItems(items = []) {
 }
 
 function renderOrderCard(order) {
+  const canMarkAsPaid = order.status === 'new';
+  const statusHint =
+    order.status === 'processing'
+      ? 'Оплата отмечена, заказ находится в обработке.'
+      : order.status === 'completed'
+      ? 'Заказ успешно завершён.'
+      : order.status === 'cancelled'
+      ? 'Заказ был отменён.'
+      : '';
+
   return `
     <article class="customer-order-card reveal">
       <div class="customer-order-card__top">
@@ -140,8 +150,54 @@ function renderOrderCard(order) {
           </ul>
         </div>
       </div>
+
+      <div class="customer-order-card__bottom">
+        ${
+          canMarkAsPaid
+            ? `
+              <button type="button" class="btn btn-gold btn-small customer-paid-btn" data-order-id="${escapeHtml(order.id)}">
+                Я оплатил
+              </button>
+            `
+            : `
+              <div class="customer-order-card__hint">
+                ${escapeHtml(statusHint)}
+              </div>
+            `
+        }
+      </div>
     </article>
   `;
+}
+
+async function markOrderAsPaid(orderId, button) {
+  if (!orderId || !button) return;
+
+  try {
+    button.disabled = true;
+    button.textContent = 'Обновляем...';
+
+    const response = await fetch(`/api/orders/${orderId}/status`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ status: 'processing' })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      throw new Error(data.message || 'Не удалось обновить статус заказа');
+    }
+
+    await loadAccount();
+  } catch (error) {
+    console.error('Ошибка обновления статуса:', error);
+    alert(error.message || 'Не удалось отметить оплату');
+    button.disabled = false;
+    button.textContent = 'Я оплатил';
+  }
 }
 
 function renderCustomRequestCard(request) {
@@ -290,4 +346,10 @@ async function logout() {
 document.addEventListener('DOMContentLoaded', () => {
   loadAccount();
   logoutBtn?.addEventListener('click', logout);
+  ordersContainer?.addEventListener('click', (event) => {
+    const paidButton = event.target.closest('.customer-paid-btn');
+    if (!paidButton) return;
+
+    markOrderAsPaid(paidButton.dataset.orderId, paidButton);
+  });
 });
