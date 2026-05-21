@@ -59,10 +59,10 @@
 
         <div class="checkout-layout">
           <section class="checkout-form-block reveal">
-            <form id="custom-pc-form" class="checkout-form">
+            <form id="custom-pc-form" class="checkout-form" autocomplete="off">
               <div class="form-group">
                 <label for="custom-pc-name">Имя</label>
-                <input type="text" id="custom-pc-name" required />
+                <input type="text" id="custom-pc-name" autocomplete="off" spellcheck="false" required />
               </div>
 
               <div class="form-group">
@@ -73,12 +73,12 @@
                   placeholder="+7 (___) ___-__-__"
                   maxlength="18"
                   required
-                />
+                autocomplete="off" inputmode="tel">
               </div>
 
               <div class="form-group">
                 <label for="custom-pc-email">Email</label>
-                <input type="email" id="custom-pc-email" required />
+                <input type="email" id="custom-pc-email" autocomplete="off" autocapitalize="none" spellcheck="false" required />
               </div>
 
               <div class="form-group">
@@ -87,7 +87,7 @@
                   type="number"
                   id="custom-pc-budget"
                   placeholder="Например: 120000"
-                />
+                autocomplete="off">
               </div>
 
               <div class="form-group">
@@ -96,12 +96,12 @@
                   type="text"
                   id="custom-pc-design"
                   placeholder="Белый корпус, RGB, минимализм и т.д."
-                />
+                autocomplete="off" spellcheck="false">
               </div>
 
               <div class="form-group">
                 <label for="custom-pc-size">Размер корпуса</label>
-                <select id="custom-pc-size">
+                <select id="custom-pc-size" autocomplete="off">
                   <option value="">Выберите вариант</option>
                   <option value="mini">Компактный</option>
                   <option value="mid">Средний</option>
@@ -116,7 +116,7 @@
                   id="custom-pc-purpose"
                   rows="5"
                   placeholder="Например: игры в 2K, монтаж видео, стримы, работа в 3D, офисная работа"
-                ></textarea>
+                 autocomplete="off" spellcheck="false"></textarea>
               </div>
 
               <div class="form-group">
@@ -125,7 +125,7 @@
                   id="custom-pc-comment"
                   rows="5"
                   placeholder="Любые дополнительные пожелания: тишина, подсветка, цвет корпуса, конкретные игры или программы"
-                ></textarea>
+                 autocomplete="off" spellcheck="false"></textarea>
               </div>
 
               <button type="submit" class="checkout-submit-btn">

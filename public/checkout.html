@@ -54,10 +54,10 @@
 
         <div class="checkout-layout">
           <div class="checkout-form-block reveal-left">
-            <form id="checkout-form" class="checkout-form">
+            <form id="checkout-form" class="checkout-form" autocomplete="off">
               <div class="form-group">
                 <label for="name">Имя</label>
-                <input type="text" id="name" name="name" required />
+                <input type="text" id="name" name="name" autocomplete="off" spellcheck="false" required />
               </div>
 
               <div class="form-group">
@@ -69,7 +69,7 @@
                       placeholder="+7 (___) ___-__-__"
                       maxlength="18"
                       required
-                  />
+                  autocomplete="off" inputmode="tel">
               </div>
 
               <div class="form-group">
@@ -80,7 +80,7 @@
                   name="email"
                   placeholder="example@mail.com"
                   required
-                />
+                autocomplete="off" autocapitalize="none" spellcheck="false">
               </div>
 
               <div class="form-group">
@@ -91,7 +91,7 @@
                   rows="6"
                   placeholder="Например: СДЭК, пункт выдачи Москва, ул. Ленина 10 или Яндекс Маркет"
                   required
-      ></textarea>
+       autocomplete="off" spellcheck="false"></textarea>
     <div class="form-hint">
     Укажите пункт выдачи СДЭК или Яндекс Маркет (город, адрес или название пункта)
   </div>

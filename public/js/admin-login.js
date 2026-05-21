@@ -1,3 +1,14 @@
+function resetAdminLoginFields() {
+  form?.reset()
+
+  document.querySelectorAll('#login-form input').forEach((input) => {
+    input.value = ''
+    input.setAttribute('autocomplete', input.type === 'password' ? 'new-password' : 'off')
+  })
+}
+
+window.addEventListener('pageshow', resetAdminLoginFields)
+
 const form = document.getElementById('login-form')
 const errorBlock = document.getElementById('error')
 
