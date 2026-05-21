@@ -783,3 +783,27 @@
     line-height: 1.25;
   }
 }
+
+.admin-logout-btn {
+  border: 1px solid rgba(225, 184, 82, 0.45);
+  border-radius: 10px;
+  background: transparent;
+  color: var(--text-main);
+  padding: 10px 16px;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.admin-logout-btn:hover,
+.admin-logout-btn:focus-visible {
+  border-color: var(--gold);
+  background: rgba(225, 184, 82, 0.14);
+  color: var(--gold-light);
+}
+
+.admin-logout-btn:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}

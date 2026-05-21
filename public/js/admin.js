@@ -1,3 +1,41 @@
+(function () {
+  async function ensureAdminSession() {
+    try {
+      const response = await fetch('/api/auth/me', { cache: 'no-store' });
+
+      if (!response.ok) {
+        window.location.replace('/admin-login.html');
+      }
+    } catch (error) {
+      window.location.replace('/admin-login.html');
+    }
+  }
+
+  function bindAdminLogout() {
+    const logoutBtn = document.getElementById('admin-logout-btn');
+
+    if (!logoutBtn) return;
+
+    logoutBtn.addEventListener('click', async () => {
+      logoutBtn.disabled = true;
+
+      try {
+        await fetch('/api/auth/logout', { method: 'POST' });
+      } finally {
+        window.location.replace('/admin-login.html');
+      }
+    });
+  }
+
+  ensureAdminSession();
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bindAdminLogout);
+  } else {
+    bindAdminLogout();
+  }
+})();
+
 const API_URL = '/api/products';
 const ORDERS_API_URL = '/api/orders';
 const CUSTOM_PC_REQUESTS_API_URL = '/api/custom-pc-requests';

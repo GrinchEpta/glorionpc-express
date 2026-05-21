@@ -15,9 +15,23 @@ router.post('/login', (req, res) => {
   res.status(401).json({ message: 'Неверный логин или пароль' })
 })
 
+router.get('/me', (req, res) => {
+  if (!req.session.isAdmin) {
+    return res.status(401).json({ message: 'Не авторизован' })
+  }
+
+  return res.json({ ok: true, isAdmin: true })
+})
+
 router.post('/logout', (req, res) => {
-  req.session.destroy(() => {
-    res.json({ message: 'Выход выполнен' })
+  delete req.session.isAdmin
+
+  req.session.save((error) => {
+    if (error) {
+      return res.status(500).json({ message: 'Не удалось выйти из админки' })
+    }
+
+    return res.json({ ok: true, message: 'Выход выполнен' })
   })
 })
 
