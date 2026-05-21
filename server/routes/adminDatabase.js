@@ -115,4 +115,79 @@ router.get('/database', requireAdmin, async (req, res) => {
   }
 });
 
+
+router.delete('/database/:section/:id', requireAdmin, async (req, res) => {
+  const { section } = req.params;
+  const id = Number(req.params.id);
+
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ message: 'Некорректный ID записи' });
+  }
+
+  try {
+    if (section === 'products') {
+      const linkedOrderItems = await prisma.orderItem.count({ where: { productId: id } });
+
+      if (linkedOrderItems > 0) {
+        return res.status(409).json({
+          message: 'Нельзя удалить товар, который уже есть в заказах. Лучше снять его с наличия.'
+        });
+      }
+
+      await prisma.product.delete({ where: { id } });
+    } else if (section === 'orders') {
+      await prisma.order.delete({ where: { id } });
+    } else if (section === 'customPcRequests') {
+      await prisma.customPcRequest.delete({ where: { id } });
+    } else if (section === 'customers') {
+      const customer = await prisma.customer.findUnique({
+        where: { id },
+        include: {
+          _count: {
+            select: {
+              orders: true,
+              customPcRequests: true
+            }
+          }
+        }
+      });
+
+      if (!customer) {
+        return res.status(404).json({ message: 'Запись не найдена' });
+      }
+
+      if (customer._count.orders > 0 || customer._count.customPcRequests > 0) {
+        return res.status(409).json({
+          message: 'Нельзя удалить покупателя, у него есть заказы или заявки.'
+        });
+      }
+
+      await prisma.customer.delete({ where: { id } });
+    } else if (section === 'loginCodes') {
+      await prisma.emailLoginCode.delete({ where: { id } });
+    } else if (section === 'integrationTokens') {
+      await prisma.integrationToken.delete({ where: { id } });
+    } else {
+      return res.status(400).json({ message: 'Неизвестный раздел базы данных' });
+    }
+
+    return res.json({ ok: true, message: 'Запись удалена' });
+  } catch (error) {
+    if (error.code === 'P2025') {
+      return res.status(404).json({ message: 'Запись не найдена' });
+    }
+
+    if (error.code === 'P2003') {
+      return res.status(409).json({ message: 'Эта запись связана с другими данными и не может быть удалена.' });
+    }
+
+    console.error('Ошибка удаления записи базы:', error);
+    return res.status(500).json({
+      message: 'Не удалось удалить запись',
+      error: error.message
+    });
+  }
+});
+
+
 module.exports = router;

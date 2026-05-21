@@ -602,6 +602,35 @@
   overflow-wrap: anywhere;
 }
 
+.admin-db-row__actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+
+.admin-db-delete-btn {
+  border: 1px solid rgba(255, 112, 112, 0.55);
+  border-radius: 10px;
+  background: rgba(115, 24, 24, 0.32);
+  color: #ffaaaa;
+  cursor: pointer;
+  font-weight: 800;
+  padding: 10px 16px;
+  transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
+}
+
+.admin-db-delete-btn:hover:not(:disabled) {
+  border-color: #ff7777;
+  background: rgba(160, 36, 36, 0.44);
+  transform: translateY(-1px);
+}
+
+.admin-db-delete-btn:disabled {
+  cursor: progress;
+  opacity: 0.65;
+}
+
+
 .admin-checkbox {
   display: flex;
   align-items: center;

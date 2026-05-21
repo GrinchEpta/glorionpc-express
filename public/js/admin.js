@@ -1932,6 +1932,67 @@ function renderDatabaseSummary(counts = {}) {
   });
 }
 
+const DATABASE_DELETE_SECTION_TITLES = {
+  products: 'товар',
+  orders: 'заказ',
+  customPcRequests: 'заявку на ПК',
+  customers: 'покупателя',
+  loginCodes: 'email-код',
+  integrationTokens: 'интеграцию'
+};
+
+function canDeleteDatabaseSection(sectionKey) {
+  return Object.prototype.hasOwnProperty.call(DATABASE_DELETE_SECTION_TITLES, sectionKey);
+}
+
+async function deleteDatabaseRow(sectionKey, id) {
+  if (!sectionKey || !id || !canDeleteDatabaseSection(sectionKey)) return;
+
+  const title = DATABASE_DELETE_SECTION_TITLES[sectionKey] || 'запись';
+  const confirmed = window.confirm('Удалить ' + title + ' #' + id + '? Действие нельзя отменить.');
+
+  if (!confirmed) return;
+
+  const button = Array.from(adminDatabaseList?.querySelectorAll('[data-db-delete-section]') || []).find((item) =>
+    item.dataset.dbDeleteSection === sectionKey && item.dataset.dbDeleteId === String(id)
+  );
+
+  if (button) {
+    button.disabled = true;
+    button.textContent = 'Удаляю...';
+  }
+
+  try {
+    const response = await fetch(ADMIN_DATABASE_API_URL + '/' + encodeURIComponent(sectionKey) + '/' + encodeURIComponent(id), {
+      method: 'DELETE'
+    });
+    const data = await readApiResponse(response);
+
+    if (!response.ok) {
+      throw new Error(extractApiError(data, 'Не удалось удалить запись'));
+    }
+
+    await loadDatabaseView();
+  } catch (error) {
+    alert(error.message || 'Не удалось удалить запись');
+
+    if (button) {
+      button.disabled = false;
+      button.textContent = 'Удалить';
+    }
+  }
+}
+
+function bindDatabaseDeleteButtons() {
+  if (!adminDatabaseList) return;
+
+  adminDatabaseList.querySelectorAll('[data-db-delete-section]').forEach((button) => {
+    button.addEventListener('click', () => {
+      deleteDatabaseRow(button.dataset.dbDeleteSection, button.dataset.dbDeleteId);
+    });
+  });
+}
+
 function renderDatabaseRow(row, section) {
   const cells = section.columns
     .map(([key, label]) => {
@@ -1962,12 +2023,26 @@ function renderDatabaseRow(row, section) {
     `
     : '';
 
+  const deleteActionHtml = canDeleteDatabaseSection(section.key) && row.id
+    ? `
+      <div class="admin-db-row__actions">
+        <button
+          type="button"
+          class="admin-db-delete-btn"
+          data-db-delete-section="${escapeHtml(section.key)}"
+          data-db-delete-id="${escapeHtml(row.id)}"
+        >Удалить</button>
+      </div>
+    `
+    : '';
+
   return `
     <article class="admin-db-row" data-search="${escapeHtml(JSON.stringify(row).toLowerCase())}">
       <div class="admin-db-row__grid">
         ${cells}
       </div>
       ${detailsHtml}
+      ${deleteActionHtml}
     </article>
   `;
 }
@@ -1992,6 +2067,8 @@ function renderDatabaseSections(data) {
       </section>
     `)
     .join('');
+
+  bindDatabaseDeleteButtons();
 }
 
 function filterDatabaseRows() {
