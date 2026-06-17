@@ -835,20 +835,28 @@ function isPsuCompatible(psu, cpu, gpu) {
   const cpuSpecs = cpu ? parseSpecs(cpu.specsJson) : {};
   const gpuSpecs = gpu ? parseSpecs(gpu.specsJson) : {};
 
-  const psuPower = Number(
-    psuSpecs.maxPower ||
-    psuSpecs.psuWattage ||
-    psu.psuWattage ||
-    psu.recommendedPsu ||
-    0
+  const psuPower = getNumber(
+    getRawValue(
+      psuSpecs.maxPower,
+      psuSpecs.psuWattage,
+      psu.psuWattage,
+      psu.recommendedPsu
+    )
   );
 
-  const cpuTdp = Number(cpuSpecs.maxTdp || cpuSpecs.powerDraw || cpu?.powerDraw || 0);
-  const gpuTdp = Number(gpuSpecs.maxTdp || gpuSpecs.powerDraw || gpu?.powerDraw || 0);
+  const cpuTdp = getNumber(
+    getRawValue(cpuSpecs.maxTdp, cpuSpecs.powerDraw, cpu?.powerDraw)
+  );
+  const gpuTdp = getNumber(
+    getRawValue(gpuSpecs.maxTdp, gpuSpecs.powerDraw, gpu?.powerDraw)
+  );
 
   if (!psuPower) return true;
+  if (!cpuTdp && !gpuTdp) return true;
 
-  const requiredPower = cpuTdp + gpuTdp + 150;
+  const baseSystemPower = cpuTdp + gpuTdp + 100;
+  const requiredPower = Math.ceil((baseSystemPower * 1.25) / 50) * 50;
+
   return psuPower >= requiredPower;
 }
 
