@@ -930,7 +930,38 @@ function isCoolerCompatibleWithCase(cooler, pcCase) {
     cooler.coolingType
   );
 
+  const coolerHeight = getNumber(
+    getRawValue(
+      coolerSpecs.coolerHeight,
+      coolerSpecs.cpuCoolerHeight,
+      coolerSpecs.coolerMaxHeight,
+      coolerSpecs.height,
+      cooler.coolerHeight,
+      cooler.cpuCoolerHeight,
+      cooler.height
+    )
+  );
+
   if (coolingType !== 'liquid') {
+    const maxAirCoolerHeightRaw = getRawValue(
+      caseSpecs.maxAirCoolerHeight,
+      caseSpecs.maxCpuCoolerHeight,
+      caseSpecs.cpuCoolerMaxHeight,
+      caseSpecs.maxCoolerHeight,
+      pcCase.maxAirCoolerHeight,
+      pcCase.maxCpuCoolerHeight,
+      pcCase.maxCoolerHeight
+    );
+    if (String(maxAirCoolerHeightRaw) === '0') {
+      return false;
+    }
+
+    const maxAirCoolerHeight = getNumber(maxAirCoolerHeightRaw);
+
+    if (coolerHeight > 0 && maxAirCoolerHeightRaw && maxAirCoolerHeight > 0) {
+      return coolerHeight <= maxAirCoolerHeight;
+    }
+
     return true;
   }
 
@@ -955,11 +986,30 @@ function isCoolerCompatibleWithCase(cooler, pcCase) {
   const radiatorSize = getNumber(radiatorRaw);
   const maxRadiatorSize = getNumber(caseMaxRaw);
 
-  if (!radiatorSize) return true;
-  if (!caseMaxRaw) return true;
-  if (!maxRadiatorSize) return true;
+  if (radiatorSize > 0 && caseMaxRaw && maxRadiatorSize > 0 && radiatorSize > maxRadiatorSize) {
+    return false;
+  }
 
-  return radiatorSize <= maxRadiatorSize;
+  const maxLiquidCoolerHeightRaw = getRawValue(
+    caseSpecs.maxLiquidCoolerHeight,
+    caseSpecs.maxPumpHeight,
+    caseSpecs.pumpMaxHeight,
+    caseSpecs.maxWaterBlockHeight,
+    pcCase.maxLiquidCoolerHeight,
+    pcCase.maxPumpHeight,
+    pcCase.maxWaterBlockHeight
+  );
+  if (String(maxLiquidCoolerHeightRaw) === '0') {
+    return false;
+  }
+
+  const maxLiquidCoolerHeight = getNumber(maxLiquidCoolerHeightRaw);
+
+  if (coolerHeight > 0 && maxLiquidCoolerHeightRaw && maxLiquidCoolerHeight > 0) {
+    return coolerHeight <= maxLiquidCoolerHeight;
+  }
+
+  return true;
 }
 
 /* =========================

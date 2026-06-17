@@ -709,6 +709,11 @@ function renderSpecsFields(type, values = {}) {
           </div>
 
           <div class="form-group">
+            <label for="spec-coolerHeight">Высота охлаждения CPU (мм)</label>
+            <input type="number" id="spec-coolerHeight" value="${values.coolerHeight || ''}" placeholder="155" />
+          </div>
+
+          <div class="form-group">
             <label for="spec-maxTdp">Максимальная рассеиваемая мощность</label>
             <input type="number" id="spec-maxTdp" value="${values.maxTdp || ''}" placeholder="250" />
           </div>
@@ -766,6 +771,26 @@ function renderSpecsFields(type, values = {}) {
               <option value="360" ${String(values.maxRadiatorSize) === '360' ? 'selected' : ''}>360 мм</option>
               <option value="420" ${String(values.maxRadiatorSize) === '420' ? 'selected' : ''}>420 мм</option>
             </select>
+          </div>
+
+          <div class="form-group">
+            <label for="spec-maxAirCoolerHeight">Макс. высота воздушного кулера CPU (мм)</label>
+            <input
+              type="number"
+              id="spec-maxAirCoolerHeight"
+              value="${values.maxAirCoolerHeight || ''}"
+              placeholder="155"
+            />
+          </div>
+
+          <div class="form-group">
+            <label for="spec-maxLiquidCoolerHeight">Макс. высота помпы / водоблока СЖО (мм)</label>
+            <input
+              type="number"
+              id="spec-maxLiquidCoolerHeight"
+              value="${values.maxLiquidCoolerHeight || ''}"
+              placeholder="55"
+            />
           </div>
 
           <div class="form-group">
@@ -975,6 +1000,7 @@ function getSpecsFromForm(type) {
     return {
       coolingType: document.getElementById('spec-coolingType')?.value || '',
       radiatorSize: Number(document.getElementById('spec-radiatorSize')?.value) || null,
+      coolerHeight: Number(document.getElementById('spec-coolerHeight')?.value) || null,
       maxTdp: Number(document.getElementById('spec-maxTdp')?.value) || null,
       supportedSockets: document.getElementById('spec-supportedSockets')?.value || '',
       maxFanSpeed: document.getElementById('spec-maxFanSpeed')?.value || '',
@@ -993,6 +1019,8 @@ function getSpecsFromForm(type) {
         rawMaxRadiatorValue === ''
           ? null
           : Number(rawMaxRadiatorValue),
+      maxAirCoolerHeight: Number(document.getElementById('spec-maxAirCoolerHeight')?.value) || null,
+      maxLiquidCoolerHeight: Number(document.getElementById('spec-maxLiquidCoolerHeight')?.value) || null,
       includedFans: Number(document.getElementById('spec-includedFans')?.value) || null,
       fansConnector: document.getElementById('spec-fansConnector')?.value || '',
       lightingType: document.getElementById('spec-lightingType')?.value || '',
@@ -1283,12 +1311,15 @@ function renderComponentSpecsSummary(product) {
         connectionType: 'Подключение',
         coolingType: 'Тип охлаждения',
         radiatorSize: 'Размер радиатора СЖО',
+        coolerHeight: 'Высота охлаждения CPU',
         supportedSockets: 'Поддерживаемые сокеты',
         maxFanSpeed: 'Макс. обороты',
         rgb: 'Подсветка',
         motherboardConnector: 'Подключение к плате',
         supportedMotherboardFormFactors: 'Форм-факторы мат. плат',
         maxRadiatorSize: 'Макс. размер радиатора СЖО',
+        maxAirCoolerHeight: 'Макс. высота кулера CPU',
+        maxLiquidCoolerHeight: 'Макс. высота помпы СЖО',
         includedFans: 'Вентиляторов в комплекте',
         fansConnector: 'Подключение вентиляторов',
         lightingType: 'Тип подсветки',
