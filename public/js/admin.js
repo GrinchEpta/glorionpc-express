@@ -50,7 +50,19 @@ const formTitle = document.getElementById('admin-form-title');
 const cancelEditBtn = document.getElementById('cancel-edit-btn');
 const productsList = document.getElementById('admin-products-list');
 const ordersList = document.getElementById('admin-orders-list');
+const adminOrdersSearch = document.getElementById('admin-orders-search');
+const adminOrdersStatusFilter = document.getElementById('admin-orders-status-filter');
+const adminOrdersPageSize = document.getElementById('admin-orders-page-size');
+const adminOrdersResultsMeta = document.getElementById('admin-orders-results-meta');
+const adminOrdersPagination = document.getElementById('admin-orders-pagination');
+const adminOrdersCollapseAllBtn = document.getElementById('admin-orders-collapse-all-btn');
 const adminCustomPcRequestsList = document.getElementById('admin-custom-pc-requests-list');
+const adminCustomRequestsSearch = document.getElementById('admin-custom-requests-search');
+const adminCustomRequestsStatusFilter = document.getElementById('admin-custom-requests-status-filter');
+const adminCustomRequestsPageSize = document.getElementById('admin-custom-requests-page-size');
+const adminCustomRequestsResultsMeta = document.getElementById('admin-custom-requests-results-meta');
+const adminCustomRequestsPagination = document.getElementById('admin-custom-requests-pagination');
+const adminCustomRequestsCollapseAllBtn = document.getElementById('admin-custom-requests-collapse-all-btn');
 const adminDatabaseSummary = document.getElementById('admin-database-summary');
 const adminDatabaseList = document.getElementById('admin-database-list');
 const adminDatabaseSearch = document.getElementById('admin-database-search');
@@ -74,6 +86,22 @@ const componentSpecsDynamic = document.getElementById('component-specs-dynamic')
 let imageItems = [];
 let componentImageItems = [];
 let activeDatabaseSection = '';
+let adminOrdersState = {
+  items: [],
+  query: '',
+  status: 'all',
+  page: 1,
+  pageSize: 10,
+  expanded: new Set()
+};
+let adminCustomRequestsState = {
+  items: [],
+  query: '',
+  status: 'all',
+  page: 1,
+  pageSize: 10,
+  expanded: new Set()
+};
 
 /* =========================
    HELPERS
@@ -1560,9 +1588,458 @@ async function loadComponents() {
   }
 }
 
+
 /* =========================
    LOAD ORDERS
 ========================= */
+function normalizeAdminRecordSearchText(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function sortAdminRecordsByDate(items = []) {
+  return [...items].sort((left, right) => {
+    const leftDate = new Date(left.createdAt || 0).getTime();
+    const rightDate = new Date(right.createdAt || 0).getTime();
+    return rightDate - leftDate;
+  });
+}
+
+function paginateAdminRecords(items = [], page = 1, pageSize = 10) {
+  const totalItems = items.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  const safePage = Math.min(Math.max(page, 1), totalPages);
+  const start = (safePage - 1) * pageSize;
+
+  return {
+    items: items.slice(start, start + pageSize),
+    page: safePage,
+    pageSize,
+    totalItems,
+    totalPages,
+    startIndex: totalItems ? start + 1 : 0,
+    endIndex: Math.min(start + pageSize, totalItems)
+  };
+}
+
+function buildPaginationRange(totalPages, currentPage) {
+  if (totalPages <= 7) {
+    return Array.from({ length: totalPages }, (_, index) => index + 1);
+  }
+
+  const pages = new Set([1, totalPages, currentPage, currentPage - 1, currentPage + 1]);
+  const normalized = [...pages]
+    .filter((page) => page >= 1 && page <= totalPages)
+    .sort((left, right) => left - right);
+
+  const result = [];
+
+  normalized.forEach((page, index) => {
+    if (index > 0) {
+      const previous = normalized[index - 1];
+      if (page - previous > 1) {
+        result.push('ellipsis-' + previous + '-' + page);
+      }
+    }
+
+    result.push(page);
+  });
+
+  return result;
+}
+
+function renderAdminPagination(container, pagination, onPageChange) {
+  if (!container) return;
+
+  container.innerHTML = '';
+
+  if (!pagination || pagination.totalPages <= 1) {
+    return;
+  }
+
+  const fragment = document.createDocumentFragment();
+
+  const previousButton = document.createElement('button');
+  previousButton.type = 'button';
+  previousButton.className = 'admin-pagination__btn';
+  previousButton.textContent = '←';
+  previousButton.disabled = pagination.page === 1;
+  previousButton.addEventListener('click', () => onPageChange(pagination.page - 1));
+  fragment.appendChild(previousButton);
+
+  buildPaginationRange(pagination.totalPages, pagination.page).forEach((page) => {
+    if (typeof page === 'string') {
+      const ellipsis = document.createElement('span');
+      ellipsis.className = 'admin-pagination__ellipsis';
+      ellipsis.textContent = '...';
+      fragment.appendChild(ellipsis);
+      return;
+    }
+
+    const pageButton = document.createElement('button');
+    pageButton.type = 'button';
+    pageButton.className = 'admin-pagination__btn' + (page === pagination.page ? ' is-active' : '');
+    pageButton.textContent = String(page);
+    pageButton.addEventListener('click', () => onPageChange(page));
+    fragment.appendChild(pageButton);
+  });
+
+  const nextButton = document.createElement('button');
+  nextButton.type = 'button';
+  nextButton.className = 'admin-pagination__btn';
+  nextButton.textContent = '→';
+  nextButton.disabled = pagination.page === pagination.totalPages;
+  nextButton.addEventListener('click', () => onPageChange(pagination.page + 1));
+  fragment.appendChild(nextButton);
+
+  container.appendChild(fragment);
+}
+
+function getOrderSearchText(order) {
+  const itemsText = Array.isArray(order.items)
+    ? order.items
+        .map((orderItem) => {
+          const productName = orderItem.productName || orderItem.product?.name || '';
+          const specs = parseSpecsJson(orderItem.specs);
+          return [
+            productName,
+            orderItem.product?.name,
+            orderItem.quantity,
+            orderItem.price,
+            ...Object.values(specs || {})
+          ].join(' ');
+        })
+        .join(' ')
+    : '';
+
+  return normalizeAdminRecordSearchText([
+    order.id,
+    order.customerName,
+    order.phone,
+    order.email,
+    order.comment,
+    order.total,
+    getStatusText(order.status),
+    itemsText
+  ].join(' '));
+}
+
+function getCustomRequestSearchText(request) {
+  return normalizeAdminRecordSearchText([
+    request.id,
+    request.customerName,
+    request.phone,
+    request.email,
+    request.budget,
+    request.designWishes,
+    request.caseSize,
+    request.purpose,
+    request.comment,
+    getAdminStatusText(request.status)
+  ].join(' '));
+}
+
+function getFilteredOrders() {
+  return sortAdminRecordsByDate(adminOrdersState.items).filter((order) => {
+    const matchesStatus =
+      adminOrdersState.status === 'all' || order.status === adminOrdersState.status;
+    const matchesQuery =
+      !adminOrdersState.query || getOrderSearchText(order).includes(adminOrdersState.query);
+
+    return matchesStatus && matchesQuery;
+  });
+}
+
+function getFilteredCustomRequests() {
+  return sortAdminRecordsByDate(adminCustomRequestsState.items).filter((request) => {
+    const matchesStatus =
+      adminCustomRequestsState.status === 'all' || request.status === adminCustomRequestsState.status;
+    const matchesQuery =
+      !adminCustomRequestsState.query ||
+      getCustomRequestSearchText(request).includes(adminCustomRequestsState.query);
+
+    return matchesStatus && matchesQuery;
+  });
+}
+
+function renderAdminRecordSummaryCells(cells = []) {
+  return cells
+    .map(
+      (cell) => `
+        <div class="admin-record-card__meta-item">
+          <span class="admin-record-card__meta-label">${escapeHtml(cell.label)}</span>
+          <span class="admin-record-card__meta-value">${escapeHtml(cell.value)}</span>
+        </div>
+      `
+    )
+    .join('');
+}
+
+function renderOrderCard(order) {
+  const isExpanded = adminOrdersState.expanded.has(order.id);
+  const itemsHtml = Array.isArray(order.items) && order.items.length
+    ? order.items
+        .map((orderItem) => {
+          const productName = orderItem.productName || orderItem.product?.name || 'Товар';
+          const specs = parseSpecsJson(orderItem.specs);
+          const specsHtml = renderOrderSpecs(specs || {});
+
+          return `
+            <li class="admin-order-product-item">
+              <div><strong>${escapeHtml(productName)}</strong> — ${escapeHtml(orderItem.quantity)} шт. × ${escapeHtml(formatPrice(orderItem.price))}</div>
+              ${specsHtml}
+            </li>
+          `;
+        })
+        .join('')
+    : '<li>Нет товаров</li>';
+
+  return `
+    <article class="admin-record-card${isExpanded ? ' is-expanded' : ''}" data-order-id="${order.id}">
+      <div class="admin-record-card__summary">
+        <div class="admin-record-card__main">
+          <div class="admin-record-card__heading">
+            <h3>Заказ #${order.id}</h3>
+            <span class="${getStatusClass(order.status)}">${escapeHtml(getStatusText(order.status))}</span>
+          </div>
+
+          <div class="admin-record-card__meta-grid">
+            ${renderAdminRecordSummaryCells([
+              { label: 'Дата', value: formatAdminDate(order.createdAt) },
+              { label: 'Имя', value: order.customerName || '-' },
+              { label: 'Телефон', value: order.phone || '-' },
+              { label: 'Сумма', value: formatPrice(order.total) }
+            ])}
+          </div>
+        </div>
+
+        <button type="button" class="admin-record-card__toggle" data-action="toggle-order">
+          ${isExpanded ? 'Свернуть' : 'Открыть'}
+        </button>
+      </div>
+
+      <div class="admin-record-card__body">
+        <div class="admin-record-card__body-content">
+          <div class="admin-item__content">
+            <p><strong>Дата:</strong> ${escapeHtml(formatAdminDate(order.createdAt))}</p>
+            <p><strong>Имя:</strong> ${escapeHtml(order.customerName || '-')}</p>
+            <p><strong>Телефон:</strong> ${escapeHtml(order.phone || '-')}</p>
+            <p><strong>Email:</strong> ${escapeHtml(order.email || '-')}</p>
+            <p><strong>Комментарий:</strong> ${escapeHtml(order.comment || '-')}</p>
+            <p><strong>Сумма:</strong> ${escapeHtml(formatPrice(order.total))}</p>
+            <div class="admin-order-products">
+              <strong>Товары в заказе:</strong>
+              <ul>${itemsHtml}</ul>
+            </div>
+          </div>
+
+          <div class="admin-item__actions">
+            <select class="order-status-select btn btn-secondary btn-small" data-action="change-order-status">
+              <option value="new" ${order.status === 'new' ? 'selected' : ''}>Новый</option>
+              <option value="processing" ${order.status === 'processing' ? 'selected' : ''}>В обработке</option>
+              <option value="shipping" ${order.status === 'shipping' ? 'selected' : ''}>В пути</option>
+              <option value="completed" ${order.status === 'completed' ? 'selected' : ''}>Завершён</option>
+              <option value="cancelled" ${order.status === 'cancelled' ? 'selected' : ''}>Отменён</option>
+            </select>
+            <button type="button" class="btn btn-secondary btn-small" data-action="delete-order">Удалить</button>
+          </div>
+        </div>
+      </div>
+    </article>
+  `;
+}
+
+function renderCustomRequestCard(request) {
+  const isExpanded = adminCustomRequestsState.expanded.has(request.id);
+
+  return `
+    <article class="admin-record-card${isExpanded ? ' is-expanded' : ''}" data-request-id="${request.id}">
+      <div class="admin-record-card__summary">
+        <div class="admin-record-card__main">
+          <div class="admin-record-card__heading">
+            <h3>Заявка #${request.id}</h3>
+            <span class="${getAdminStatusClass(request.status)}">${escapeHtml(getAdminStatusText(request.status))}</span>
+          </div>
+
+          <div class="admin-record-card__meta-grid">
+            ${renderAdminRecordSummaryCells([
+              { label: 'Дата', value: formatAdminDate(request.createdAt) },
+              { label: 'Имя', value: request.customerName || '-' },
+              { label: 'Телефон', value: request.phone || '-' },
+              { label: 'Бюджет', value: request.budget ? formatPrice(request.budget) : '-' }
+            ])}
+          </div>
+        </div>
+
+        <button type="button" class="admin-record-card__toggle" data-action="toggle-custom-request">
+          ${isExpanded ? 'Свернуть' : 'Открыть'}
+        </button>
+      </div>
+
+      <div class="admin-record-card__body">
+        <div class="admin-record-card__body-content">
+          <div class="admin-item__content">
+            <p><strong>Дата:</strong> ${escapeHtml(formatAdminDate(request.createdAt))}</p>
+            <p><strong>Имя:</strong> ${escapeHtml(request.customerName || '-')}</p>
+            <p><strong>Телефон:</strong> ${escapeHtml(request.phone || '-')}</p>
+            <p><strong>Email:</strong> ${escapeHtml(request.email || '-')}</p>
+            <p><strong>Бюджет:</strong> ${escapeHtml(request.budget ? formatPrice(request.budget) : '-')}</p>
+            <p><strong>Пожелания по дизайну:</strong> ${escapeHtml(request.designWishes || '-')}</p>
+            <p><strong>Размер корпуса:</strong> ${escapeHtml(request.caseSize || '-')}</p>
+            <p><strong>Назначение:</strong> ${escapeHtml(request.purpose || '-')}</p>
+            <p><strong>Комментарий:</strong> ${escapeHtml(request.comment || '-')}</p>
+          </div>
+
+          <div class="admin-item__actions">
+            <select class="order-status-select btn btn-secondary btn-small" data-action="change-custom-request-status">
+              <option value="new" ${request.status === 'new' ? 'selected' : ''}>Новая</option>
+              <option value="processing" ${request.status === 'processing' ? 'selected' : ''}>В обработке</option>
+              <option value="completed" ${request.status === 'completed' ? 'selected' : ''}>Завершена</option>
+              <option value="cancelled" ${request.status === 'cancelled' ? 'selected' : ''}>Отменена</option>
+            </select>
+            <button type="button" class="btn btn-secondary btn-small" data-action="delete-custom-request">Удалить</button>
+          </div>
+        </div>
+      </div>
+    </article>
+  `;
+}
+
+function renderOrders() {
+  if (!ordersList) return;
+
+  const filteredOrders = getFilteredOrders();
+  const pagination = paginateAdminRecords(
+    filteredOrders,
+    adminOrdersState.page,
+    adminOrdersState.pageSize
+  );
+
+  adminOrdersState.page = pagination.page;
+
+  if (adminOrdersResultsMeta) {
+    adminOrdersResultsMeta.textContent = filteredOrders.length
+      ? `Показано ${pagination.startIndex}-${pagination.endIndex} из ${pagination.totalItems}`
+      : 'Ничего не найдено';
+  }
+
+  if (!filteredOrders.length) {
+    ordersList.innerHTML = '<p class="admin-empty">Подходящих заказов пока нет.</p>';
+    if (adminOrdersPagination) adminOrdersPagination.innerHTML = '';
+    return;
+  }
+
+  ordersList.innerHTML = pagination.items.map(renderOrderCard).join('');
+
+  renderAdminPagination(adminOrdersPagination, pagination, (page) => {
+    adminOrdersState.page = page;
+    renderOrders();
+  });
+}
+
+function renderCustomPcRequests() {
+  if (!adminCustomPcRequestsList) return;
+
+  const filteredRequests = getFilteredCustomRequests();
+  const pagination = paginateAdminRecords(
+    filteredRequests,
+    adminCustomRequestsState.page,
+    adminCustomRequestsState.pageSize
+  );
+
+  adminCustomRequestsState.page = pagination.page;
+
+  if (adminCustomRequestsResultsMeta) {
+    adminCustomRequestsResultsMeta.textContent = filteredRequests.length
+      ? `Показано ${pagination.startIndex}-${pagination.endIndex} из ${pagination.totalItems}`
+      : 'Ничего не найдено';
+  }
+
+  if (!filteredRequests.length) {
+    adminCustomPcRequestsList.innerHTML = '<p class="admin-empty">Подходящих заявок пока нет.</p>';
+    if (adminCustomRequestsPagination) adminCustomRequestsPagination.innerHTML = '';
+    return;
+  }
+
+  adminCustomPcRequestsList.innerHTML = pagination.items.map(renderCustomRequestCard).join('');
+
+  renderAdminPagination(adminCustomRequestsPagination, pagination, (page) => {
+    adminCustomRequestsState.page = page;
+    renderCustomPcRequests();
+  });
+}
+
+async function updateOrderStatus(orderId, status) {
+  const response = await fetch(`${ORDERS_API_URL}/${orderId}/status`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ status })
+  });
+
+  const data = await readApiResponse(response);
+
+  if (!response.ok) {
+    throw new Error(extractApiError(data, 'Не удалось обновить статус'));
+  }
+
+  const current = adminOrdersState.items.find((item) => item.id === orderId);
+  if (current) {
+    current.status = status;
+  }
+}
+
+async function deleteOrder(orderId) {
+  const response = await fetch(`${ORDERS_API_URL}/${orderId}`, {
+    method: 'DELETE'
+  });
+
+  const data = await readApiResponse(response);
+
+  if (!response.ok) {
+    throw new Error(extractApiError(data, 'Не удалось удалить заказ'));
+  }
+
+  adminOrdersState.items = adminOrdersState.items.filter((item) => item.id !== orderId);
+  adminOrdersState.expanded.delete(orderId);
+}
+
+async function updateCustomRequestStatus(requestId, status) {
+  const response = await fetch(`${CUSTOM_PC_REQUESTS_API_URL}/${requestId}/status`, {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ status })
+  });
+
+  const data = await readApiResponse(response);
+
+  if (!response.ok) {
+    throw new Error(extractApiError(data, 'Не удалось обновить статус'));
+  }
+
+  const current = adminCustomRequestsState.items.find((item) => item.id === requestId);
+  if (current) {
+    current.status = status;
+  }
+}
+
+async function deleteCustomRequest(requestId) {
+  const response = await fetch(`${CUSTOM_PC_REQUESTS_API_URL}/${requestId}`, {
+    method: 'DELETE'
+  });
+
+  const data = await readApiResponse(response);
+
+  if (!response.ok) {
+    throw new Error(extractApiError(data, 'Не удалось удалить заявку'));
+  }
+
+  adminCustomRequestsState.items = adminCustomRequestsState.items.filter((item) => item.id !== requestId);
+  adminCustomRequestsState.expanded.delete(requestId);
+}
+
 async function loadOrders() {
   if (!ordersList) return;
 
@@ -1574,129 +2051,21 @@ async function loadOrders() {
       throw new Error(extractApiError(orders, 'Не удалось загрузить заказы'));
     }
 
-    ordersList.innerHTML = '';
+    adminOrdersState.items = Array.isArray(orders) ? orders : [];
 
-    if (!Array.isArray(orders) || !orders.length) {
-      ordersList.innerHTML = '<p>Заказов пока нет.</p>';
-      return;
+    if (adminOrdersState.pageSize !== Number(adminOrdersPageSize?.value || adminOrdersState.pageSize)) {
+      adminOrdersState.pageSize = Number(adminOrdersPageSize?.value || 10);
     }
 
-    orders.forEach((order) => {
-      const item = document.createElement('div');
-      item.className = 'admin-item';
-
-      const itemsHtml = Array.isArray(order.items)
-        ? order.items
-            .map((orderItem) => {
-              const productName =
-                orderItem.productName ||
-                orderItem.product?.name ||
-                'Товар';
-
-              const specs = parseSpecsJson(orderItem.specs);
-              const specsHtml = renderOrderSpecs(specs || {});
-
-              return `
-                <li class="admin-order-product-item">
-                  <div><strong>${productName}</strong> — ${orderItem.quantity} шт. × ${formatPrice(orderItem.price)}</div>
-                  ${specsHtml}
-                </li>
-              `;
-            })
-            .join('')
-        : '';
-
-      item.innerHTML = `
-        <div class="admin-item__content">
-          <h3>Заказ #${order.id}</h3>
-          <p><strong>Дата:</strong> ${formatAdminDate(order.createdAt)}</p>
-          <p><strong>Имя:</strong> ${order.customerName || '-'}</p>
-          <p><strong>Телефон:</strong> ${order.phone || '-'}</p>
-          <p><strong>Email:</strong> ${order.email || '-'}</p>
-          <p><strong>Комментарий:</strong> ${order.comment || '-'}</p>
-          <p><strong>Сумма:</strong> ${formatPrice(order.total)}</p>
-          <p>
-            <strong>Статус:</strong>
-            <span class="${getStatusClass(order.status)}">${getStatusText(order.status)}</span>
-          </p>
-
-          <div class="admin-order-products">
-            <strong>Товары в заказе:</strong>
-            <ul>${itemsHtml || '<li>Нет товаров</li>'}</ul>
-          </div>
-        </div>
-
-        <div class="admin-item__actions">
-          <select class="order-status-select btn btn-secondary btn-small">
-            <option value="new" ${order.status === 'new' ? 'selected' : ''}>Новый</option>
-            <option value="processing" ${order.status === 'processing' ? 'selected' : ''}>В обработке</option>
-            <option value="shipping" ${order.status === 'shipping' ? 'selected' : ''}>В пути</option>
-            <option value="completed" ${order.status === 'completed' ? 'selected' : ''}>Завершён</option>
-            <option value="cancelled" ${order.status === 'cancelled' ? 'selected' : ''}>Отменён</option>
-          </select>
-          <button type="button" class="btn btn-secondary btn-small delete-order-btn">Удалить</button>
-        </div>
-      `;
-
-      const statusSelect = item.querySelector('.order-status-select');
-      const deleteBtn = item.querySelector('.delete-order-btn');
-
-      statusSelect.addEventListener('change', async () => {
-        try {
-          const updateResponse = await fetch(`${ORDERS_API_URL}/${order.id}/status`, {
-            method: 'PUT',
-            headers: {
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ status: statusSelect.value })
-          });
-
-          const data = await readApiResponse(updateResponse);
-
-          if (!updateResponse.ok) {
-            throw new Error(extractApiError(data, 'Не удалось обновить статус'));
-          }
-
-          await loadOrders();
-        } catch (error) {
-          console.error('Ошибка обновления статуса заказа:', error);
-          alert(error.message || 'Не удалось обновить статус заказа');
-        }
-      });
-
-      deleteBtn.addEventListener('click', async () => {
-        const confirmed = confirm(`Удалить заказ #${order.id}?`);
-        if (!confirmed) return;
-
-        try {
-          const deleteResponse = await fetch(`${ORDERS_API_URL}/${order.id}`, {
-            method: 'DELETE'
-          });
-
-          const data = await readApiResponse(deleteResponse);
-
-          if (!deleteResponse.ok) {
-            throw new Error(extractApiError(data, 'Не удалось удалить заказ'));
-          }
-
-          await loadOrders();
-        } catch (error) {
-          console.error('Ошибка удаления заказа:', error);
-          alert(error.message || 'Не удалось удалить заказ');
-        }
-      });
-
-      ordersList.appendChild(item);
-    });
+    renderOrders();
   } catch (error) {
     console.error('Ошибка загрузки заказов:', error);
-    ordersList.innerHTML = '<p>Не удалось загрузить заказы.</p>';
+    ordersList.innerHTML = '<p class="admin-empty">Не удалось загрузить заказы.</p>';
+    if (adminOrdersPagination) adminOrdersPagination.innerHTML = '';
+    if (adminOrdersResultsMeta) adminOrdersResultsMeta.textContent = 'Ошибка загрузки';
   }
 }
 
-/* =========================
-   LOAD CUSTOM PC REQUESTS
-========================= */
 async function loadCustomPcRequests() {
   if (!adminCustomPcRequestsList) return;
 
@@ -1708,106 +2077,174 @@ async function loadCustomPcRequests() {
       throw new Error(extractApiError(requests, 'Не удалось загрузить заявки на ПК'));
     }
 
-    adminCustomPcRequestsList.innerHTML = '';
+    adminCustomRequestsState.items = Array.isArray(requests) ? requests : [];
 
-    if (!Array.isArray(requests) || !requests.length) {
-      adminCustomPcRequestsList.innerHTML = '<p>Заявок пока нет.</p>';
+    if (
+      adminCustomRequestsState.pageSize !==
+      Number(adminCustomRequestsPageSize?.value || adminCustomRequestsState.pageSize)
+    ) {
+      adminCustomRequestsState.pageSize = Number(adminCustomRequestsPageSize?.value || 10);
+    }
+
+    renderCustomPcRequests();
+  } catch (error) {
+    console.error('Ошибка загрузки заявок на ПК:', error);
+    adminCustomPcRequestsList.innerHTML = '<p class="admin-empty">Не удалось загрузить заявки на ПК.</p>';
+    if (adminCustomRequestsPagination) adminCustomRequestsPagination.innerHTML = '';
+    if (adminCustomRequestsResultsMeta) adminCustomRequestsResultsMeta.textContent = 'Ошибка загрузки';
+  }
+}
+
+function setupAdminRecordBrowsers() {
+  adminOrdersSearch?.addEventListener('input', () => {
+    adminOrdersState.query = normalizeAdminRecordSearchText(adminOrdersSearch.value);
+    adminOrdersState.page = 1;
+    renderOrders();
+  });
+
+  adminOrdersStatusFilter?.addEventListener('change', () => {
+    adminOrdersState.status = adminOrdersStatusFilter.value;
+    adminOrdersState.page = 1;
+    renderOrders();
+  });
+
+  adminOrdersPageSize?.addEventListener('change', () => {
+    adminOrdersState.pageSize = Number(adminOrdersPageSize.value) || 10;
+    adminOrdersState.page = 1;
+    renderOrders();
+  });
+
+  adminOrdersCollapseAllBtn?.addEventListener('click', () => {
+    adminOrdersState.expanded.clear();
+    renderOrders();
+  });
+
+  ordersList?.addEventListener('click', async (event) => {
+    const button = event.target.closest('[data-action]');
+    const card = event.target.closest('[data-order-id]');
+
+    if (!button || !card) return;
+
+    const orderId = Number(card.dataset.orderId);
+    const action = button.dataset.action;
+
+    if (action === 'toggle-order') {
+      if (adminOrdersState.expanded.has(orderId)) {
+        adminOrdersState.expanded.delete(orderId);
+      } else {
+        adminOrdersState.expanded.add(orderId);
+      }
+
+      renderOrders();
       return;
     }
 
-    requests.forEach((request) => {
-      const item = document.createElement('div');
-      item.className = 'admin-item';
+    if (action === 'delete-order') {
+      const confirmed = confirm(`Удалить заказ #${orderId}?`);
+      if (!confirmed) return;
 
-      item.innerHTML = `
-        <div class="admin-item__content">
-          <h3>Заявка #${request.id}</h3>
-          <p><strong>Дата:</strong> ${formatAdminDate(request.createdAt)}</p>
-          <p><strong>Имя:</strong> ${request.customerName || '-'}</p>
-          <p><strong>Телефон:</strong> ${request.phone || '-'}</p>
-          <p><strong>Email:</strong> ${request.email || '-'}</p>
-          <p><strong>Бюджет:</strong> ${request.budget ? formatPrice(request.budget) : '-'}</p>
-          <p><strong>Пожелания по дизайну:</strong> ${request.designWishes || '-'}</p>
-          <p><strong>Размер корпуса:</strong> ${request.caseSize || '-'}</p>
-          <p><strong>Назначение:</strong> ${request.purpose || '-'}</p>
-          <p><strong>Комментарий:</strong> ${request.comment || '-'}</p>
-          <p>
-            <strong>Статус:</strong>
-            <span class="${getAdminStatusClass(request.status)}">${getAdminStatusText(request.status)}</span>
-          </p>
-        </div>
+      try {
+        await deleteOrder(orderId);
+        renderOrders();
+      } catch (error) {
+        console.error('Ошибка удаления заказа:', error);
+        alert(error.message || 'Не удалось удалить заказ');
+      }
+    }
+  });
 
-        <div class="admin-item__actions">
-          <select class="order-status-select btn btn-secondary btn-small">
-            <option value="new" ${request.status === 'new' ? 'selected' : ''}>Новая</option>
-            <option value="processing" ${request.status === 'processing' ? 'selected' : ''}>В обработке</option>
-            <option value="completed" ${request.status === 'completed' ? 'selected' : ''}>Завершена</option>
-            <option value="cancelled" ${request.status === 'cancelled' ? 'selected' : ''}>Отменена</option>
-          </select>
-          <button type="button" class="btn btn-secondary btn-small delete-custom-pc-request-btn">Удалить</button>
-        </div>
-      `;
+  ordersList?.addEventListener('change', async (event) => {
+    const select = event.target.closest('[data-action="change-order-status"]');
+    const card = event.target.closest('[data-order-id]');
 
-      const statusSelect = item.querySelector('.order-status-select');
-      const deleteBtn = item.querySelector('.delete-custom-pc-request-btn');
+    if (!select || !card) return;
 
-      statusSelect.addEventListener('change', async () => {
-        try {
-          const updateResponse = await fetch(
-            `${CUSTOM_PC_REQUESTS_API_URL}/${request.id}/status`,
-            {
-              method: 'PUT',
-              headers: {
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({ status: statusSelect.value })
-            }
-          );
+    const orderId = Number(card.dataset.orderId);
 
-          const data = await readApiResponse(updateResponse);
+    try {
+      await updateOrderStatus(orderId, select.value);
+      renderOrders();
+    } catch (error) {
+      console.error('Ошибка обновления статуса заказа:', error);
+      alert(error.message || 'Не удалось обновить статус заказа');
+      renderOrders();
+    }
+  });
 
-          if (!updateResponse.ok) {
-            throw new Error(extractApiError(data, 'Не удалось обновить статус'));
-          }
+  adminCustomRequestsSearch?.addEventListener('input', () => {
+    adminCustomRequestsState.query = normalizeAdminRecordSearchText(adminCustomRequestsSearch.value);
+    adminCustomRequestsState.page = 1;
+    renderCustomPcRequests();
+  });
 
-          await loadCustomPcRequests();
-        } catch (error) {
-          console.error('Ошибка обновления статуса заявки:', error);
-          alert(error.message || 'Не удалось обновить статус заявки');
-        }
-      });
+  adminCustomRequestsStatusFilter?.addEventListener('change', () => {
+    adminCustomRequestsState.status = adminCustomRequestsStatusFilter.value;
+    adminCustomRequestsState.page = 1;
+    renderCustomPcRequests();
+  });
 
-      deleteBtn.addEventListener('click', async () => {
-        const confirmed = confirm(`Удалить заявку #${request.id}?`);
-        if (!confirmed) return;
+  adminCustomRequestsPageSize?.addEventListener('change', () => {
+    adminCustomRequestsState.pageSize = Number(adminCustomRequestsPageSize.value) || 10;
+    adminCustomRequestsState.page = 1;
+    renderCustomPcRequests();
+  });
 
-        try {
-          const deleteResponse = await fetch(
-            `${CUSTOM_PC_REQUESTS_API_URL}/${request.id}`,
-            {
-              method: 'DELETE'
-            }
-          );
+  adminCustomRequestsCollapseAllBtn?.addEventListener('click', () => {
+    adminCustomRequestsState.expanded.clear();
+    renderCustomPcRequests();
+  });
 
-          const data = await readApiResponse(deleteResponse);
+  adminCustomPcRequestsList?.addEventListener('click', async (event) => {
+    const button = event.target.closest('[data-action]');
+    const card = event.target.closest('[data-request-id]');
 
-          if (!deleteResponse.ok) {
-            throw new Error(extractApiError(data, 'Не удалось удалить заявку'));
-          }
+    if (!button || !card) return;
 
-          await loadCustomPcRequests();
-        } catch (error) {
-          console.error('Ошибка удаления заявки:', error);
-          alert(error.message || 'Не удалось удалить заявку');
-        }
-      });
+    const requestId = Number(card.dataset.requestId);
+    const action = button.dataset.action;
 
-      adminCustomPcRequestsList.appendChild(item);
-    });
-  } catch (error) {
-    console.error('Ошибка загрузки заявок на ПК:', error);
-    adminCustomPcRequestsList.innerHTML = '<p>Не удалось загрузить заявки на ПК.</p>';
-  }
+    if (action === 'toggle-custom-request') {
+      if (adminCustomRequestsState.expanded.has(requestId)) {
+        adminCustomRequestsState.expanded.delete(requestId);
+      } else {
+        adminCustomRequestsState.expanded.add(requestId);
+      }
+
+      renderCustomPcRequests();
+      return;
+    }
+
+    if (action === 'delete-custom-request') {
+      const confirmed = confirm(`Удалить заявку #${requestId}?`);
+      if (!confirmed) return;
+
+      try {
+        await deleteCustomRequest(requestId);
+        renderCustomPcRequests();
+      } catch (error) {
+        console.error('Ошибка удаления заявки:', error);
+        alert(error.message || 'Не удалось удалить заявку');
+      }
+    }
+  });
+
+  adminCustomPcRequestsList?.addEventListener('change', async (event) => {
+    const select = event.target.closest('[data-action="change-custom-request-status"]');
+    const card = event.target.closest('[data-request-id]');
+
+    if (!select || !card) return;
+
+    const requestId = Number(card.dataset.requestId);
+
+    try {
+      await updateCustomRequestStatus(requestId, select.value);
+      renderCustomPcRequests();
+    } catch (error) {
+      console.error('Ошибка обновления статуса заявки:', error);
+      alert(error.message || 'Не удалось обновить статус заявки');
+      renderCustomPcRequests();
+    }
+  });
 }
 
 /* =========================
@@ -2385,6 +2822,7 @@ componentForm?.addEventListener('submit', async (event) => {
 ========================= */
 document.addEventListener('DOMContentLoaded', async () => {
   setupAdminTabs();
+  setupAdminRecordBrowsers();
   resetComponentForm();
   initAvitoConnectButton();
 
