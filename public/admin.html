@@ -192,16 +192,113 @@
       </div>
 
       <div class="admin-section" id="tab-orders">
+        <section class="admin-block admin-toolbar-block reveal">
+          <div class="admin-toolbar admin-toolbar--records">
+            <div class="admin-search">
+              <label for="admin-orders-search" class="admin-search__label">Поиск по заказам</label>
+              <input
+                type="text"
+                id="admin-orders-search"
+                class="admin-search__input"
+                placeholder="Ищи по номеру заказа, имени, телефону, email, комментарию и товарам..."
+              />
+            </div>
+
+            <div class="admin-record-filters">
+              <label class="admin-record-filters__field" for="admin-orders-status-filter">
+                <span>Статус</span>
+                <select id="admin-orders-status-filter" class="order-status-select">
+                  <option value="all">Все статусы</option>
+                  <option value="new">Новый</option>
+                  <option value="processing">В обработке</option>
+                  <option value="shipping">В пути</option>
+                  <option value="completed">Завершён</option>
+                  <option value="cancelled">Отменён</option>
+                </select>
+              </label>
+
+              <label class="admin-record-filters__field" for="admin-orders-page-size">
+                <span>На странице</span>
+                <select id="admin-orders-page-size" class="order-status-select">
+                  <option value="5">5</option>
+                  <option value="10" selected>10</option>
+                  <option value="20">20</option>
+                </select>
+              </label>
+            </div>
+          </div>
+
+          <div id="admin-orders-status-tabs" class="admin-status-tabs" aria-label="Быстрый фильтр заказов"></div>
+
+
+
+          <div class="admin-results-bar">
+            <span id="admin-orders-results-meta" class="admin-results-bar__meta"></span>
+            <button type="button" class="btn btn-secondary btn-small" id="admin-orders-collapse-all-btn">
+              Свернуть все
+            </button>
+          </div>
+        </section>
+
         <section class="admin-block reveal">
           <h2>История заказов</h2>
           <div id="admin-orders-list" class="admin-list"></div>
+          <div id="admin-orders-pagination" class="admin-pagination"></div>
         </section>
       </div>
 
       <div class="admin-section" id="tab-custom">
+        <section class="admin-block admin-toolbar-block reveal">
+          <div class="admin-toolbar admin-toolbar--records">
+            <div class="admin-search">
+              <label for="admin-custom-requests-search" class="admin-search__label">Поиск по заявкам</label>
+              <input
+                type="text"
+                id="admin-custom-requests-search"
+                class="admin-search__input"
+                placeholder="Ищи по номеру заявки, имени, телефону, email, бюджету, назначению и комментарию..."
+              />
+            </div>
+
+            <div class="admin-record-filters">
+              <label class="admin-record-filters__field" for="admin-custom-requests-status-filter">
+                <span>Статус</span>
+                <select id="admin-custom-requests-status-filter" class="order-status-select">
+                  <option value="all">Все статусы</option>
+                  <option value="new">Новая</option>
+                  <option value="processing">В обработке</option>
+                  <option value="completed">Завершена</option>
+                  <option value="cancelled">Отменена</option>
+                </select>
+              </label>
+
+              <label class="admin-record-filters__field" for="admin-custom-requests-page-size">
+                <span>На странице</span>
+                <select id="admin-custom-requests-page-size" class="order-status-select">
+                  <option value="5">5</option>
+                  <option value="10" selected>10</option>
+                  <option value="20">20</option>
+                </select>
+              </label>
+            </div>
+          </div>
+
+          <div id="admin-custom-requests-status-tabs" class="admin-status-tabs" aria-label="Быстрый фильтр заявок"></div>
+
+
+
+          <div class="admin-results-bar">
+            <span id="admin-custom-requests-results-meta" class="admin-results-bar__meta"></span>
+            <button type="button" class="btn btn-secondary btn-small" id="admin-custom-requests-collapse-all-btn">
+              Свернуть все
+            </button>
+          </div>
+        </section>
+
         <section class="admin-block reveal">
           <h2>Заявки на индивидуальную сборку ПК</h2>
           <div id="admin-custom-pc-requests-list" class="admin-list"></div>
+          <div id="admin-custom-requests-pagination" class="admin-pagination"></div>
         </section>
       </div>
 

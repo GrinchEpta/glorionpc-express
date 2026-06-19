@@ -1,8 +1,8 @@
 const express = require('express')
 const router = express.Router()
 
-const ADMIN_LOGIN = 'admin'
-const ADMIN_PASSWORD = '12345'
+const ADMIN_LOGIN = 'Administrator'
+const ADMIN_PASSWORD = 'Nikki_6681'
 
 router.post('/login', (req, res) => {
   const { login, password } = req.body
