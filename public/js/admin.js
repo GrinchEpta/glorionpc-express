@@ -52,6 +52,7 @@ const productsList = document.getElementById('admin-products-list');
 const ordersList = document.getElementById('admin-orders-list');
 const adminOrdersSearch = document.getElementById('admin-orders-search');
 const adminOrdersStatusFilter = document.getElementById('admin-orders-status-filter');
+const adminOrdersStatusTabs = document.getElementById('admin-orders-status-tabs');
 const adminOrdersPageSize = document.getElementById('admin-orders-page-size');
 const adminOrdersResultsMeta = document.getElementById('admin-orders-results-meta');
 const adminOrdersPagination = document.getElementById('admin-orders-pagination');
@@ -59,6 +60,7 @@ const adminOrdersCollapseAllBtn = document.getElementById('admin-orders-collapse
 const adminCustomPcRequestsList = document.getElementById('admin-custom-pc-requests-list');
 const adminCustomRequestsSearch = document.getElementById('admin-custom-requests-search');
 const adminCustomRequestsStatusFilter = document.getElementById('admin-custom-requests-status-filter');
+const adminCustomRequestsStatusTabs = document.getElementById('admin-custom-requests-status-tabs');
 const adminCustomRequestsPageSize = document.getElementById('admin-custom-requests-page-size');
 const adminCustomRequestsResultsMeta = document.getElementById('admin-custom-requests-results-meta');
 const adminCustomRequestsPagination = document.getElementById('admin-custom-requests-pagination');
@@ -102,6 +104,23 @@ let adminCustomRequestsState = {
   pageSize: 10,
   expanded: new Set()
 };
+
+const ADMIN_ORDER_QUICK_STATUSES = [
+  { value: 'all', label: 'Все' },
+  { value: 'new', label: 'Новые' },
+  { value: 'processing', label: 'В обработке' },
+  { value: 'shipping', label: 'В пути' },
+  { value: 'completed', label: 'Завершённые' },
+  { value: 'cancelled', label: 'Отменённые' }
+];
+
+const ADMIN_CUSTOM_REQUEST_QUICK_STATUSES = [
+  { value: 'all', label: 'Все' },
+  { value: 'new', label: 'Новые' },
+  { value: 'processing', label: 'В обработке' },
+  { value: 'completed', label: 'Завершённые' },
+  { value: 'cancelled', label: 'Отменённые' }
+];
 
 /* =========================
    HELPERS
@@ -1694,6 +1713,49 @@ function renderAdminPagination(container, pagination, onPageChange) {
   container.appendChild(fragment);
 }
 
+function getAdminStatusCounts(items, getSearchText, query) {
+  return items.reduce((counts, item) => {
+    if (query && !getSearchText(item).includes(query)) return counts;
+
+    const status = item.status || 'new';
+    counts.all = (counts.all || 0) + 1;
+    counts[status] = (counts[status] || 0) + 1;
+
+    return counts;
+  }, { all: 0 });
+}
+
+function renderAdminStatusTabs(container, statuses, activeStatus, counts) {
+  if (!container) return;
+
+  container.innerHTML = statuses
+    .map((status) => {
+      const isActive = status.value === activeStatus;
+      const count = counts[status.value] || 0;
+
+      return `
+        <button
+          type="button"
+          class="admin-status-tabs__btn${isActive ? ' is-active' : ''}"
+          data-status="${escapeHtml(status.value)}"
+          aria-pressed="${isActive ? 'true' : 'false'}"
+        >
+          <span>${escapeHtml(status.label)}</span>
+          <strong>${count}</strong>
+        </button>
+      `;
+    })
+    .join('');
+}
+
+function setAdminRecordStatus(state, select, status, render) {
+  state.status = status;
+  state.page = 1;
+
+  if (select) select.value = status;
+  render();
+}
+
 function getOrderSearchText(order) {
   const itemsText = Array.isArray(order.items)
     ? order.items
@@ -1908,6 +1970,13 @@ function renderOrders() {
   if (!ordersList) return;
 
   const filteredOrders = getFilteredOrders();
+  renderAdminStatusTabs(
+    adminOrdersStatusTabs,
+    ADMIN_ORDER_QUICK_STATUSES,
+    adminOrdersState.status,
+    getAdminStatusCounts(adminOrdersState.items, getOrderSearchText, adminOrdersState.query)
+  );
+
   const pagination = paginateAdminRecords(
     filteredOrders,
     adminOrdersState.page,
@@ -1940,6 +2009,17 @@ function renderCustomPcRequests() {
   if (!adminCustomPcRequestsList) return;
 
   const filteredRequests = getFilteredCustomRequests();
+  renderAdminStatusTabs(
+    adminCustomRequestsStatusTabs,
+    ADMIN_CUSTOM_REQUEST_QUICK_STATUSES,
+    adminCustomRequestsState.status,
+    getAdminStatusCounts(
+      adminCustomRequestsState.items,
+      getCustomRequestSearchText,
+      adminCustomRequestsState.query
+    )
+  );
+
   const pagination = paginateAdminRecords(
     filteredRequests,
     adminCustomRequestsState.page,
@@ -2103,9 +2183,14 @@ function setupAdminRecordBrowsers() {
   });
 
   adminOrdersStatusFilter?.addEventListener('change', () => {
-    adminOrdersState.status = adminOrdersStatusFilter.value;
-    adminOrdersState.page = 1;
-    renderOrders();
+    setAdminRecordStatus(adminOrdersState, adminOrdersStatusFilter, adminOrdersStatusFilter.value, renderOrders);
+  });
+
+  adminOrdersStatusTabs?.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-status]');
+    if (!button) return;
+
+    setAdminRecordStatus(adminOrdersState, adminOrdersStatusFilter, button.dataset.status, renderOrders);
   });
 
   adminOrdersPageSize?.addEventListener('change', () => {
@@ -2178,9 +2263,24 @@ function setupAdminRecordBrowsers() {
   });
 
   adminCustomRequestsStatusFilter?.addEventListener('change', () => {
-    adminCustomRequestsState.status = adminCustomRequestsStatusFilter.value;
-    adminCustomRequestsState.page = 1;
-    renderCustomPcRequests();
+    setAdminRecordStatus(
+      adminCustomRequestsState,
+      adminCustomRequestsStatusFilter,
+      adminCustomRequestsStatusFilter.value,
+      renderCustomPcRequests
+    );
+  });
+
+  adminCustomRequestsStatusTabs?.addEventListener('click', (event) => {
+    const button = event.target.closest('[data-status]');
+    if (!button) return;
+
+    setAdminRecordStatus(
+      adminCustomRequestsState,
+      adminCustomRequestsStatusFilter,
+      button.dataset.status,
+      renderCustomPcRequests
+    );
   });
 
   adminCustomRequestsPageSize?.addEventListener('change', () => {
