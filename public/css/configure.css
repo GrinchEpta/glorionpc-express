@@ -531,11 +531,6 @@
   .configure-layout {
     grid-template-columns: 1fr;
   }
-
-  .configure-summary {
-    order: -1;
-  }
-
   .configure-summary__card {
     position: static;
     top: auto;

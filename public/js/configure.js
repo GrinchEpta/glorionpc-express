@@ -6,36 +6,42 @@ const COMPONENT_CONFIG = {
     selectId: 'cpu',
     summaryId: 'summary-cpu',
     type: 'cpu',
+    placeholder: 'Выберите процессор',
     emptyText: 'Нет процессоров'
   },
   gpu: {
     selectId: 'gpu',
     summaryId: 'summary-gpu',
     type: 'gpu',
+    placeholder: 'Выберите видеокарту',
     emptyText: 'Нет видеокарт'
   },
   motherboard: {
     selectId: 'motherboard',
     summaryId: 'summary-motherboard',
     type: 'motherboard',
+    placeholder: 'Выберите материнскую плату',
     emptyText: 'Нет материнских плат'
   },
   ram: {
     selectId: 'ram',
     summaryId: 'summary-ram',
     type: 'ram',
+    placeholder: 'Выберите оперативную память',
     emptyText: 'Нет оперативной памяти'
   },
   storage: {
     selectId: 'storage',
     summaryId: 'summary-storage',
     type: 'storage',
+    placeholder: 'Выберите основной накопитель',
     emptyText: 'Нет накопителей'
   },
   extraStorage: {
     selectId: 'extra-storage',
     summaryId: 'summary-extra-storage',
     type: 'storage',
+    placeholder: 'Выберите дополнительный накопитель',
     emptyOption: {
       id: 'no-extra-storage',
       name: 'Без дополнительного накопителя',
@@ -47,6 +53,7 @@ const COMPONENT_CONFIG = {
     selectId: 'cooler',
     summaryId: 'summary-cooler',
     type: 'cooler',
+    placeholder: 'Выберите охлаждение CPU',
     emptyOption: {
       id: 'no-cooler',
       name: 'Нет охлаждения',
@@ -58,12 +65,14 @@ const COMPONENT_CONFIG = {
     selectId: 'psu',
     summaryId: 'summary-psu',
     type: 'psu',
+    placeholder: 'Выберите блок питания',
     emptyText: 'Нет блоков питания'
   },
   pcCase: {
     selectId: 'pc-case',
     summaryId: 'summary-case',
     type: 'case',
+    placeholder: 'Выберите корпус',
     emptyOption: {
       id: 'no-case',
       name: 'Нет корпуса',
@@ -75,6 +84,7 @@ const COMPONENT_CONFIG = {
     selectId: 'fans',
     summaryId: 'summary-fans',
     type: 'fans',
+    placeholder: 'Выберите дополнительные вентиляторы',
     emptyOption: {
       id: 'no-fans',
       name: 'Без дополнительных вентиляторов',
@@ -299,6 +309,16 @@ function fillSelect(selectId, items, config = {}, previousValue = null) {
 
   select.innerHTML = '';
 
+  const placeholderOption = document.createElement('option');
+  placeholderOption.value = '';
+  placeholderOption.textContent = config.placeholder || 'Выберите вариант';
+  placeholderOption.dataset.title = '';
+  placeholderOption.dataset.price = '0';
+  placeholderOption.dataset.image = CONFIG_PREVIEW_FALLBACK;
+  placeholderOption.dataset.images = JSON.stringify([CONFIG_PREVIEW_FALLBACK]);
+  placeholderOption.dataset.specs = '';
+  select.appendChild(placeholderOption);
+
   if (config.emptyOption) {
     const emptyOption = document.createElement('option');
     emptyOption.value = config.emptyOption.id;
@@ -321,6 +341,7 @@ function fillSelect(selectId, items, config = {}, previousValue = null) {
     option.dataset.images = JSON.stringify([CONFIG_PREVIEW_FALLBACK]);
     option.dataset.specs = '';
     select.appendChild(option);
+    select.value = '';
     select.disabled = true;
     return;
   }
@@ -332,13 +353,10 @@ function fillSelect(selectId, items, config = {}, previousValue = null) {
   select.disabled = false;
 
   const optionValues = Array.from(select.options).map((option) => option.value);
-
   if (previousValue && optionValues.includes(String(previousValue))) {
     select.value = String(previousValue);
-  } else if (config.emptyOption) {
-    select.value = config.emptyOption.id;
   } else {
-    select.selectedIndex = 0;
+    select.value = '';
   }
 }
 
